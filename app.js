@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "4.1.0";
+const APP_VERSION = "4.2.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -33,7 +33,7 @@ const DEFAULT = () => ({
   v: 4, xp: 0, answered: 0, correct: 0, flashSeen: 0, name: "", goal: 20, onboarded: false,
   history: [], qs: {}, bm: [], ach: {}, days: [], goalDays: [], todayN: { d: "", n: 0 },
   streak: { n: 0, best: 0, last: null }, daily: {}, best: { speed: 0, survival: 0 },
-  factSeen: [], factFav: [], challenges: 0, certs: 0,
+  factSeen: [], factFav: [], challenges: 0, certs: 0, foodText: "", myFoods: [],
   settings: {
     theme: "auto", sound: true, vib: true, instant: true,
     rem: { on: false, every: 120, at: "18:00", quietFrom: "22:00", quietTo: "08:00", fact: true, last: 0 },
@@ -351,6 +351,8 @@ function renderHome() {
     <div class="muted small" id="termDef">👆 הקש כדי לראות את ההגדרה</div>
   </div>
 
+  <div class="card food-cta" id="foodCta"><span class="em">🍽️</span><div style="flex:1"><b>כמה יש באוכל?</b><div class="muted small">כתוב מה אכלת וקבל קלוריות, חלבון, פחמימות ושומן</div></div><span class="chev">‹</span></div>
+
   ${rec ? `<div class="tip" data-topic="${rec.f}"><span style="font-size:22px">💡</span><div><b>המלצה: ${topicOf(rec.f).name}</b><div class="small muted">${rec.why}</div></div></div>` : ""}
 
   <div class="section-title"><h2>תחומי לימוד</h2><span class="muted xs">${BANK.length} שאלות במאגר</span></div>
@@ -368,6 +370,7 @@ function renderHome() {
   app.querySelectorAll("[data-topic]").forEach(b => b.onclick = () => topicSheet(b.dataset.topic));
   $("#termCard").onclick = e => { if (e.target.id === "termQuiz") return; $("#termDef").textContent = def; $("#termDef").classList.remove("muted"); };
   $("#termQuiz").onclick = () => startMode("terms");
+  $("#foodCta").onclick = () => go("tools", { seg: "food" });
   let cur = fact;
   const showFact = f => {
     cur = f; const el = $("#factText"); if (!el) return stopFactTimer();
@@ -957,6 +960,7 @@ function searchAll(query) {
   GLOSSARY.forEach(([k, v]) => res.push({ type: "📖 מונח", title: k, body: v, s: score(k, v) * 1.3 }));
   Object.entries(LESSONS).forEach(([f, secs]) => secs.forEach(([h, t]) => res.push({ type: "📘 שיעור · " + TOPICS[f].name, title: h, body: t, f, s: score(h, t) })));
   FACTS.forEach(f => res.push({ type: "💡 עובדה", title: "", body: f.t, s: score("", f.t) * .9 }));
+  allFoods().forEach(f => res.push({ type: "🍽️ ערכים תזונתיים", title: f.n, body: `ל־100 גרם: ${f.k} קלוריות, חלבון ${f.p} ג׳, פחמימות ${f.c} ג׳, שומן ${f.f} ג׳. מנה רגילה (${f.sl}, ${f.sg} ג׳): ${Math.round(f.k * f.sg / 100)} קלוריות, ${Math.round(f.p * f.sg / 10) / 10} ג׳ חלבון.`, s: score(f.al.join(" "), "קלוריות חלבון פחמימות שומן ערכים תזונתיים כמה") * 1.2 }));
   BANK.forEach(q => res.push({ type: "❔ מתוך שאלה · " + TOPICS[q.f].name, title: q.q, body: q.e, s: score(q.q, q.e) * .8 }));
   return res.filter(r => r.s > 0).sort((a, b) => b.s - a.s).slice(0, 6);
 }
@@ -1056,10 +1060,217 @@ function lessonSheet(f) {
     <div class="row"><button class="btn primary" data-a="x">חזרה לשאלה</button></div>`, (e, close) => { if (e.target.dataset.a) close(); });
 }
 
+
+/* ───────── אוכל: ערכים תזונתיים ───────── */
+const FOODS = FOODS_RAW.map(([n, al, k, p, c, f, sg, sl, u]) => ({
+  n, al: [n, ...(al ? al.split("|") : [])], k, p, c, f, sg, sl,
+  u: Object.fromEntries((u || "").split("|").filter(Boolean).map(x => { const [a, b] = x.split(":"); return [a, +b]; }))
+}));
+const allFoods = () => [...FOODS, ...(S.myFoods || []).map(m => ({ ...m, al: [m.n], u: {}, mine: true }))];
+const fnorm = s => String(s).replace(/[״"׳'`]/g, "").replace(/[־\-–]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+const NUMW = { "חצי": .5, "רבע": .25, "שליש": 1 / 3, "אחד": 1, "אחת": 1, "שניים": 2, "שתיים": 2, "שני": 2, "שתי": 2, "שלוש": 3, "שלושה": 3, "ארבע": 4, "ארבעה": 4, "חמש": 5, "חמישה": 5, "שש": 6, "שישה": 6, "שבע": 7, "שבעה": 7, "שמונה": 8, "תשע": 9, "תשעה": 9, "עשר": 10, "עשרה": 10, "זוג": 2 };
+const UNITS = {
+  "גרם": "g", "גרמים": "g", "גר": "g", "ג": "g", "g": "g", "gr": "g", "מל": "g", "ml": "g", "מיליליטר": "g", "קג": "kg", "קילו": "kg", "kg": "kg", "ליטר": "kg",
+  "כוס": "כוס", "כוסות": "כוס", "כף": "כף", "כפות": "כף", "כפית": "כפית", "כפיות": "כפית", "פרוסה": "פרוסה", "פרוסות": "פרוסה",
+  "יחידה": "יחידה", "יחידות": "יחידה", "חתיכה": "יחידה", "חתיכות": "יחידה", "מנה": "מנה", "מנות": "מנה", "גביע": "גביע", "גביעים": "גביע",
+  "פחית": "פחית", "פחיות": "פחית", "קופסה": "קופסה", "קופסא": "קופסה", "קופסאות": "קופסה", "שקית": "שקית", "שקיות": "שקית",
+  "חופן": "חופן", "חופנים": "חופן", "כדור": "כדור", "כדורים": "כדור", "משולש": "משולש", "משולשים": "משולש", "סקופ": "סקופ", "סקופים": "סקופ",
+  "צלחת": "צלחת", "צלחות": "צלחת", "קערה": "קערה", "קערות": "קערה", "בקבוק": "בקבוק", "בקבוקים": "בקבוק", "קובייה": "קובייה", "קוביה": "קובייה", "קוביות": "קובייה",
+  "פלח": "פלח", "פלחים": "פלח", "חפיסה": "חפיסה", "חפיסות": "חפיסה"
+};
+const UNIT_G = { "כוס": 200, "כף": 15, "כפית": 5, "חופן": 30, "צלחת": 250, "קערה": 250, "פחית": 330, "בקבוק": 500, "שקית": 50, "קובייה": 6, "משולש": 110, "פלח": 150, "סקופ": 30, "גביע": 150, "קופסה": 150, "פרוסה": 30, "כדור": 30, "חפיסה": 100 };
+function matchFood(name) {
+  const q = fnorm(name).replace(/^ו(?=\S{3,})/, "");
+  if (!q) return { food: null, alts: [] };
+  const vars = [q, q.replace(/^ה(?=\S{3,})/, ""), q.replace(/(ים|ות)$/, ""), q.replace(/(ים|ות)$/, "ה"), q.replace(/ות$/, "ה")];
+  const scored = [];
+  allFoods().forEach(f => {
+    let best = 0;
+    f.al.forEach(a => {
+      const A = fnorm(a); if (!A) return;
+      if (vars.includes(A)) best = Math.max(best, 100 + A.length);
+      else if (vars.some(v => (" " + v + " ").includes(" " + A + " "))) best = Math.max(best, 60 + A.length);
+      else if (A.startsWith(q) && q.length >= 2) best = Math.max(best, 40 - (A.length - q.length) * .5);
+      else if (A.includes(q) && q.length >= 3) best = Math.max(best, 30 - (A.length - q.length) * .5);
+    });
+    if (best > 0) scored.push({ f, s: best + (f.mine ? 5 : 0) });
+  });
+  scored.sort((a, b) => b.s - a.s);
+  return { food: scored[0] ? scored[0].f : null, alts: scored.slice(0, 6).map(x => x.f) };
+}
+const UNIT_PL = { "כוס": "כוסות", "כף": "כפות", "כפית": "כפיות", "פרוסה": "פרוסות", "יחידה": "יחידות", "גביע": "גביעים", "פחית": "פחיות", "קופסה": "קופסאות", "שקית": "שקיות", "חופן": "חופנים", "כדור": "כדורים", "משולש": "משולשים", "סקופ": "סקופים", "צלחת": "צלחות", "קערה": "קערות", "בקבוק": "בקבוקים", "קובייה": "קוביות", "פלח": "פלחים", "חפיסה": "חפיסות" };
+function unitDesc(n, key) {
+  const [u, a] = key.split(" ");
+  const r = Math.round(n * 100) / 100;
+  if (r === 0.5) return `חצי ${u}${a ? " " + a : ""}`;
+  if (r === 1) return `${u}${a ? " " + a : ""}`;
+  return `${r} ${UNIT_PL[u] || u}${a ? " " + (a === "גדולה" ? "גדולות" : "קטנות") : ""}`;
+}
+function parseFoodLine(line) {
+  let t = fnorm(line).replace(/(\d)([^\d\s.,/])/g, "$1 $2").replace(/([^\d\s.,/])(\d)/g, "$1 $2").replace(/½/g, " 0.5 ").replace(/¼/g, " 0.25 ");
+  const toks = t.split(" ").filter(Boolean);
+  let qty = null, unit = null, extra = 0; const name = [];
+  toks.forEach(tok => {
+    const tk = tok.replace(/^ו(?=חצי|רבע)/, "");
+    if (/^\d+([.,]\d+)?$/.test(tk)) { qty = (qty || 0) + parseFloat(tk.replace(",", ".")); return; }
+    if (/^\d+\/\d+$/.test(tk)) { const [a, b] = tk.split("/").map(Number); qty = (qty || 0) + a / b; return; }
+    if (tok.startsWith("ו") && (tk === "חצי" || tk === "רבע")) { extra += NUMW[tk]; return; }
+    if (NUMW[tk] !== undefined && !name.length) { qty = (qty || 0) + NUMW[tk]; return; }
+    if (UNITS[tk] && !unit) { unit = UNITS[tk]; return; }
+    if (tk.length > 2 && "בל".includes(tk[0]) && UNITS[tk.slice(1)] && !unit) { unit = UNITS[tk.slice(1)]; return; }
+    name.push(tok);
+  });
+  if (extra) qty = (qty || 1) + extra;
+  let adj = null;
+  if (unit && name.length && /^(גדול|גדולה|קטן|קטנה)$/.test(name[0])) adj = name.shift().replace(/ה$/, "") === "גדול" ? "גדולה" : "קטנה";
+  const { food, alts } = matchFood(name.join(" "));
+  if (!food) return { line, name: name.join(" "), food: null, alts };
+  let grams, desc;
+  const n = qty == null ? 1 : qty;
+  const fmt = x => (Math.round(x * 100) / 100).toString();
+  if (unit === "g") { grams = n; desc = `${fmt(n)} גרם`; }
+  else if (unit === "kg") { grams = n * 1000; desc = `${fmt(n)} ק״ג`; }
+  else if (unit === "מנה") { grams = n * food.sg; desc = `${fmt(n)} × ${food.sl}`; }
+  else if (unit) { const key = adj && food.u[unit + " " + adj] ? unit + " " + adj : unit; const g = food.u[key] || (unit === "יחידה" ? food.sg : UNIT_G[unit]); grams = n * g; desc = unitDesc(n, key); }
+  else if (qty != null && qty >= 20 && !food.u["יחידה"]) { grams = qty; desc = `${fmt(qty)} גרם`; }
+  else if (qty != null && (food.u["יחידה"] || food.u["פרוסה"])) { const g = food.u["יחידה"] || food.u["פרוסה"]; grams = n * g; desc = unitDesc(n, food.u["יחידה"] ? "יחידה" : "פרוסה"); }
+  else { grams = n * food.sg; desc = qty == null ? food.sl : `${fmt(n)} × ${food.sl}`; }
+  grams = Math.round(grams);
+  const r = grams / 100;
+  return { line, food, alts, grams, desc, k: food.k * r, p: food.p * r, c: food.c * r, f: food.f * r };
+}
+const FOOD_EXAMPLES = {
+  "ארוחת בוקר": "2 ביצים\n2 פרוסות לחם מלא\nגבינת סקי\nסלט ירקות\nקפה הפוך",
+  "צהריים": "חזה עוף\nכוס אורז\nסלט ירקות\n2 כפות טחינה",
+  "אחרי אימון": "יוגורט פרו\nבננה\nחופן שקדים",
+  "נשנושים": "מילקי\nבמבה\nתפוח"
+};
+let foodSeg = "food";
+function renderTools(sub) {
+  if (sub && sub.seg) foodSeg = sub.seg;
+  app.innerHTML = `<div class="fade-in"><h1>${foodSeg === "food" ? "🍽️ כמה יש באוכל?" : "🧮 מחשבונים"}</h1>
+    <div class="seg" id="tseg" style="margin:8px 0 6px">${[["food", "🍽️ ערכים תזונתיים"], ["calc", "🧮 מחשבונים"]].map(([k, v]) => `<button data-k="${k}" class="${foodSeg === k ? "on" : ""}">${v}</button>`).join("")}</div>
+    <div id="tbody"></div></div>`;
+  $("#tseg").onclick = e => { const b = e.target.closest("button"); if (!b) return; foodSeg = b.dataset.k; renderTools(); };
+  if (foodSeg === "food") renderFood($("#tbody")); else renderCalcs($("#tbody"));
+}
+function renderFood(body) {
+  body.innerHTML = `
+  <div class="card">
+    <p class="muted small" style="margin-top:0">כתוב מאכל בכל שורה. אפשר להוסיף כמות: <b>2 ביצים</b>, <b>כוס אורז</b>, <b>150 גרם עוף</b>, <b>חצי אבוקדו</b>. בלי כמות – נחשבת מנה רגילה.</p>
+    <textarea id="foodIn" class="food-in" placeholder="מילקי&#10;אורז&#10;עוף&#10;גבינת סקי">${esc(S.foodText || "")}</textarea>
+    <div class="chips" style="margin-top:10px">${Object.keys(FOOD_EXAMPLES).map(k => `<button class="chip" data-ex="${esc(k)}">${esc(k)}</button>`).join("")}<button class="chip" id="foodClear">🗑️ ניקוי</button></div>
+  </div>
+  <div id="foodOut"></div>
+  <div class="row" style="margin:6px 0"><button class="btn block" id="foodList" style="flex:1">📋 כל המזונות (${allFoods().length})</button><button class="btn block" id="foodAdd" style="flex:1">➕ הוספת מזון משלי</button></div>
+  <p class="footer-note">הערכים הם ממוצעים לכל 100 גרם (בעיקר לפי מאגר USDA ותוויות של מוצרים ישראליים). למוצר מסוים – הכי מדויק לבדוק את התווית. אין כאן המלצה תזונתית אישית.</p>`;
+  const inp = $("#foodIn");
+  let tmr = null;
+  inp.oninput = () => { clearTimeout(tmr); tmr = setTimeout(() => { S.foodText = inp.value; save(); drawFood(); }, 250); };
+  body.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => { inp.value = FOOD_EXAMPLES[b.dataset.ex]; S.foodText = inp.value; save(); drawFood(); });
+  $("#foodClear").onclick = () => { inp.value = ""; S.foodText = ""; save(); drawFood(); inp.focus(); };
+  $("#foodList").onclick = foodListSheet;
+  $("#foodAdd").onclick = () => addFoodSheet();
+  drawFood();
+}
+function setFoodLine(i, text) {
+  const inp = $("#foodIn"); const lines = inp.value.split("\n");
+  const idx = lines.map((l, j) => l.trim() ? j : -1).filter(j => j >= 0)[i];
+  if (idx === undefined) return;
+  lines[idx] = text.trim(); inp.value = lines.join("\n"); S.foodText = inp.value; save(); drawFood();
+}
+function drawFood() {
+  const out = $("#foodOut"); if (!out) return;
+  const lines = ($("#foodIn").value || "").split("\n").map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { out.innerHTML = `<div class="empty"><span class="em">🥗</span>כתוב למעלה מה אכלת – והחישוב יופיע כאן</div>`; return; }
+  const rows = lines.map(parseFoodLine);
+  const ok = rows.filter(r => r.food);
+  const T = ok.reduce((a, r) => ({ k: a.k + r.k, p: a.p + r.p, c: a.c + r.c, f: a.f + r.f }), { k: 0, p: 0, c: 0, f: 0 });
+  const kc = T.p * 4 + T.c * 4 + T.f * 9 || 1;
+  const pp = Math.round(T.p * 4 / kc * 100), pc = Math.round(T.c * 4 / kc * 100), pf = Math.max(0, 100 - pp - pc);
+  const r1 = x => Math.round(x * 10) / 10;
+  out.innerHTML = `
+  ${ok.length ? `<div class="card food-total">
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="muted xs" style="font-weight:700">סה״כ ${ok.length} פריטים</div><div class="big-num">${Math.round(T.k).toLocaleString("he-IL")} <small>קלוריות</small></div></div><button class="link-btn small" id="foodCopy">📋 העתקה</button></div>
+    <div class="macro-bar"><i class="mp" style="width:${pp}%"></i><i class="mc" style="width:${pc}%"></i><i class="mf" style="width:${pf}%"></i></div>
+    <div class="grid3 macros">
+      <div class="statbox"><b>${r1(T.p)}<small> ג׳</small></b><span><i class="dot mp"></i>חלבון · ${pp}%</span></div>
+      <div class="statbox"><b>${r1(T.c)}<small> ג׳</small></b><span><i class="dot mc"></i>פחמימות · ${pc}%</span></div>
+      <div class="statbox"><b>${r1(T.f)}<small> ג׳</small></b><span><i class="dot mf"></i>שומן · ${pf}%</span></div>
+    </div></div>` : ""}
+  <div class="card" style="padding:4px 16px">${rows.map((r, i) => r.food ? `
+    <div class="food-row">
+      <div class="food-main"><b>${esc(r.food.n)}${r.food.mine ? ' <span class="pill mid">שלי</span>' : ""}</b>
+        <div class="muted xs">${esc(r.desc)}${r.desc.includes("גרם") ? "" : ` · ${r.grams} ג׳`}${r.alts.length > 1 ? ` · <button class="link-btn xs" data-alt="${i}">לא זה?</button>` : ""}</div></div>
+      <div class="food-nums"><b>${Math.round(r.k)}</b><span>קל׳</span></div>
+      <div class="food-macros"><span>ח׳ ${r1(r.p)}</span><span>פ׳ ${r1(r.c)}</span><span>ש׳ ${r1(r.f)}</span></div>
+      <div class="food-edit"><button class="qty-btn" data-g="${i}" data-d="-1" aria-label="פחות">−</button><button class="qty-g" data-gi="${i}">${r.grams} ג׳</button><button class="qty-btn" data-g="${i}" data-d="1" aria-label="יותר">+</button></div>
+    </div>` : `
+    <div class="food-row miss"><div class="food-main"><b>❓ ${esc(r.line)}</b><div class="muted xs">לא מצאתי במאגר${r.alts.length ? " · אולי התכוונת ל:" : ""}</div>
+      ${r.alts.length ? `<div class="chips" style="margin-top:6px">${r.alts.slice(0, 4).map(a => `<button class="chip" data-fix="${i}" data-name="${esc(a.n)}">${esc(a.n)}</button>`).join("")}</div>` : ""}
+      <button class="link-btn xs" data-addname="${esc(r.name || r.line)}">➕ הוספת "${esc(r.name || r.line)}" למאגר שלי</button></div></div>`).join("")}</div>`;
+  const step = g => g >= 200 ? 50 : g >= 60 ? 20 : g >= 20 ? 10 : 5;
+  out.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+    const r = rows[+b.dataset.g]; const st = step(r.grams); const g = Math.max(st, r.grams + st * +b.dataset.d);
+    setFoodLine(+b.dataset.g, `${g} גרם ${r.food.n}`);
+  });
+  out.querySelectorAll("[data-gi]").forEach(b => b.onclick = async () => {
+    const r = rows[+b.dataset.gi];
+    const v = await prompt2("כמה גרם?", `${r.food.n} – כתוב משקל בגרמים`, String(r.grams), "גרם");
+    if (v && +v > 0) setFoodLine(+b.dataset.gi, `${Math.round(+v)} גרם ${r.food.n}`);
+  });
+  out.querySelectorAll("[data-alt]").forEach(b => b.onclick = () => {
+    const r = rows[+b.dataset.alt];
+    sheet(`<h2>למה התכוונת?</h2><p class="muted small">כתבת: "${esc(r.line)}"</p><div class="col">${r.alts.map(a => `<button class="btn block" data-pick="${esc(a.n)}">${esc(a.n)} <span class="muted xs">· ${a.k} קל׳ ל־100 ג׳</span></button>`).join("")}</div>`,
+      (e, close) => { const t = e.target.closest("[data-pick]"); if (!t) return; close(); setFoodLine(+b.dataset.alt, r.line.replace(new RegExp(r.food.al.map(x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((x, y) => y.length - x.length).join("|")), "").trim().replace(/\s+/g, " ") + " " + t.dataset.pick); });
+  });
+  out.querySelectorAll("[data-fix]").forEach(b => b.onclick = () => setFoodLine(+b.dataset.fix, b.dataset.name));
+  out.querySelectorAll("[data-addname]").forEach(b => b.onclick = () => addFoodSheet(b.dataset.addname));
+  $("#foodCopy") && ($("#foodCopy").onclick = async () => {
+    const txt = ok.map(r => `${r.food.n} (${r.grams} ג׳): ${Math.round(r.k)} קל׳, חלבון ${r1(r.p)} ג׳`).join("\n") + `\n— סה״כ: ${Math.round(T.k)} קלוריות · חלבון ${r1(T.p)} ג׳ · פחמימות ${r1(T.c)} ג׳ · שומן ${r1(T.f)} ג׳`;
+    try { await navigator.clipboard.writeText(txt); toast("📋", "הועתק"); } catch (e) { }
+  });
+}
+function foodListSheet() {
+  const { bg } = sheet(`<div style="max-height:76vh;overflow:auto"><h2>📋 מאגר המזונות</h2><input class="search" id="flq" placeholder="🔍 חיפוש..." autocomplete="off"><div class="muted xs" style="margin:8px 0">הערכים ל־100 גרם · הקש על מזון כדי להוסיף לרשימה</div><div id="fll"></div></div><div class="row"><button class="btn primary" data-a="x">סגירה</button></div>`,
+    (e, close) => {
+      if (e.target.dataset.a === "x") return close();
+      const it = e.target.closest("[data-fn]"); if (!it) return;
+      const inp = $("#foodIn"); inp.value = (inp.value.trim() ? inp.value.trim() + "\n" : "") + it.dataset.fn; S.foodText = inp.value; save(); drawFood(); toast("➕", it.dataset.fn + " נוסף");
+    });
+  const draw = () => {
+    const q = fnorm(bg.querySelector("#flq").value);
+    const list = allFoods().filter(f => !q || f.al.some(a => fnorm(a).includes(q)));
+    bg.querySelector("#fll").innerHTML = list.map(f => `<div class="term food-li" data-fn="${esc(f.n)}"><div><b>${esc(f.n)}</b>${f.mine ? ' <span class="pill mid">שלי</span>' : ""}<div class="muted xs">מנה: ${esc(f.sl)} (${f.sg} ג׳)</div></div><div class="xs muted" style="text-align:left">${f.k} קל׳<br>ח׳ ${f.p} · פ׳ ${f.c} · ש׳ ${f.f}</div></div>`).join("") || `<div class="empty">לא נמצא</div>`;
+  };
+  bg.querySelector("#flq").oninput = draw; draw();
+}
+function addFoodSheet(name = "") {
+  const f = (id, l, ph) => `<div><label class="lbl">${l}</label><input class="search" id="${id}" type="number" inputmode="decimal" placeholder="${ph}"></div>`;
+  const { bg } = sheet(`<div style="max-height:78vh;overflow:auto"><h2>➕ מזון משלי</h2><p class="muted small" style="margin-top:0">את הערכים מעתיקים מהתווית שעל האריזה ("ל־100 גרם").</p>
+    <label class="lbl">שם המזון</label><input class="search" id="mfN" value="${esc(name)}" placeholder="למשל: יוגורט חלבון וניל">
+    <div class="grid2">${f("mfK", "קלוריות ל־100 ג׳", "120")}${f("mfP", "חלבון (ג׳)", "10")}${f("mfC", "פחמימות (ג׳)", "12")}${f("mfF", "שומן (ג׳)", "3")}</div>
+    <div class="grid2">${f("mfS", "גרם במנה רגילה", "150")}<div><label class="lbl">שם המנה</label><input class="search" id="mfL" placeholder="גביע"></div></div>
+    ${(S.myFoods || []).length ? `<div class="muted xs" style="font-weight:700;margin-top:14px">המזונות שלי</div>${S.myFoods.map((m, i) => `<div class="term" style="display:flex;justify-content:space-between;align-items:center"><span>${esc(m.n)} <span class="muted xs">· ${m.k} קל׳</span></span><button class="link-btn xs" data-del="${i}">מחיקה</button></div>`).join("")}` : ""}
+    </div><div class="row"><button class="btn" data-a="x">ביטול</button><button class="btn primary" data-a="save">שמירה</button></div>`,
+    (e, close) => {
+      const del = e.target.dataset.del;
+      if (del !== undefined) { S.myFoods.splice(+del, 1); save(); close(); addFoodSheet(name); drawFood(); return; }
+      const a = e.target.dataset.a; if (!a) return;
+      if (a === "x") return close();
+      const v = id => parseFloat(bg.querySelector("#" + id).value);
+      const n = bg.querySelector("#mfN").value.trim();
+      if (!n || !(v("mfK") >= 0)) return toast("✍️", "צריך לפחות שם וקלוריות");
+      S.myFoods = S.myFoods || [];
+      S.myFoods.push({ n, k: v("mfK"), p: v("mfP") || 0, c: v("mfC") || 0, f: v("mfF") || 0, sg: v("mfS") || 100, sl: bg.querySelector("#mfL").value.trim() || "מנה" });
+      save(); close(); toast("✅", n + " נוסף למאגר שלך"); drawFood();
+    });
+}
+
 /* ───────── כלים ומחשבונים ───────── */
-function renderTools() {
+function renderCalcs(body) {
   const num = (id, label, ph, val = "") => `<div><label class="lbl" for="${id}">${label}</label><input class="search" id="${id}" type="number" inputmode="decimal" placeholder="${ph}" value="${val}"></div>`;
-  app.innerHTML = `<div class="fade-in"><h1>כלים למדריך</h1><p class="muted" style="margin-top:0">מחשבונים שימושיים לעבודה עם מתאמנים. כל התוצאות הן הערכות.</p>
+  body.innerHTML = `<div class="fade-in"><p class="muted" style="margin-top:0">מחשבונים שימושיים לעבודה עם מתאמנים. כל התוצאות הן הערכות.</p>
 
   <div class="card tool" id="t1"><h2>🏋️ מחשבון 1RM</h2>
     <div class="grid2">${num("rmW", "משקל (ק״ג)", "100")}${num("rmR", "חזרות (1–12)", "5")}</div>
@@ -1114,7 +1325,7 @@ function renderTools() {
     const pW = v("pW");
     out("pOut", pW > 0 ? `<div class="big-num"><span dir="ltr">${Math.round(pW * 1.6)}–${Math.round(pW * 2.2)}</span> <small>גרם ביום</small></div><div class="muted xs">לפי הטווח המקובל של 1.6–2.2 גרם לק״ג למתאמני כוח</div>` : ph);
   };
-  app.querySelectorAll("input").forEach(i => i.oninput = calc);
+  body.querySelectorAll("input").forEach(i => i.oninput = calc);
   $("#sex").onclick = e => { const b = e.target.closest("button"); if (!b) return; sex = b.dataset.k; $("#sex").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); calc(); };
   $("#act").onclick = e => { const b = e.target.closest("button"); if (!b) return; act = +b.dataset.k; $("#act").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); calc(); };
   calc();

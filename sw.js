@@ -1,8 +1,8 @@
 // להעלות את המספר בכל עדכון של האפליקציה, כדי שהמשתמשים יקבלו את הגרסה החדשה
-const CACHE = 'coach-knowledge-v5';
+const CACHE = 'coach-knowledge-v6';
 const FILES = [
   './', './index.html', './styles.css', './app.js',
-  './questions.js', './questions2.js', './facts.js', './lessons.js',
+  './questions.js', './questions2.js', './facts.js', './lessons.js', './foods.js',
   './privacy.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
 ];
