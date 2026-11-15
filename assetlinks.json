@@ -1,12 +1,8 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.YOURNAME.coachknowledge",
-      "sha256_cert_fingerprints": [
-        "PASTE:YOUR:SHA256:FINGERPRINT:HERE"
-      ]
-    }
-  }
-]
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.coach.knowledge",
+        "sha256_cert_fingerprints": ["13:F7:65:E2:48:E0:F7:D4:C5:BD:5B:AE:CB:61:3F:23:51:75:28:21:95:D3:9B:18:74:92:82:8A:D0:75:06:92"]
+      }
+    }]
