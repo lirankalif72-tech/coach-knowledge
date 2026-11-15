@@ -1,0 +1,137 @@
+{
+  "id": "./",
+  "name": "מאמן ידע – מבחני כושר",
+  "short_name": "מאמן ידע",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "description": "תרגול ומבחנים למדריכי כושר: כמעט 300 שאלות ב־10 תחומים, כולל פסיכולוגיה של אימון ושאלות עם איורים. אתגר יומי, הישרדות, מבחן מהירות, סימולציית מבחן, אתגר חבר, שיעורים, מחשבונים, עובדות 'הידעת?' ותזכורות.",
+  "categories": [
+    "education",
+    "health",
+    "fitness"
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/screenshot-1-home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "מסך הבית: מטרה יומית, אתגר יומי ועובדת 'הידעת?'"
+    },
+    {
+      "src": "screenshots/screenshot-2-quiz.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "שאלות עם איורים ומשוב מיידי"
+    },
+    {
+      "src": "screenshots/screenshot-3-progress.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "גרף ציונים, דוח חולשות והישגים"
+    },
+    {
+      "src": "screenshots/screenshot-4-learn.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "שיעורים קצרים לכל תחום"
+    },
+    {
+      "src": "screenshots/screenshot-5-tools.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "מחשבונים למדריך: 1RM, דופק מטרה ועוד"
+    },
+    {
+      "src": "screenshots/screenshot-6-facts.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "שומר מסך עם עובדה חדשה כל 2 דקות"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "אתגר יומי",
+      "short_name": "אתגר יומי",
+      "url": "./?mode=daily",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "תרגול מהיר",
+      "short_name": "תרגול מהיר",
+      "url": "./?mode=quick",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "מבחן מהירות",
+      "short_name": "מהירות",
+      "url": "./?mode=speed",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "הישרדות",
+      "short_name": "הישרדות",
+      "url": "./?mode=survival",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
