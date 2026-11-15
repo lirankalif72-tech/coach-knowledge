@@ -7,14 +7,21 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#0b1220",
   "theme_color": "#101827",
-  "description": "מבחנים ותרגול למדריכי כושר",
+  "description": "מבחנים ותרגול למדריכי כושר: אנטומיה, סיטואציות מהשטח, תכנון אימונים, TRX ובטיחות.",
   "categories": ["education", "health", "fitness"],
+  "prefer_related_applications": false,
+  "launch_handler": { "client_mode": "focus-existing" },
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "screenshots/screenshot-1-home.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "בניית מבחן מותאם אישית" },
+    { "src": "screenshots/screenshot-2-quiz.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "שאלה עם הסבר מיידי" }
   ]
 }
