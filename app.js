@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "4.0.0";
+const APP_VERSION = "4.1.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -332,8 +332,8 @@ function renderHome() {
 
   <div class="card fact-card" id="factCard">
     <div class="row" style="justify-content:space-between"><b>💡 הידעת?</b><span class="tag">${factTag(fact.c)}</span></div>
-    <p id="factText" style="margin:8px 0 10px;font-size:15.5px">${esc(fact.t)}</p>
-    <div class="row"><button class="link-btn small" id="factFav">${S.factFav.includes(fact.i) ? "❤️ אהובה" : "🤍 שמירה"}</button><span class="spacer"></span><button class="link-btn small" id="factNext">עובדה נוספת ←</button></div>
+    <p id="factText" style="margin:8px 0 10px;font-size:15.5px">${linkTerms(fact.t)}</p>
+    <div class="row"><button class="link-btn small" id="factFav">${S.factFav.includes(fact.i) ? "❤️ אהובה" : "🤍 שמירה"}</button><button class="link-btn small" id="factAsk">❓ לא הבנתי</button><span class="spacer"></span><button class="link-btn small" id="factNext">עובדה נוספת ←</button></div>
   </div>
 
   <div class="grid2">
@@ -372,11 +372,12 @@ function renderHome() {
   const showFact = f => {
     cur = f; const el = $("#factText"); if (!el) return stopFactTimer();
     el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
-    el.textContent = f.t; $("#factCard .tag").textContent = factTag(f.c);
+    el.innerHTML = linkTerms(f.t); $("#factCard .tag").textContent = factTag(f.c);
     $("#factFav").textContent = S.factFav.includes(f.i) ? "❤️ אהובה" : "🤍 שמירה";
   };
   $("#factNext").onclick = () => showFact(nextFact());
   $("#factFav").onclick = () => { toggleFav(cur.i); showFact(cur); };
+  $("#factAsk").onclick = () => askSheet(cur.t);
   factTimer = setInterval(() => showFact(nextFact()), SAVER_ROTATE * 1000);
 }
 function toggleFav(i) { S.factFav = S.factFav.includes(i) ? S.factFav.filter(x => x !== i) : [...S.factFav, i]; save(); }
@@ -550,14 +551,14 @@ function renderQuestion() {
   if (showRes && !isSpeed) {
     const more = q.f in (typeof LESSONS !== "undefined" ? LESSONS : {}) ? `<button class="link-btn xs" id="learnMore">📘 למד עוד על הנושא</button>` : "";
     if (q.t === "open") {
-      fb = `<div class="feedback info"><b class="t">📝 תשובה לדוגמה</b>${esc(q.a)}<div class="small muted" style="margin-top:8px">💡 ${esc(q.e)}</div>
+      fb = `<div class="feedback info"><b class="t">📝 תשובה לדוגמה</b>${esc(q.a)}<div class="small muted" style="margin-top:8px">💡 ${linkTerms(q.e)}</div>
         ${it.grade === null ? `<div style="margin-top:12px;font-weight:700">איך ענית ביחס לתשובה לדוגמה?</div>
         <div class="grade"><button class="btn danger" data-g="0">לא ידעתי</button><button class="btn" data-g="0.5">חלקית</button><button class="btn primary" data-g="1">ידעתי</button></div>`
-          : `<div style="margin-top:10px" class="small"><b>דירגת: ${it.grade === 1 ? "ידעתי ✅" : it.grade === 0.5 ? "חלקית 🟡" : "לא ידעתי ❌"}</b></div>`}${more}</div>`;
+          : `<div style="margin-top:10px" class="small"><b>דירגת: ${it.grade === 1 ? "ידעתי ✅" : it.grade === 0.5 ? "חלקית 🟡" : "לא ידעתי ❌"}</b></div>`}<div class="row" style="gap:14px">${more}<button class="link-btn xs" id="askQBtn">❓ יש לי שאלה</button></div></div>`;
     } else {
       const ok = it.grade === 1;
       const right = q.t === "mc" ? q.o[q.a] : (q.a ? "נכון" : "לא נכון");
-      fb = `<div class="feedback ${ok ? "good" : "bad"}"><b class="t">${ok ? pickPraise() : isSurv ? `לא מדויק – נשארו ${s.lives} ❤️` : "לא מדויק"}</b>${ok ? "" : `התשובה הנכונה: <b>${esc(right)}</b><br>`}${esc(q.e)}<div>${more}</div></div>`;
+      fb = `<div class="feedback ${ok ? "good" : "bad"}"><b class="t">${ok ? pickPraise() : isSurv ? `לא מדויק – נשארו ${s.lives} ❤️` : "לא מדויק"}</b>${ok ? "" : `התשובה הנכונה: <b>${esc(right)}</b><br>`}${linkTerms(q.e)}<div class="row" style="gap:14px">${more}<button class="link-btn xs" id="askQBtn">❓ יש לי שאלה</button></div></div>`;
     }
   }
 
@@ -609,6 +610,7 @@ function bindQuestion() {
   $("#submit") && ($("#submit").onclick = submitExam);
   $("#learnMore") && ($("#learnMore").onclick = () => lessonSheet(it.q.f));
   $("#report") && ($("#report").onclick = () => reportQuestion(it.q));
+  $("#askQBtn") && ($("#askQBtn").onclick = () => askSheet(it.q.q + " — " + it.q.e));
   app.querySelectorAll("[data-g]").forEach(b => b.onclick = () => gradeOpen(+b.dataset.g));
   app.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { s.idx = +b.dataset.n; renderQuestion(); });
   $("#bm") && ($("#bm").onclick = () => {
@@ -898,6 +900,101 @@ function renderFlash() {
   $("#again").onclick = () => rate(false); $("#knew").onclick = () => rate(true);
 }
 
+
+/* ───────── מונחים לחיצים ושאלות ───────── */
+const TERM_ALIASES = {
+  "כיווץ קונצנטרי": ["קונצנטרי"], "כיווץ אקסצנטרי": ["אקסצנטרי"], "כיווץ איזומטרי": ["איזומטרי"],
+  "מישור סגיטלי": ["סגיטלי"], "מישור פרונטלי": ["פרונטלי"], "מישור טרנסברסלי": ["טרנסברסלי"],
+  "מערכת ATP–CP": ["ATP–CP", "קריאטין פוספט"], "עומס מתקדם": ["Progressive overload"],
+  "עקרון SAID": ["SAID"], "עקרון ההפיכות": ["הפיכות"], "רגרסיה / פרוגרסיה": ["רגרסיה", "פרוגרסיה", "רגרסיות", "פרוגרסיות"],
+  "זרוע מומנט": ["זרוע המומנט"], "יחידה מוטורית": ["יחידות מוטוריות"], "נפח אימון": ["נפח האימון"],
+  "שלבי השינוי": ["מודל שלבי השינוי"], "מסוגלות עצמית": ["Self-efficacy"], "מרכז כובד": ["מרכז הכובד"], "בסיס תמיכה": ["בסיס התמיכה"]
+};
+let TERM_INDEX = null, TERM_RE = null;
+function buildTerms() {
+  TERM_INDEX = {};
+  GLOSSARY.forEach(([k, v, extra]) => {
+    const names = [k, k.replace(/\s*\(.*?\)\s*/g, " ").trim(), ...((k.match(/\((.*?)\)/) || [])[1] ? [k.match(/\((.*?)\)/)[1]] : []), ...(TERM_ALIASES[k] || []), ...(extra || [])];
+    names.forEach(n => { n = n.trim(); if (n.length >= 2 && !TERM_INDEX[n]) TERM_INDEX[n] = k; });
+  });
+  const alts = Object.keys(TERM_INDEX).sort((a, b) => b.length - a.length).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  TERM_RE = new RegExp(`(^|[\\s"'(״׳–\\-/,.:;])([והבלמשכ]{0,2})(${alts.join("|")})(?=$|[\\s.,:;!?)"'״–\\-/]|ים|ות)`, "g");
+}
+const termDef = k => (GLOSSARY.find(g => g[0] === k) || [])[1];
+function linkTerms(text, skip) {
+  if (!TERM_RE) buildTerms();
+  return esc(text).replace(TERM_RE, (m, pre, prefix, word) => {
+    const key = TERM_INDEX[word];
+    if (!key || key === skip) return m;
+    return `${pre}${prefix}<button class="term-link" data-term="${esc(key)}">${word}</button>`;
+  });
+}
+function termsIn(text) {
+  if (!TERM_RE) buildTerms();
+  const found = new Set(); let m; TERM_RE.lastIndex = 0;
+  while ((m = TERM_RE.exec(text))) { const k = TERM_INDEX[m[3]]; if (k) found.add(k); }
+  return [...found];
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest(".term-link"); if (!t) return;
+  e.preventDefault(); e.stopPropagation();
+  termSheet(t.dataset.term);
+}, true);
+function termSheet(k) {
+  sheet(`<div class="muted xs" style="font-weight:700">📖 מונח</div><h2 style="margin-top:4px">${esc(k)}</h2>
+    <p style="font-size:16px;line-height:1.7;margin:0 0 6px">${linkTerms(termDef(k) || "", k)}</p>
+    <div class="row"><button class="btn" data-a="ask">❓ עדיין לא ברור</button><button class="btn primary" data-a="x">הבנתי 👍</button></div>`,
+    (e, close) => { const a = e.target.dataset.a; if (!a) return; close(); if (a === "ask") askSheet(k + ": " + (termDef(k) || ""), k); });
+}
+function searchAll(query) {
+  const norm = s => s.toLowerCase().replace(/[״"׳'.,:;!?()\-–]/g, " ");
+  const toks = norm(query).split(/\s+/).filter(t => t.length >= 2 && !["מה","זה","איך","למה","של","את","על","עם","או","גם","כל","יש","אני","לא","הוא","היא","זו","מי","כמה","מתי","האם","בין"].includes(t));
+  if (!toks.length) return [];
+  const variants = t => { const v = [t]; if (t.length > 3 && "והבלמשכ".includes(t[0])) v.push(t.slice(1)); if (t.length > 4 && "והבלמשכ".includes(t[0]) && "הבלמשכ".includes(t[1])) v.push(t.slice(2)); return v; };
+  const tv = toks.map(variants);
+  const score = (title, body) => { const a = norm(title), b = norm(body); let s = 0; tv.forEach(v => { if (v.some(x => a.includes(x))) s += 3; else if (v.some(x => b.includes(x))) s += 1; }); return s; };
+  const res = [];
+  GLOSSARY.forEach(([k, v]) => res.push({ type: "📖 מונח", title: k, body: v, s: score(k, v) * 1.3 }));
+  Object.entries(LESSONS).forEach(([f, secs]) => secs.forEach(([h, t]) => res.push({ type: "📘 שיעור · " + TOPICS[f].name, title: h, body: t, f, s: score(h, t) })));
+  FACTS.forEach(f => res.push({ type: "💡 עובדה", title: "", body: f.t, s: score("", f.t) * .9 }));
+  BANK.forEach(q => res.push({ type: "❔ מתוך שאלה · " + TOPICS[q.f].name, title: q.q, body: q.e, s: score(q.q, q.e) * .8 }));
+  return res.filter(r => r.s > 0).sort((a, b) => b.s - a.s).slice(0, 6);
+}
+function askSheet(context = "", focus = "") {
+  const terms = context ? termsIn(context).filter(k => k !== focus) : [];
+  const { bg } = sheet(`<div style="max-height:76vh;overflow:auto">
+    <h2>❓ מה לא ברור?</h2>
+    ${context ? `<div class="ask-ctx">${linkTerms(context)}</div>` : ""}
+    ${terms.length ? `<div class="muted xs" style="font-weight:700;margin:12px 0 4px">מונחים מהטקסט – הקש על מונח להסבר:</div><div class="chips">${terms.map(k => `<button class="chip term-link" data-term="${esc(k)}">${esc(k)}</button>`).join("")}</div>` : ""}
+    <label class="lbl">כתוב מילה או שאלה</label>
+    <input class="search" id="askQ" placeholder="למשל: מה זה גליקוגן?" autocomplete="off">
+    <div id="askRes"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" data-a="google">🔎 חיפוש בגוגל</button><button class="btn" data-a="mail">✉️ שליחה למפתח</button></div>
+    <p class="muted xs" style="margin:8px 0 0">החיפוש עובד גם בלי אינטרנט – במילון, בשיעורים, בעובדות ובהסברים של כל השאלות.</p>
+    <div class="row"><button class="btn primary" data-a="x">סגירה</button></div></div>`,
+    (e, close) => {
+      const a = e.target.dataset.a; if (!a) return;
+      const q = bg.querySelector("#askQ").value.trim();
+      if (a === "x") close();
+      if (a === "google") { const query = q || focus || context.slice(0, 80); if (!query) return toast("✍️", "כתוב קודם מה לחפש"); window.open("https://www.google.com/search?q=" + encodeURIComponent(query + " כושר"), "_blank"); }
+      if (a === "mail") {
+        if (!q) return toast("✍️", "כתוב קודם את השאלה");
+        location.href = `mailto:${CONTACT}?subject=${encodeURIComponent("שאלה מאפליקציית מאמן ידע")}&body=${encodeURIComponent("השאלה שלי:\n" + q + (context ? "\n\nבהקשר של:\n" + context : ""))}`;
+      }
+      if (a === "lesson") { close(); go("learn", { lesson: e.target.dataset.f }); }
+    });
+  const inp = bg.querySelector("#askQ"), out = bg.querySelector("#askRes");
+  const draw = () => {
+    const q = inp.value.trim();
+    if (q.length < 2) { out.innerHTML = ""; return; }
+    const r = searchAll(q);
+    out.innerHTML = r.length ? `<div class="muted xs" style="font-weight:700;margin:12px 0 4px">מה מצאתי:</div>` + r.map(x => `<div class="ask-res"><div class="muted xs">${esc(x.type)}</div>${x.title ? `<b>${esc(x.title)}</b>` : ""}<div class="small">${linkTerms(x.body)}</div>${x.f ? `<button class="link-btn xs" data-a="lesson" data-f="${x.f}">לשיעור המלא ←</button>` : ""}</div>`).join("")
+      : `<div class="empty" style="padding:14px"><span class="em">🤔</span>לא מצאתי תשובה באפליקציה. אפשר לחפש בגוגל או לשלוח את השאלה למפתח.</div>`;
+  };
+  inp.oninput = draw;
+  if (!context) setTimeout(() => inp.focus(), 60);
+}
+
 /* ───────── מסך למידה: שיעורים, מילון, עובדות ───────── */
 let learnSeg = "lessons";
 function renderLearn(sub) {
@@ -912,13 +1009,13 @@ function renderLearn(sub) {
     body.innerHTML = `<p class="muted small">שיעור קצר לכל תחום – כדאי לקרוא לפני מבחן.</p><div class="card" style="padding:4px 16px">${TOPIC_KEYS.map(f => `<div class="topic" data-l="${f}"><div class="em">${TOPICS[f].icon}</div><div class="tx"><b>${TOPICS[f].name}</b><span class="muted xs">${(LESSONS[f] || []).length} נושאים · ${topicStats(f).total} שאלות</span></div><span class="chev">‹</span></div>`).join("")}</div>`;
     body.querySelectorAll("[data-l]").forEach(el => el.onclick = () => renderLesson(el.dataset.l));
   } else if (learnSeg === "glossary") {
-    body.innerHTML = `<div class="row" style="margin:6px 0 10px"><input class="search" id="gq" type="search" placeholder="🔍 חיפוש מונח..." autocomplete="off" style="flex:1"><button class="btn" id="gquiz">מבחן</button></div><div class="card" style="padding:4px 16px" id="glist"></div>`;
+    body.innerHTML = `<div class="row" style="margin:6px 0 10px"><input class="search" id="gq" type="search" placeholder="🔍 חיפוש מונח..." autocomplete="off" style="flex:1"><button class="btn" id="gquiz">מבחן</button><button class="btn" id="gask">❓</button></div><div class="card" style="padding:4px 16px" id="glist"></div>`;
     const draw = term => {
       const t = term.trim().toLowerCase();
       const list = GLOSSARY.filter(([k, v]) => !t || k.toLowerCase().includes(t) || v.toLowerCase().includes(t)).sort((a, b) => a[0].localeCompare(b[0], "he"));
-      $("#glist").innerHTML = list.length ? list.map(([k, v]) => `<div class="term"><b>${esc(k)}</b><span class="muted small">${esc(v)}</span></div>`).join("") : `<div class="empty"><span class="em">🤷</span>לא נמצא מונח מתאים</div>`;
+      $("#glist").innerHTML = list.length ? list.map(([k, v]) => `<div class="term"><b>${esc(k)}</b><span class="muted small">${linkTerms(v, k)}</span></div>`).join("") : `<div class="empty"><span class="em">🤷</span>לא נמצא מונח מתאים</div>`;
     };
-    $("#gq").oninput = e => draw(e.target.value); $("#gquiz").onclick = () => startMode("terms"); draw("");
+    $("#gq").oninput = e => draw(e.target.value); $("#gquiz").onclick = () => startMode("terms"); $("#gask").onclick = () => askSheet(); draw("");
   } else renderFactsList(body);
 }
 let factFilter = "all";
@@ -927,15 +1024,17 @@ function renderFactsList(body) {
   body.innerHTML = `<div class="card fact-card" style="text-align:center">
       <div style="font-size:30px">🖥️</div><b>מצב שומר מסך</b><p class="muted small" style="margin:4px 0 10px">עובדה חדשה כל 2 דקות, במסך מלא. נפתח גם לבד כשהאפליקציה פתוחה ולא נוגעים בה.</p>
       <button class="btn primary block" id="saverNow">הפעלה עכשיו</button></div>
+    <div class="tip" id="factsAsk" style="margin-top:12px"><span style="font-size:20px">❓</span><div><b>נתקלת במילה לא מוכרת?</b><div class="small muted">מילים מסומנות בקו לחיצות. אפשר גם לכתוב שאלה חופשית.</div></div></div>
     <div class="row" style="justify-content:space-between;margin:14px 2px 6px"><div class="chips" id="ff">${[["all", "הכול"], ["fit", "💪 כושר"], ["psy", "🧠 פסיכולוגיה"], ["fav", "❤️ אהובות"]].map(([k, v]) => `<button class="chip ${factFilter === k ? "on" : ""}" data-k="${k}">${v}</button>`).join("")}</div></div>
     <div class="muted xs" style="margin:0 2px 6px">קראת ${S.factSeen.length} מתוך ${FACTS.length} עובדות</div>
-    <div class="card" style="padding:4px 16px">${list.length ? list.map(f => `<div class="term fact-row ${S.factSeen.includes(f.i) ? "" : "new"}"><span>${esc(f.t)}</span><button class="fav-btn" data-fav="${f.i}" aria-label="אהובה">${S.factFav.includes(f.i) ? "❤️" : "🤍"}</button></div>`).join("") : `<div class="empty"><span class="em">🤍</span>עוד לא סימנת עובדות אהובות</div>`}</div>`;
+    <div class="card" style="padding:4px 16px">${list.length ? list.map(f => `<div class="term fact-row ${S.factSeen.includes(f.i) ? "" : "new"}"><span>${linkTerms(f.t)}</span><button class="fav-btn" data-fav="${f.i}" aria-label="אהובה">${S.factFav.includes(f.i) ? "❤️" : "🤍"}</button></div>`).join("") : `<div class="empty"><span class="em">🤍</span>עוד לא סימנת עובדות אהובות</div>`}</div>`;
   $("#saverNow").onclick = openSaver;
+  $("#factsAsk").onclick = () => askSheet();
   $("#ff").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; factFilter = b.dataset.k; renderFactsList(body); };
   body.querySelectorAll("[data-fav]").forEach(b => b.onclick = () => { const i = +b.dataset.fav; toggleFav(i); if (!S.factSeen.includes(i)) S.factSeen.push(i); save(); b.textContent = S.factFav.includes(i) ? "❤️" : "🤍"; });
 }
 function lessonBody(f) {
-  return (LESSONS[f] || []).map(([h, t]) => `<div class="lesson-sec"><h3>${esc(h)}</h3><p>${esc(t)}</p></div>`).join("");
+  return (LESSONS[f] || []).map(([h, t]) => `<div class="lesson-sec"><h3>${esc(h)}</h3><p>${linkTerms(t)}</p></div>`).join("");
 }
 function renderLesson(f) {
   learnSeg = "lessons";
@@ -1320,7 +1419,7 @@ async function openSaver() {
   saverEl = document.createElement("div"); saverEl.className = "saver";
   saverEl.innerHTML = `<div class="saver-top"><span id="svClock"></span><span>מאמן ידע ✦</span></div>
     <div class="saver-mid"><span class="tag" id="svTag"></span><div class="saver-fact" id="svFact"></div>
-      <button class="saver-fav" id="svFav">🤍</button></div>
+      <div class="row" style="justify-content:center"><button class="saver-fav" id="svFav">🤍</button><button class="saver-fav" id="svAsk">❓ לא הבנתי</button></div></div>
     <div class="saver-bot"><div class="saver-bar"><i id="svBar"></i></div><span>הקש בכל מקום כדי לחזור</span></div>`;
   document.body.append(saverEl);
   let cur;
@@ -1328,7 +1427,7 @@ async function openSaver() {
   const show = () => {
     cur = nextFact(); const el = $("#svFact"); if (!el) return;
     el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
-    el.textContent = cur.t; $("#svTag").textContent = factTag(cur.c); $("#svFav").textContent = S.factFav.includes(cur.i) ? "❤️" : "🤍";
+    el.innerHTML = linkTerms(cur.t); $("#svTag").textContent = factTag(cur.c); $("#svFav").textContent = S.factFav.includes(cur.i) ? "❤️" : "🤍";
     const bar = $("#svBar"); bar.style.transition = "none"; bar.style.width = "0%"; void bar.offsetWidth; bar.style.transition = `width ${SAVER_ROTATE}s linear`; bar.style.width = "100%";
     clock(); checkAchievements(); save();
   };
@@ -1337,6 +1436,7 @@ async function openSaver() {
   const clockInt = setInterval(clock, 20000);
   saverEl.addEventListener("click", e => {
     if (e.target.id === "svFav") { toggleFav(cur.i); $("#svFav").textContent = S.factFav.includes(cur.i) ? "❤️" : "🤍"; return; }
+    if (e.target.id === "svAsk") { askSheet(cur.t); return; }
     clearInterval(saverInt); clearInterval(clockInt); saverEl.remove(); saverEl = null;
     try { wakeLock && wakeLock.release(); } catch (err) { } wakeLock = null;
     resetIdle();

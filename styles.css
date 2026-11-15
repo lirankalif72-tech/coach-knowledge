@@ -209,7 +209,7 @@ input.search:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--acce
 .empty .em{font-size:34px;display:block;margin-bottom:6px}
 
 /* ── מודאל וטוסט ── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:grid;place-items:end center;padding:16px;animation:fade .2s}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;display:grid;place-items:end center;padding:16px;animation:fade .2s}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;width:100%;max-width:440px;margin-bottom:env(safe-area-inset-bottom);box-shadow:var(--shadow)}
 .modal h2{margin-bottom:6px}
 .modal .row{margin-top:16px}
@@ -302,3 +302,14 @@ input[type="time"].search{padding:11px 12px}
 .onb-dots{display:flex;gap:6px;justify-content:center;margin:22px 0}
 .onb-dots i{width:8px;height:8px;border-radius:99px;background:var(--line);transition:.2s}
 .onb-dots i.on{width:22px;background:var(--accent)}
+
+/* מונחים לחיצים ושאלות */
+.term-link{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted color-mix(in srgb,var(--accent) 80%,transparent);text-decoration-thickness:2px;text-underline-offset:4px}
+.term-link:hover{color:var(--accent)}
+.chip.term-link{text-decoration:none;color:var(--text)}
+.saver .term-link{text-decoration-color:rgba(52,211,153,.8)}
+.ask-ctx{background:var(--card2);border-radius:12px;padding:12px;font-size:14.5px;line-height:1.65;margin-top:6px}
+.ask-res{padding:10px 0;border-bottom:1px solid var(--line)}
+.ask-res:last-child{border-bottom:0}
+.ask-res b{display:block;font-size:14.5px;margin:2px 0}
+.saver-fav+.saver-fav{font-size:16px;font-weight:700;color:#eef2f7}
