@@ -1,0 +1,105 @@
+{
+  "id": "./",
+  "name": "מאמן ידע – מבחני כושר",
+  "short_name": "מאמן ידע",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "description": "תרגול ומבחנים למדריכי כושר: 160+ שאלות באנטומיה, פיזיולוגיה, טכניקה, תכנון אימונים, TRX, תזונה ובטיחות. אתגר יומי, מבחן מהירות, סימולציית מבחן וכרטיסיות.",
+  "categories": [
+    "education",
+    "health",
+    "fitness"
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/screenshot-1-home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "מסך הבית: רמה, אתגר יומי ומצבי תרגול"
+    },
+    {
+      "src": "screenshots/screenshot-2-quiz.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "שאלה עם משוב והסבר מיידי"
+    },
+    {
+      "src": "screenshots/screenshot-3-progress.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "מעקב התקדמות, שליטה לפי תחום והישגים"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "אתגר יומי",
+      "short_name": "אתגר יומי",
+      "url": "./?mode=daily",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "תרגול מהיר",
+      "short_name": "תרגול מהיר",
+      "url": "./?mode=quick",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "מבחן מהירות",
+      "short_name": "מהירות",
+      "url": "./?mode=speed",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
