@@ -21,7 +21,8 @@ try{const s=JSON.parse(localStorage.getItem("ck_state_v3")||"{}");const t=(s.set
     <div class="brand"><img class="brand-dot" src="icons/icon-192.png" alt="">מאמן <b>ידע</b></div>
     <div class="spacer"></div>
     <span class="chip-stat" id="streakChip" title="רצף ימים">🔥 <span>0</span></span>
-    <span class="chip-stat" id="levelChip" title="רמה">⭐ <span>1</span></span>
+    <button class="chip-stat hidden" id="coinChip" title="מטבעות – החנות">🪙 <span>0</span></button>
+    <button class="icon-btn mode-chip" id="modeChip" aria-label="החלפת מצב">🎮</button>
     <button class="icon-btn" id="settingsBtn" aria-label="הגדרות">⚙️</button>
   </div>
 </header>
