@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="אפליקציית תרגול ומבחנים למדריכי כושר">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>מאמן ידע | מבחני כושר</title>
+<style>
+:root{--bg:#0b1220;--panel:#131f33;--panel2:#1a2941;--text:#f3f6fb;--muted:#aab7ca;--accent:#75d6b2;--accent2:#8ab4ff;--bad:#ff8d8d;--line:#2a3a54}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0b1220,#111d30 60%,#0b1220);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:100vh}
+main{max-width:760px;margin:auto;padding:20px 16px 40px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 22px}.brand{font-size:24px;font-weight:850;letter-spacing:-.5px}.brand span{color:var(--accent)}.sub{color:var(--muted);font-size:13px}
+.panel{background:rgba(19,31,51,.96);border:1px solid var(--line);border-radius:20px;padding:18px;margin:14px 0;box-shadow:0 12px 35px #0003}
+h1{font-size:27px;margin:8px 0}h2{font-size:19px;margin:0 0 12px}p{line-height:1.55}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:14px;font-weight:650;margin:12px 0 6px}select,input{width:100%;background:#0d1728;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:13px;font:inherit}
+button{border:0;border-radius:13px;padding:13px 16px;font:inherit;font-weight:750;cursor:pointer;background:var(--accent);color:#082016}
+button.secondary{background:#243650;color:var(--text);border:1px solid #354b69}button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:not-allowed}.primary{width:100%;margin-top:18px;font-size:16px}.row{display:flex;gap:10px;flex-wrap:wrap}.row button{flex:1}
+.pill{display:inline-block;border-radius:99px;padding:5px 10px;background:#20344c;color:#bcd4f5;font-size:12px;margin-left:5px}
+.question{font-size:20px;line-height:1.5;font-weight:750;margin:16px 0}
+.option{display:flex;gap:10px;align-items:flex-start;background:#0e192b;border:1px solid var(--line);padding:13px;border-radius:13px;margin:9px 0;cursor:pointer}
+.option input{width:auto;margin-top:4px;accent-color:var(--accent)}.option.selected{border-color:var(--accent2);background:#182b45}
+textarea{width:100%;min-height:120px;background:#0d1728;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:13px;font:inherit;resize:vertical}
+.feedback{padding:14px;border-radius:13px;margin-top:14px;line-height:1.5}.good{background:#12372e;border:1px solid #286b57}.bad{background:#3b2028;border:1px solid #82424c}
+.progress{height:8px;background:#26364d;border-radius:9px;overflow:hidden;margin:12px 0}.progress>div{height:100%;background:var(--accent);width:0}
+.stat{font-size:27px;font-weight:850;color:var(--accent)}.hidden{display:none!important}.small{font-size:12px;color:var(--muted)}
+.history-item{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.panel{padding:15px}.brand{font-size:21px}}
+</style>
+</head>
+<body>
+<main>
+ <div class="top"><div><div class="brand">מאמן <span>ידע</span></div><div class="sub">מרכז מבחנים ותרגול למדריכי כושר</div></div><button class="ghost" id="installBtn" hidden>התקנה</button></div>
+ <section id="home">
+  <div class="panel">
+   <span class="pill">אישי</span><span class="pill">TRX</span><span class="pill">מכון כושר</span>
+   <h1>בונים מבחן שמתאים לך</h1>
+   <p class="muted">בחר את סוג השאלות, תחום התוכן ורמת הקושי. בסיום תקבל ציון, הסברים והיסטוריית תוצאות.</p>
+   <div class="grid">
+    <div><label for="format">סוג שאלות</label><select id="format"><option value="mixed">משולב – אמריקאיות ופתוחות</option><option value="mc">אמריקאיות בלבד</option><option value="open">פתוחות בלבד</option></select></div>
+    <div><label for="focus">תחום מיקוד</label><select id="focus"><option value="mixed">הכול – מגוון נושאים</option><option value="anatomy">אנטומיה ופיזיולוגיה</option><option value="scenarios">סיטואציות מהשטח</option><option value="program">תכנון אימונים ועומסים</option><option value="trx">TRX וביומכניקה</option><option value="safety">בטיחות וגבולות סמכות</option></select></div>
+    <div><label for="level">רמת קושי</label><select id="level"><option value="easy">קל</option><option value="medium" selected>בינוני</option><option value="hard">מתקדם</option><option value="expert">מומחה</option></select></div>
+    <div><label for="count">מספר שאלות</label><select id="count"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></div>
+   </div>
+   <button class="primary" id="start">התחלת מבחן</button>
+  </div>
+  <div class="panel"><h2>ההתקדמות שלך</h2><div class="grid"><div><div class="stat" id="testsCount">0</div><div class="small">מבחנים שהושלמו</div></div><div><div class="stat" id="avgScore">—</div><div class="small">ממוצע ציונים</div></div></div><div id="history" class="small" style="margin-top:14px">עדיין אין תוצאות. המבחן הראשון מחכה לך.</div></div>
+  <p class="small"><a href="privacy.html" style="color:var(--muted)">מדיניות פרטיות</a></p>
+  <p class="small">הערה: זהו כלי לימודי. הוא אינו תחליף להכשרה מוסמכת, להנחיות רפואיות או לייעוץ מקצועי. שאלות פתוחות נבדקות באמצעות השוואה לתשובת מודל לדוגמה, ולכן יש לבחון גם את ההיגיון ולא רק ניסוח מדויק.</p>
+ </section>
+ <section id="quiz" class="hidden">
+  <div class="panel">
+   <div class="row" style="justify-content:space-between;align-items:center"><span class="pill" id="meta"></span><span class="muted" id="counter"></span></div>
+   <div class="progress"><div id="bar"></div></div>
+   <div class="question" id="question"></div>
+   <div id="answers"></div>
+   <div id="feedback" class="hidden"></div>
+   <div class="row" style="margin-top:16px"><button class="secondary" id="back">חזרה</button><button id="check">בדיקת תשובה</button><button id="next" class="hidden">לשאלה הבאה</button></div>
+  </div>
+  <button class="ghost" id="quit" style="width:100%">יציאה למרכז המבחנים</button>
+ </section>
+ <section id="result" class="hidden">
+  <div class="panel" style="text-align:center"><div class="sub">תוצאות המבחן</div><div class="stat" style="font-size:48px" id="score">—</div><h2 id="resultTitle"></h2><p class="muted" id="resultText"></p><div id="review" style="text-align:right;margin-top:20px"></div><button class="primary" id="homeBtn">חזרה למרכז המבחנים</button></div>
+ </section>
+</main>
+<script>
+const bank = [
+{f:"anatomy",l:"easy",t:"mc",q:"איזה שריר הוא מניע מרכזי בכפיפת המרפק כאשר האמה בסופינציה?",o:["הדו־ראשי של הזרוע (Biceps brachii)","התלת־ראשי של הזרוע","הדלתא האמצעי","הרחב גבי"],a:0,e:"הדו־ראשי מסייע בכפיפת המרפק ובסופינציה של האמה."},
+{f:"anatomy",l:"medium",t:"mc",q:"מהו התפקיד המרכזי של ATP בתאי השריר?",o:["אגירת סידן בעצמות","אספקת אנרגיה לתהליכים תאיים","הובלת חמצן בדם","בניית רקמת חיבור"],a:1,e:"ATP הוא מטבע האנרגיה המיידי של התא, ומשמש בין היתר למחזורי הכיווץ והרפיית השריר."},
+{f:"anatomy",l:"hard",t:"open",q:"הסבר בקצרה את ההבדל בין כיווץ קונצנטרי, אקסצנטרי ואיזומטרי, ותן דוגמה אחת לכל סוג.",a:"קונצנטרי: השריר מתקצר תוך הפעלת כוח, למשל עלייה בכפיפת מרפק. אקסצנטרי: השריר מתארך תוך הפעלת כוח, למשל הורדת המשקולת. איזומטרי: השריר מפעיל כוח ללא שינוי ניכר באורכו, למשל החזקת פלאנק.",e:"חפש בתשובה: שינוי אורך השריר, הפעלת כוח ודוגמה מתאימה לכל סוג."},
+{f:"anatomy",l:"expert",t:"mc",q:"איזה תיאור נכון ביותר של יחידה מוטורית?",o:["כל השרירים שמניעים מפרק אחד","נוירון מוטורי וכל סיבי השריר שהוא מעצבב","כל סיבי השריר בשריר נתון","גיד והשריר המחובר אליו"],a:1,e:"יחידה מוטורית מורכבת מתא עצב מוטורי ומכל סיבי השריר הנשלטים על ידו."},
+{f:"scenarios",l:"easy",t:"mc",q:"מתאמן מדווח על כאב חד ופתאומי בברך במהלך סקוואט. מה הפעולה המתאימה ביותר?",o:["להוסיף משקל כדי לבדוק יציבות","להורות לו להמשיך דרך הכאב","לעצור את התרגיל, לברר את המצב ולהפנות להערכה מתאימה לפי הצורך","להחליף מיד לתרגיל קפיצות"],a:2,e:"אין להמשיך דרך כאב חד. מדריך כושר אינו מאבחן; יש לעצור ולהפנות לגורם רפואי מתאים כשנדרש."},
+{f:"scenarios",l:"hard",t:"open",q:"מתאמנת חדשה אומרת שהיא מרגישה סחרחורת, לחץ בחזה וקוצר נשימה חריג בזמן אימון. תאר את סדר הפעולות שלך כמדריך.",a:"לעצור מיד את האימון, לדאוג לבטיחות ולהושבה/מנוחה בהתאם למצבה, להזעיק עזרה רפואית דחופה/מד״א, לא להשאיר אותה לבד, ולפעול לפי הכשרת העזרה הראשונה והנחיות מוקד החירום.",e:"העיקר: הפסקה מיידית, הזעקת עזרה רפואית דחופה, השגחה ופעולה בגבולות הכשרתך."},
+{f:"scenarios",l:"medium",t:"mc",q:"מתאמן חוזר לפעילות לאחר פציעה ומציג מסמך עם מגבלות שקיבל מאיש מקצוע רפואי. מה נכון לעשות?",o:["לאבחן אם הפציעה החלימה","להתעלם מהמגבלות אם הוא מרגיש טוב","לבנות אימון כושר בהתאם להנחיות ולמגבלות, ולבקש הבהרה כשצריך","להבטיח שהאימון ירפא את הפציעה"],a:2,e:"יש לעבוד לפי ההנחיות שקיבל המתאמן ולא לאבחן או לבצע טיפול פיזיותרפי ללא הסמכה מתאימה."},
+{f:"program",l:"easy",t:"mc",q:"מהי המשמעות של Progressive Overload?",o:["העלאת העומס בהדרגה כדי לעודד הסתגלות","ביצוע כל אימון עד כשל מוחלט","החלפת כל התרגילים בכל שבוע","הפחתת עומס קבועה"],a:0,e:"עומס מתקדם הוא הגדלה מתוכננת והדרגתית של דרישת האימון, בהתאם ליכולת ולהתאוששות."},
+{f:"program",l:"medium",t:"mc",q:"מתאמן ביצע 4 סטים של 10 חזרות במשקל 60 ק״ג. מהו נפח העבודה (Volume Load) בתרגיל?",o:["600 ק״ג","2,400 ק״ג","240 ק״ג","4,060 ק״ג"],a:1,e:"4 × 10 × 60 = 2,400 ק״ג."},
+{f:"program",l:"expert",t:"open",q:"מתאמן חווה במשך שבועיים ירידה בביצועים, עייפות מתמשכת ושינה לא טובה. אילו גורמים תבדוק ואילו התאמות אימון תשקול?",a:"לבדוק עומס ותדירות אימונים, נפח ועצימות, ימי מנוחה, שינה, תזונה, לחץ ושינויים בשגרה. לשקול הפחתת עומס זמנית (deload), התאוששות ומעקב; אם יש סימנים חריגים או מתמשכים להפנות לייעוץ רפואי מתאים.",e:"תשובה טובה מתייחסת לעומס, התאוששות ושינה, התאמות הדרגתיות, ומפנה לבירור רפואי כשנדרש."},
+{f:"trx",l:"easy",t:"mc",q:"בתרגיל חתירה ב-TRX, מה קורה בדרך כלל כאשר הגוף נטוי יותר לאחור והרגליים נשארות באותו מקום יחסי?",o:["התרגיל נעשה קל יותר","התרגיל נעשה קשה יותר","אין שינוי בעומס","העומס עובר רק לרגליים"],a:1,e:"ככל שהגוף אופקי יותר ביחס לקרקע, בדרך כלל גדל חלק ממשקל הגוף שהמתאמן צריך להתגבר עליו."},
+{f:"trx",l:"hard",t:"open",q:"הסבר כיצד ניתן להקל או להקשות על חתירת TRX בלי לשנות את אורך הרצועות.",a:"משנים את זווית הגוף ואת מיקום כפות הרגליים: גוף זקוף יותר מקל, וגוף אופקי/נטוי יותר לאחור מקשה. אפשר גם לשנות את בסיס התמיכה ואת מיקום הרגליים בהתאם לתרגיל.",e:"העיקר הוא שינוי זווית הגוף ביחס לקרקע, שמשנה את העומס היחסי."},
+{f:"trx",l:"medium",t:"mc",q:"מה משפיע על מומנט הכוח סביב מפרק?",o:["גודל הכוח בלבד","אורך זרוע המומנט בלבד","גודל הכוח, זרוע המומנט והזווית שבה הכוח פועל","צבע המשקולת"],a:2,e:"מומנט תלוי בכוח ובמרחק המאונך מציר הסיבוב לקו הפעולה של הכוח."},
+{f:"safety",l:"easy",t:"mc",q:"איזו פעולה נמצאת בגבולות הסמכות של מדריך כושר שאינו פיזיותרפיסט?",o:["אבחון קרע בשריר","קביעת טיפול רפואי לכאב גב","התאמת אימון לפי מטרות, יכולת ומגבלות שנמסרו","ביצוע שיקום רפואי עצמאי"],a:2,e:"מדריך כושר מתכנן ומדריך אימון. אבחון וטיפול רפואי/פיזיותרפי דורשים בעל מקצוע מוסמך."},
+{f:"safety",l:"medium",t:"mc",q:"מתאמן מבקש ממך לאבחן כאב מתמשך בכתף ולתת לו טיפול. מה התגובה המקצועית?",o:["לאבחן לפי התנועה שמכאיבה","להציע עיסוי עמוק כטיפול","להסביר שאינך מאבחן או מטפל, ולהמליץ על בדיקת איש מקצוע מתאים","להמשיך בכל תרגיל כל עוד הכאב נסבל"],a:2,e:"חשוב להבהיר את גבולות הסמכות ולהפנות להערכה רפואית/פיזיותרפית."},
+{f:"anatomy",l:"medium",t:"mc",q:"איזו קבוצת שרירים היא מניעה עיקרית בפשיטת הברך?",o:["המסטרינג","ארבע-ראשי הירך","תאומים","כופפי הירך"],a:1,e:"שרירי הארבע-ראשי מבצעים פשיטת ברך."},
+{f:"program",l:"hard",t:"mc",q:"מה מתארת מחזוריות אימונים (Periodization)?",o:["תכנון שיטתי של עומסים ומשתני אימון לאורך זמן","ביצוע אותו אימון בכל יום","הגדלת משקל בכל סט ללא תכנון","הפסקה מוחלטת בין מחזורי אימון"],a:0,e:"מחזוריות מארגנת את משתני האימון לאורך זמן כדי לנהל הסתגלות, עומס והתאוששות."},
+{f:"scenarios",l:"expert",t:"open",q:"מתאמן מתעקש להמשיך תרגיל למרות כאב חד, כי הוא רוצה לעמוד ביעד האימון. איך תנהל את השיחה ומה תעשה?",a:"אסביר שכאב חד הוא סיבה לעצור ולא להמשיך דרך הכאב. אפסיק את התרגיל, אבדוק אם יש סימני אזהרה בלי לאבחן, ואמליץ על הערכה של איש מקצוע רפואי מתאים. את היעד נתאים מחדש לאחר בירור ובהתאם להנחיות.",e:"יש להעמיד בטיחות לפני יעד, לעצור, לאבחן? לא — לא לאבחן, ולהפנות לפי הצורך."}
+];
+const names={anatomy:"אנטומיה ופיזיולוגיה",scenarios:"סיטואציות מהשטח",program:"תכנון אימונים",trx:"TRX וביומכניקה",safety:"בטיחות וגבולות סמכות",mixed:"מגוון נושאים"};
+const levels={easy:"קל",medium:"בינוני",hard:"מתקדם",expert:"מומחה"};
+let questions=[],idx=0,answers=[],revealed=false;
+const $=id=>document.getElementById(id);
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function startQuiz(){
+ const f=$("focus").value,fmt=$("format").value,l=$("level").value,n=+$("count").value;
+ let pool=bank.filter(q=>(f==="mixed"||q.f===f)&&(q.l===l|| (l==="easy"&&q.l==="medium")||(l==="medium"&&q.l==="easy")||(l==="hard"&&q.l==="expert")||(l==="expert"&&q.l==="hard"))&&(fmt==="mixed"||q.t===fmt));
+ if(!pool.length)pool=bank.filter(q=>(f==="mixed"||q.f===f)&&(fmt==="mixed"||q.t===fmt));
+ questions=shuffle(pool).slice(0,Math.min(n,pool.length));idx=0;answers=Array(questions.length).fill(null);
+ $("home").classList.add("hidden");$("result").classList.add("hidden");$("quiz").classList.remove("hidden");render();
+}
+function render(){
+ const q=questions[idx];revealed=false;
+ $("meta").textContent=names[q.f]+" · "+levels[q.l];
+ $("counter").textContent=`שאלה ${idx+1} מתוך ${questions.length}`;
+ $("bar").style.width=((idx+1)/questions.length*100)+"%";
+ $("question").textContent=q.q;$("feedback").className="hidden";$("feedback").textContent="";
+ $("check").classList.remove("hidden");$("next").classList.add("hidden");
+ $("back").disabled=idx===0;
+ const holder=$("answers");holder.innerHTML="";
+ if(q.t==="mc"){
+  q.o.forEach((v,i)=>{const lab=document.createElement("label");lab.className="option";const inp=document.createElement("input");inp.type="radio";inp.name="answer";inp.value=i;inp.checked=answers[idx]===i;const span=document.createElement("span");span.textContent=v;lab.append(inp,span);lab.onclick=()=>{if(!revealed){answers[idx]=i;renderOptionsSelection()}};holder.append(lab)});
+ }else{
+  const ta=document.createElement("textarea");ta.placeholder="כתוב את התשובה שלך כאן...";ta.value=answers[idx]||"";ta.oninput=()=>answers[idx]=ta.value;holder.append(ta);
+ }
+}
+function renderOptionsSelection(){[...$("answers").querySelectorAll(".option")].forEach((el,i)=>el.classList.toggle("selected",answers[idx]===i));}
+function check(){
+ const q=questions[idx],a=answers[idx];if(a===null||a===""){alert("צריך לענות לפני הבדיקה.");return}
+ let ok=false,detail="";
+ if(q.t==="mc"){ok=a===q.a;detail=ok?"נכון! ":"לא מדויק. "+ "התשובה הנכונה: "+q.o[q.a]+". " +q.e}
+ else{detail="תשובתך נשמרה. השווה לתשובה לדוגמה: "+q.a+" ";ok=null}
+ const fb=$("feedback");fb.className="feedback "+(ok===true?"good":ok===false?"bad":"");fb.textContent=(q.t==="open"?"בדיקה עצמית · ":"") + detail;
+ $("check").classList.add("hidden");$("next").classList.remove("hidden");revealed=true;
+}
+function next(){if(idx<questions.length-1){idx++;render()}else finish()}
+function finish(){
+ let mc=questions.map((q,i)=>q.t==="mc"?{q,ans:answers[i],ok:answers[i]===q.a}:null).filter(Boolean);
+ let correct=mc.filter(x=>x.ok).length,score=mc.length?Math.round(correct/mc.length*100):null;
+ const hist=JSON.parse(localStorage.getItem("fitnessHistory")||"[]");
+ hist.unshift({date:new Date().toLocaleDateString("he-IL"),score,correct,total:mc.length,open:questions.filter(q=>q.t==="open").length,focus:$("focus").value,level:$("level").value});
+ localStorage.setItem("fitnessHistory",JSON.stringify(hist.slice(0,20)));
+ $("quiz").classList.add("hidden");$("result").classList.remove("hidden");
+ $("score").textContent=score===null?"—":score+"%";
+ $("resultTitle").textContent=score===null?"המבחן הושלם":score>=85?"מצוין!":score>=65?"עבודה טובה":"יש מקום לחיזוק";
+ $("resultText").textContent=score===null?"ענית על שאלות פתוחות. עבור על התשובות לדוגמה וחזק את הנושאים.":`ענית נכון על ${correct} מתוך ${mc.length} שאלות אמריקאיות. שאלות פתוחות: ${questions.filter(q=>q.t==="open").length}.`;
+ const rev=$("review");rev.innerHTML="";
+ questions.forEach((q,i)=>{const d=document.createElement("div");d.className="history-item";const left=document.createElement("div");left.style.flex="1";const strong=document.createElement("b");strong.textContent=`${i+1}. ${q.q}`;const p=document.createElement("p");p.className="small";p.textContent=q.t==="mc"?(answers[i]===q.a?"נכון":"תשובה נכונה: "+q.o[q.a])+" · "+q.e:"תשובת דוגמה: "+q.a;left.append(strong,p);d.append(left);rev.append(d)});
+ renderHistory();
+}
+function renderHistory(){
+ const h=JSON.parse(localStorage.getItem("fitnessHistory")||"[]");$("testsCount").textContent=h.length;
+ const scored=h.filter(x=>x.score!==null);$("avgScore").textContent=scored.length?Math.round(scored.reduce((s,x)=>s+x.score,0)/scored.length)+"%":"—";
+ const box=$("history");box.innerHTML="";
+ if(!h.length){box.textContent="עדיין אין תוצאות. המבחן הראשון מחכה לך.";return}
+ h.slice(0,5).forEach(x=>{const d=document.createElement("div");d.className="history-item";const a=document.createElement("span");a.textContent=x.date+" · "+names[x.focus];const b=document.createElement("b");b.textContent=x.score===null?"פתוחות בלבד":x.score+"%";d.append(a,b);box.append(d)});
+}
+$("start").onclick=startQuiz;$("check").onclick=check;$("next").onclick=next;$("back").onclick=()=>{if(idx>0){idx--;render()}};$("quit").onclick=()=>{if(confirm("לצאת מהמבחן? התשובות במבחן הנוכחי לא יישמרו.")){$("quiz").classList.add("hidden");$("home").classList.remove("hidden")}};
+$("homeBtn").onclick=()=>{$("result").classList.add("hidden");$("home").classList.remove("hidden")};
+renderHistory();
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installBtn").hidden=false});
+$("installBtn").onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$("installBtn").hidden=true}else alert("פתח את תפריט הדפדפן ובחר 'הוספה למסך הבית'.")};
+if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body></html>
