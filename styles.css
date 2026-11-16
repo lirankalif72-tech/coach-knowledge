@@ -906,3 +906,7 @@ html:not([data-theme="light"]) body.night .play-hero,html:not([data-theme="light
 .pb-wkauto b{font-size:18px}
 .pb-restcard{text-align:center;padding:22px 16px}.pb-restcard .pb-restic{font-size:40px;line-height:1.2}
 .pb-dayh .link-btn[disabled]{opacity:.35;cursor:default}
+/* v8.9.2 – English (LTR) */
+html[dir="ltr"] .mode,html[dir="ltr"] .opt,html[dir="ltr"] .onb-in .lbl,html[dir="ltr"] .onb-in .search,html[dir="ltr"] .play-btn,html[dir="ltr"] .food-name,html[dir="ltr"] .ntable td:first-child,html[dir="ltr"] .wl-hs{text-align:left}
+html[dir="ltr"] .tf .opt{justify-content:center;text-align:center}
+html[dir="ltr"] .fact-row.new span::before{content:"New · "}
