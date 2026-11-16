@@ -900,3 +900,9 @@ html:not([data-theme="light"]) body.night .play-hero,html:not([data-theme="light
 .lang-en .qtext,.lang-en .opt,.lang-en .feedback{text-align:left}
 .lang-en .tf .opt{justify-content:center}
 
+.pb-days .pb-restday{background:var(--blue-soft);color:var(--blue);border-color:transparent}
+.pb-days .pb-restday.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pb-days .pb-newrest{color:var(--blue)}
+.pb-wkauto b{font-size:18px}
+.pb-restcard{text-align:center;padding:22px 16px}.pb-restcard .pb-restic{font-size:40px;line-height:1.2}
+.pb-dayh .link-btn[disabled]{opacity:.35;cursor:default}

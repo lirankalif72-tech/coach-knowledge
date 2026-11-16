@@ -289,8 +289,14 @@ function pbSearch(txt) {
   return PB_EX.filter(e => [e.n, ...(e.al || [])].some(a => n(a).includes(q) || (q.length >= 4 && q.includes(n(a)))));
 }
 /* כמה פעמים בשבוע כל יום בתוכנית מתבצע: האימונים רצים בסבב (A → B → C → A...) עם ימי מנוחה ביניהם */
-function pbWk(plan) { if (!plan.wk) plan.wk = Math.min(7, plan.days.reduce((a, d) => a + (d.x || 1), 0)); return plan.wk; }
-function pbFreq(plan) { return pbWk(plan) / Math.max(1, plan.days.length); }
+/* ימי מנוחה מפורשים: אם יש בסבב ימי מנוחה – אורך הסבב קובע את התדירות */
+const pbWorkDays = plan => plan.days.filter(d => !d.rest);
+const pbHasRest = plan => plan.days.some(d => d.rest);
+function pbWk(plan) {
+  if (pbHasRest(plan)) return pbWorkDays(plan).length * 7 / Math.max(1, plan.days.length);
+  if (!plan.wk) plan.wk = Math.min(7, plan.days.reduce((a, d) => a + (d.x || 1), 0)); return plan.wk;
+}
+function pbFreq(plan) { return pbHasRest(plan) ? 7 / Math.max(1, plan.days.length) : pbWk(plan) / Math.max(1, pbWorkDays(plan).length); }
 const pbFmt = x => (Math.round(x * 10) / 10).toString();
 function pbWeekly(plan) {
   const v = {};
@@ -355,11 +361,10 @@ function pbPlanTips(plan) {
   if (!hasRear && push >= 8) tips.push({ i: "🛡️", t: "אין עבודה לכתף האחורית. <b>פייס פול</b> פעם–פעמיים בשבוע מאזן את כל הלחיצות." });
   if (sets("legs") && !plan.days.some(d => d.g.some(g => g.k === "legs" && g.ex.some(it => PB_BY[it.id] && PB_BY[it.id].f.h >= .75)))) tips.push({ i: "🦵", t: "ברגליים אין תרגיל טוב להמסטרינג – כדאי <b>דדליפט רומני</b> או <b>כפיפת ברכיים</b>." });
   plan.days.forEach(d => {
-    const m = pbDayMinutes(d, plan), n = d.g.reduce((a, g) => a + g.ex.length, 0);
-    if (m > 90) tips.push({ i: "⏱️", t: `<b>${esc(d.n)}</b> ייקח בערך ${m} דקות – ארוך מדי. נסה לקצר ל־60–75 דקות.` });
+    const n = d.g.reduce((a, g) => a + g.ex.length, 0);
     if (n > 8) tips.push({ i: "📋", t: `ב<b>${esc(d.n)}</b> יש ${n} תרגילים. 5–8 תרגילים מספיקים לאימון איכותי.` });
   });
-  if (plan.lvl === "beg" && plan.days.length > 4) tips.push({ i: "🌱", t: "למתחילים 2–4 אימונים בשבוע מספיקים. ההתאוששות חשובה לא פחות מהאימון." });
+  if (plan.lvl === "beg" && pbWk(plan) > 4.5) tips.push({ i: "🌱", t: "למתחילים 2–4 אימונים בשבוע מספיקים. ההתאוששות חשובה לא פחות מהאימון." });
   return tips;
 }
 const PB_IDEAS = [
@@ -509,9 +514,10 @@ function pbTplSheet() {
   });
 }
 function pbText(plan) {
-  const lines = [`🏋️ תוכנית אימון – ${PB_GOALS[plan.goal].replace(/^\S+ /, "")} (${PB_LVLS[plan.lvl]})`, `🔁 ${pbWk(plan)} אימונים בשבוע, בסבב: ${plan.days.map(d => d.n).join(" ← ")} ← שוב מההתחלה`];
+  const lines = [`🏋️ תוכנית אימון – ${PB_GOALS[plan.goal].replace(/^\S+ /, "")} (${PB_LVLS[plan.lvl]})`, `🔁 כ־${pbFmt(pbWk(plan))} אימונים בשבוע, בסבב: ${plan.days.map(d => d.rest ? "😴 מנוחה" : d.n).join(" ← ")}`];
   plan.days.forEach(d => {
-    lines.push("", `▪️ ${d.n} (~${pbDayMinutes(d, plan)} דק׳)`);
+    if (d.rest) return;
+    lines.push("", `▪️ ${d.n}`);
     d.g.forEach(g => g.ex.forEach(it => { const ex = PB_BY[it.id]; lines.push(`• ${ex ? ex.n : it.name} – ${it.s}×${it.r}`); }));
   });
   lines.push("", "נבנה באפליקציית מאמן ידע");
@@ -560,13 +566,13 @@ function renderPlan() {
       <div class="xs muted" style="margin-top:10px">הרמה שלי</div><div class="seg" id="pbLvl">${Object.entries(PB_LVLS).map(([k, v]) => `<button data-k="${k}" class="${plan.lvl === k ? "on" : ""}">${v}</button>`).join("")}</div>
       <div class="row" style="margin-top:10px"><button class="btn" id="pbTpl">✨ תבנית מוכנה</button><button class="btn" id="pbRecAll">🔢 סטים וחזרות לפי היעד</button></div>
     </div>
-    <div class="card pb-daycard"><div class="pb-wk"><span>🔁 אימונים בשבוע</span><span class="pb-step pb-freq"><button id="pbXm">−</button><span><b>${pbWk(plan)}</b></span><button id="pbXp">+</button></span></div>
-      <div class="xs muted pb-wkh">האימונים רצים בסבב${plan.days.length > 1 ? `: ${plan.days.map(d => esc(d.n)).join(" ← ")} ← שוב מההתחלה` : ""}, עם ימי מנוחה ביניהם. כל אימון יוצא בערך <b>${pbFmt(pbFreq(plan))}</b> פעמים בשבוע.</div><div class="pb-days" id="pbDays">${plan.days.map((d, i) => `<button class="${i === plan.cur ? "on" : ""}" data-d="${i}">${esc(d.n)}</button>`).join("")}<button data-d="new" class="pb-newday">➕ יום</button></div>
-    <div class="pb-dayh"><span class="small muted">⏱️ בערך ${pbDayMinutes(day, plan)} דק׳ · ${day.g.reduce((a, g) => a + g.ex.length, 0)} תרגילים · ${day.g.reduce((a, g) => a + g.ex.reduce((b, it) => b + (+it.s || 0), 0), 0)} סטים</span>
+    <div class="card pb-daycard"><div class="pb-wk"><span>🔁 אימונים בשבוע</span>${pbHasRest(plan) ? `<span class="pb-wkauto"><b>${pbFmt(pbWk(plan))}</b></span>` : `<span class="pb-step pb-freq"><button id="pbXm">−</button><span><b>${pbWk(plan)}</b></span><button id="pbXp">+</button></span>`}</div>
+      <div class="xs muted pb-wkh">${plan.days.length > 1 ? `הסבב: ${plan.days.map(d => d.rest ? "😴" : esc(d.n)).join(" ← ")} ← וחוזר חלילה. ` : ""}${pbHasRest(plan) ? `סבב של ${plan.days.length} ימים – כל אימון יוצא בערך <b>${Math.abs(pbFreq(plan) - 1) < 0.05 ? "פעם אחת" : pbFmt(pbFreq(plan)) + " פעמים"}</b> בשבוע.` : `כל אימון יוצא בערך <b>${Math.abs(pbFreq(plan) - 1) < 0.05 ? "פעם אחת" : pbFmt(pbFreq(plan)) + " פעמים"}</b> בשבוע. אפשר להוסיף ימי מנוחה לסבב בכפתור <b>😴 מנוחה</b>.`}</div><div class="pb-days" id="pbDays">${plan.days.map((d, i) => `<button class="${i === plan.cur ? "on" : ""} ${d.rest ? "pb-restday" : ""}" data-d="${i}">${d.rest ? "😴 מנוחה" : esc(d.n)}</button>`).join("")}<button data-d="new" class="pb-newday">➕ יום</button><button data-d="rest" class="pb-newday pb-newrest">😴 מנוחה</button></div>
+    <div class="pb-dayh"><span class="small muted">${day.rest ? "😴 יום מנוחה – הגוף מתאושש ומתחזק" : ""}${day.rest ? "" : `${day.g.reduce((a, g) => a + g.ex.length, 0)} תרגילים · ${day.g.reduce((a, g) => a + g.ex.reduce((b, it) => b + (+it.s || 0), 0), 0)} סטים`}</span>
 
-      <span><button class="link-btn" id="pbRen">✏️ שם</button>${plan.days.length > 1 ? `<button class="link-btn" id="pbDelDay">🗑️ מחק יום</button>` : ""}</span></div></div>
-    <div id="pbGroups">${day.g.map(groupCard).join("")}</div>
-    <button class="btn primary block" id="pbAddG">➕ הוסף קבוצת שרירים</button>
+      <span>${plan.days.length > 1 ? `<button class="link-btn" id="pbMvL" ${plan.cur ? "" : "disabled"} title="הזז מוקדם יותר בסבב">→</button><button class="link-btn" id="pbMvR" ${plan.cur < plan.days.length - 1 ? "" : "disabled"} title="הזז מאוחר יותר בסבב">←</button>` : ""}${day.rest ? "" : `<button class="link-btn" id="pbRen">✏️ שם</button>`}${plan.days.length > 1 ? `<button class="link-btn" id="pbDelDay">🗑️ ${day.rest ? "הסר" : "מחק יום"}</button>` : ""}</span></div></div>
+    ${day.rest ? `<div class="card pb-restcard"><div class="pb-restic">😴</div><b>יום מנוחה</b><div class="small muted">בסבב הזה לא מתאמנים. הליכה קלה, מתיחות ושינה טובה – מצוין.</div></div>` : `<div id="pbGroups">${day.g.map(groupCard).join("")}</div>
+    <button class="btn primary block" id="pbAddG">➕ הוסף קבוצת שרירים</button>`}
     <div class="card pb-ana">
       <h2>💡 איך לשפר את התוכנית</h2>
       ${Object.keys(W).length ? `<div class="xs muted">סטים בשבוע לכל קבוצה (הפס הירוק = הטווח המומלץ)</div>${Object.entries(W).map(([k, v]) => { const [lo, hi] = pbTarget(plan, k), val = Math.max(v.sets, v.eff), mx = Math.max(hi * 1.5, val); return `<div class="pb-vol"><span>${PB_GROUPS[k].ic} ${PB_GROUPS[k].n}</span><div class="pb-volbar"><i class="rng" style="right:${lo / mx * 100}%;width:${(hi - lo) / mx * 100}%"></i><i class="val ${v.eff < lo ? "lo" : v.sets > hi ? "hi" : "ok"}" style="width:${val / mx * 100}%"></i></div><b title="סטים ישירים${v.ind ? " + עקיפים" : ""}">${v.sets}${v.ind ? `<small>+${Math.round(v.ind)}</small>` : ""}</b></div>`; }).join("")}<p class="xs muted">לפי מספר הפעמים שכל אימון חוזר בשבוע (🔁). המספר הקטן = עבודה עקיפה מתרגילים מורכבים (חצי סט).</p>` : ""}
@@ -585,19 +591,23 @@ function renderPlan() {
   $("#pbRecAll").onclick = () => { plan.days.forEach(d => d.g.forEach(g => g.ex.forEach(it => { const r = pbRec(PB_BY[it.id], plan.goal, plan.lvl); it.s = r.s; it.r = r.r; }))); save(); renderPlan(); toast("🔢", `עודכן לפי ${PB_GOALS[plan.goal]}`); };
   $("#pbDays").onclick = e => {
     const b = e.target.closest("[data-d]"); if (!b) return;
-    if (b.dataset.d === "new") { plan.days.push({ n: `אימון ${String.fromCharCode(65 + plan.days.length)}`, g: [] }); plan.cur = plan.days.length - 1; }
+    if (b.dataset.d === "new") { plan.days.push({ n: `אימון ${String.fromCharCode(65 + pbWorkDays(plan).length)}`, g: [] }); plan.cur = plan.days.length - 1; }
+    else if (b.dataset.d === "rest") { plan.days.splice(plan.cur + 1, 0, { n: "מנוחה", rest: true, g: [] }); plan.cur = plan.cur + 1; toast("😴", "נוסף יום מנוחה אחרי " + day.n); }
     else plan.cur = +b.dataset.d;
     save(); renderPlan();
   };
-  $("#pbXm").onclick = () => { plan.wk = Math.max(1, pbWk(plan) - 1); save(); renderPlan(); };
-  $("#pbXp").onclick = () => { plan.wk = Math.min(7, pbWk(plan) + 1); save(); renderPlan(); };
-  $("#pbRen").onclick = () => { const n = prompt("שם האימון:", day.n); if (n && n.trim()) { day.n = n.trim().slice(0, 20); save(); renderPlan(); } };
+  if ($("#pbXm")) $("#pbXm").onclick = () => { plan.wk = Math.max(1, pbWk(plan) - 1); save(); renderPlan(); };
+  if ($("#pbXp")) $("#pbXp").onclick = () => { plan.wk = Math.min(7, pbWk(plan) + 1); save(); renderPlan(); };
+  const pbMv = d => { const j = plan.cur + d; if (j < 0 || j >= plan.days.length) return; const t = plan.days[j]; plan.days[j] = plan.days[plan.cur]; plan.days[plan.cur] = t; plan.cur = j; save(); renderPlan(); };
+  if ($("#pbMvL")) $("#pbMvL").onclick = () => pbMv(-1);
+  if ($("#pbMvR")) $("#pbMvR").onclick = () => pbMv(1);
+  if ($("#pbRen")) $("#pbRen").onclick = () => { const n = prompt("שם האימון:", day.n); if (n && n.trim()) { day.n = n.trim().slice(0, 20); save(); renderPlan(); } };
   const dd = $("#pbDelDay"); if (dd) dd.onclick = async () => { if (await modal("למחוק את " + day.n + "?", "כל התרגילים ביום הזה יימחקו.", "מחק", "ביטול", true)) { plan.days.splice(plan.cur, 1); plan.cur = 0; save(); renderPlan(); } };
-  $("#pbAddG").onclick = () => pbGroupSheet(plan.cur);
+  if ($("#pbAddG")) $("#pbAddG").onclick = () => pbGroupSheet(plan.cur);
   const mt = $("#pbMoreTips"); if (mt) mt.onclick = () => { pbOpenTips = !pbOpenTips; renderPlan(); };
   $("#pbCopy").onclick = async () => { const t = pbText(plan); try { if (navigator.share) await navigator.share({ text: t }); else { await navigator.clipboard.writeText(t); toast("📋", "התוכנית הועתקה"); } } catch (e) { try { await navigator.clipboard.writeText(t); toast("📋", "התוכנית הועתקה"); } catch (e2) { } } };
   $("#pbReset").onclick = async () => { if (await modal("להתחיל מחדש?", "כל התוכנית תימחק.", "מחק", "ביטול", true)) { delete S.plan; save(); renderPlan(); } };
-  $("#pbGroups").onclick = e => {
+  if ($("#pbGroups")) $("#pbGroups").onclick = e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const gi = +b.closest("[data-gi]").dataset.gi, gr = day.g[gi], exEl = b.closest("[data-ei]"), ei = exEl ? +exEl.dataset.ei : -1, it = gr.ex[ei];
     switch (b.dataset.act) {
@@ -616,7 +626,7 @@ function renderPlan() {
     }
     save(); renderPlan();
   };
-  $("#pbGroups").onchange = e => {
+  if ($("#pbGroups")) $("#pbGroups").onchange = e => {
     const sel = e.target.closest("[data-act=reps]"); if (!sel) return;
     const gi = +sel.closest("[data-gi]").dataset.gi, ei = +sel.closest("[data-ei]").dataset.ei;
     day.g[gi].ex[ei].r = sel.value; save();

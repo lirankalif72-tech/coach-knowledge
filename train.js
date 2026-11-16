@@ -148,7 +148,7 @@ function trRender() {
   const done = W.items.reduce((a, x) => a + x.sets.filter(s => s.done).length, 0), total = W.items.reduce((a, x) => a + x.sets.length, 0);
   const mins = Math.floor((Date.now() - W.start) / 60000);
   funScreen(`<div class="fade-in tr">
-    <div class="qhead"><button class="x" id="trX">✕</button><div style="flex:1"><div class="xs muted">${esc(W.name)} · ⏱️ ${mins} דק׳ · ${done}/${total} סטים</div><div class="bar"><i style="width:${total ? done / total * 100 : 0}%"></i></div></div></div>
+    <div class="qhead"><button class="x" id="trX">✕</button><div style="flex:1"><div class="xs muted">${esc(W.name)} · ${done}/${total} סטים</div><div class="bar"><i style="width:${total ? done / total * 100 : 0}%"></i></div></div></div>
     <div class="tr-chips">${W.items.map((x, i) => { const d = x.sets.every(s => s.done), p = x.sets.some(s => s.done); return `<button data-go="${i}" class="${i === W.i ? "on" : ""} ${d ? "done" : p ? "part" : ""}">${d ? "✓ " : ""}${esc(x.name.split(" (")[0])}</button>`; }).join("")}</div>
     <div class="card tr-card">
       <div class="tr-top">${ex ? `<div class="pb-thumb" data-info>${pbFig(ex, "pb-fig sm")}</div>` : ""}<div><h2 style="margin:0">${esc(it.name)}</h2><div class="small muted">יעד: ${it.plan} · מנוחה ${Math.round(trRestSec(ex, plan) / 60 * 10) / 10} דק׳</div></div></div>
@@ -214,7 +214,7 @@ function trFinish() {
   S.wsess = S.wsess || []; S.wsess.push({ d: W.start, n: W.name, min: mins, sets: nsets, vol: Math.round(vol), prs: prs.length });
   delete S.wcur; save();
   funScreen(`<div class="fade-in tr-done"><div class="card" style="text-align:center"><div style="font-size:52px">🏁</div><h2>כל הכבוד! האימון נשמר</h2>
-    <div class="tr-stats"><div><b>${mins}</b><span>דקות</span></div><div><b>${nsets}</b><span>סטים</span></div><div><b>${Math.round(vol).toLocaleString("he-IL")}</b><span>ק״ג נפח</span></div></div>
+    <div class="tr-stats"><div><b>${nsets}</b><span>סטים</span></div><div><b>${Math.round(vol).toLocaleString("he-IL")}</b><span>ק״ג נפח</span></div><div><b>${prs.length}</b><span>שיאים 🏆</span></div></div>
     ${prs.length ? `<div class="tr-prs">🏆 שיאים חדשים:<br>${prs.map(esc).join("<br>")}</div>` : ""}
     <div class="tr-lines">${lines.map(l => `<div>${esc(l)}</div>`).join("")}</div></div>
     <button class="btn primary block" id="trBack">חזרה לתוכנית</button><button class="btn block" id="trQuiz" style="margin-top:8px">🎓 5 שאלות על התוכנית שלי</button></div>`);
@@ -266,7 +266,7 @@ function trWeekly() {
   const ws = trWeekStart(Date.now()), a = trWeekStats(ws), b = trWeekStats(ws - 7 * 864e5);
   const cmp = (x, y) => { if (!y) return ""; const p = Math.round((x - y) / y * 100); return `<i class="${p > 0 ? "up" : p < 0 ? "down" : ""}">${p > 0 ? "▲" : p < 0 ? "▼" : "■"}${Math.abs(p)}%</i>`; };
   const imp = Object.keys(a.ex).filter(id => b.ex[id] && a.ex[id] > b.ex[id] * 1.005).map(id => wlName(id));
-  const plan = S.plan, planned = plan ? pbWk(plan) : 0;
+  const plan = S.plan, planned = plan ? Math.round(pbWk(plan)) : 0;
   return `<div class="card tr-week"><h2>🗓️ השבוע שלך</h2>
     <div class="tr-stats"><div><b>${a.days.size}${planned ? `<small>/${planned}</small>` : ""}</b><span>אימונים</span></div><div><b>${a.sets}</b><span>סטים ${cmp(a.sets, b.sets)}</span></div><div><b>${Math.round(a.vol).toLocaleString("he-IL")}</b><span>ק״ג נפח ${cmp(a.vol, b.vol)}</span></div><div><b>${a.prs}</b><span>שיאים 🏆</span></div></div>
     ${imp.length ? `<div class="small">📈 השתפרת לעומת שבוע שעבר ב: <b>${imp.map(esc).join(", ")}</b></div>` : ""}
@@ -329,7 +329,7 @@ function trProgress() {
   app.innerHTML = `<div class="fade-in pb"><h1>🏋️ בניית תוכנית אימון</h1>${trSeg()}
     ${S.wcur ? trResumeCard() : ""}${trWeekly()}${trCalendar()}<div id="trWl"></div>${trRel()}
     <div class="card"><h2>🎓 מבחן על התוכנית שלי</h2><p class="small muted" style="margin-top:0">שאלות שנבנות מהתרגילים, המטרה והמשקלים שלך – ללמוד מהאימון עצמו.</p><button class="btn primary block" id="trQ">התחל (8 שאלות)</button></div>
-    ${(S.wsess || []).length ? `<div class="card"><h2>🧾 אימונים אחרונים</h2>${S.wsess.slice(-8).reverse().map(s => `<div class="tr-log"><b>${wlDateLong(s.d)}</b><span>${esc(s.n)} · ${s.min} דק׳ · ${s.sets} סטים${s.prs ? ` · 🏆${s.prs}` : ""}</span></div>`).join("")}</div>` : ""}
+    ${(S.wsess || []).length ? `<div class="card"><h2>🧾 אימונים אחרונים</h2>${S.wsess.slice(-8).reverse().map(s => `<div class="tr-log"><b>${wlDateLong(s.d)}</b><span>${esc(s.n)} · ${s.sets} סטים${s.prs ? ` · 🏆${s.prs}` : ""}</span></div>`).join("")}</div>` : ""}
   </div>`;
   $("#trWl").outerHTML = wlOverview();
   document.querySelectorAll("[data-wl]").forEach(b => b.onclick = () => { const id = b.dataset.wl; let it = null; pbState().days.forEach(d => d.g.forEach(g => g.ex.forEach(x => { if (x.id === id) it = x; }))); wlSheet(id, it && it.s, it && it.r); });
