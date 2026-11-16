@@ -390,7 +390,7 @@ function whoAmI() {
 
 /* ═════ נכון / לא נכון – מהר! ═════ */
 function swipeTF() {
-  const pool = freshSort(BANK.filter(q => q.t === "tf")); let i = 0, score = 0, lives = 3, limit = 7, t0 = 0, busy = false;
+  const pool = freshSort(BANK.filter(q => q.t === "tf"), true); let i = 0, score = 0, lives = 3, limit = 7, t0 = 0, busy = false;
   const card = () => pool[i % pool.length];
   const draw = () => {
     const q = card(); busy = false; t0 = Date.now();
@@ -508,14 +508,14 @@ function coachSession() {
   const ts = TOPIC_KEYS.map(f => ({ f, ...topicStats(f) }));
   const weak = ts.filter(t => t.seen >= 3 && t.acc !== null).sort((a, b) => a.acc - b.acc).slice(0, 2);
   const picks = weak.length === 2 ? weak : ts.sort((a, b) => a.seen - b.seen).slice(0, 2);
-  const qs = shuffle(picks.flatMap(t => freshSort(BANK.filter(q => q.f === t.f && q.t !== "open")).slice(0, 4)));
+  const qs = shuffle(picks.flatMap(t => freshSort(BANK.filter(q => q.f === t.f && q.t !== "open"), true).slice(0, 4)));
   sheet(`<div class="intro"><div class="intro-em">🧑‍🏫</div><h2>האימון האישי שלך</h2><p class="muted">${weak.length === 2 ? "לפי התשובות שלך, היום מחזקים:" : "היום נכיר תחומים שעוד לא תרגלת:"}</p>
     <div class="rules">${picks.map(t => `<div><span>${TOPICS[t.f].icon}</span><b>${TOPICS[t.f].name}</b>${t.acc !== null ? `<small class="muted" style="margin-inline-start:auto">דיוק ${t.acc}%</small>` : ""}</div>`).join("")}<div><span>⏱️</span><b>8 שאלות · כ־5 דקות</b></div></div>
     <div class="row"><button class="btn" data-x>אחר כך</button><button class="btn primary" data-go>בוא נתחיל 💪</button></div></div>`,
     (e, close) => { if (e.target.closest("[data-x]")) close(); if (e.target.closest("[data-go]")) { close(); startMode("coach", { qs }); } });
 }
 function flashSwipe() {
-  const seen = new Set(), pool = [...shuffle(dueQuestions()), ...mistakes(), ...freshSort(BANK)].filter(q => !seen.has(q.id) && seen.add(q.id)).slice(0, 15);
+  const seen = new Set(), pool = [...shuffle(dueQuestions()), ...mistakes(), ...freshSort(BANK, true)].filter(q => !seen.has(q.id) && seen.add(q.id)).slice(0, 15);
   let i = 0, flip = false, know = 0;
   const ans = q => q.t === "mc" ? q.o[q.a] : q.t === "tf" ? (q.a ? "נכון" : "לא נכון") : q.a;
   const draw = () => {
@@ -536,7 +536,7 @@ function flashSwipe() {
   draw();
 }
 function whyMode() {
-  const pool = freshSort(BANK.filter(q => q.t === "mc" && q.e && q.e.length > 25)).slice(0, 8);
+  const pool = freshSort(BANK.filter(q => q.t === "mc" && q.e && q.e.length > 25), true).slice(0, 8);
   let i = 0, ok = 0, chosen = null, opts = [];
   const draw = () => {
     if (i >= pool.length) return end();

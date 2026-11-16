@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "7.1.0";
+const APP_VERSION = "7.2.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -500,18 +500,45 @@ function customPool() {
 /* ───────── בניית סשן ───────── */
 let session = null, timerId = null;
 function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
-/* טריות: שאלות שלא נראו – קודם; שאלות שהופיעו לאחרונה – בסוף */
-function freshSort(pool) {
-  const rec = new Map((S.recent || []).map((id, i) => [id, i + 1]));
-  return pool.map(q => ({ q, k: (rec.has(q.id) ? 1e14 * (1 + rec.get(q.id) / 1000) : 0) + ((S.qs[q.id] && S.qs[q.id].last) || 0) + Math.random() * 864e5 }))
-    .sort((a, b) => a.k - b.k).map(x => x.q);
+/* ───── רמת קושי מותאמת: מתחילים בקל, והקושי עולה לפי ההתקדמות בכל נושא ───── */
+const DIFF_W = [
+  { easy: 1, medium: .25, hard: 0, expert: 0 },        // מתחיל
+  { easy: .8, medium: .8, hard: .1, expert: 0 },        // בדרך
+  { easy: .5, medium: 1, hard: .6, expert: .15 },       // מתקדם
+  { easy: .4, medium: 1, hard: 1, expert: 1 }           // הכל
+];
+const DIFF_NAMES = ["מתחיל", "בינוני", "מתקדם", "הכל"];
+function topicStage(f, cache) {
+  if (cache && f in cache) return cache[f];
+  const ok = BANK.reduce((a, q) => a + (q.f === f && S.qs[q.id] && S.qs[q.id].c > 0 ? 1 : 0), 0);
+  const st = ok < 12 ? 0 : ok < 30 ? 1 : ok < 55 ? 2 : 3;
+  if (cache) cache[f] = st;
+  return st;
+}
+function diffStage(f, cache) {
+  const d = (S.settings && S.settings.diff) || "auto";
+  if (d !== "auto") return { easy: 0, medium: 1, hard: 2, all: 3 }[d] ?? 3;
+  return topicStage(f, cache);
+}
+/* טריות: שאלות שלא נראו – קודם; שאלות שהופיעו לאחרונה – בסוף. עם byLevel – שאלות מעל הרמה שלך נדחות לסוף */
+function freshSort(pool, byLevel = false) {
+  const rec = new Map((S.recent || []).map((id, i) => [id, i + 1])), cache = {};
+  return pool.map(q => {
+    let k = (rec.has(q.id) ? 1e14 * (1 + rec.get(q.id) / 1000) : 0) + ((S.qs[q.id] && S.qs[q.id].last) || 0) + Math.random() * 864e5;
+    if (byLevel && TOPICS[q.f]) { const w = DIFF_W[diffStage(q.f, cache)][q.l] ?? 1; if (w <= 0) k += 5e14; else if (Math.random() >= w) k += 5e13 * (1.2 - w); }
+    return { q, k };
+  }).sort((a, b) => a.k - b.k).map(x => x.q);
+}
+function levelPool(pool) {
+  const cache = {}, out = pool.filter(q => !TOPICS[q.f] || (DIFF_W[diffStage(q.f, cache)][q.l] ?? 1) > 0.05);
+  return out.length >= 10 ? out : pool;
 }
 function markSeen(qs) {
   S.recent = (S.recent || []).filter(id => !qs.some(q => q.id === id)).concat(qs.map(q => q.id)).slice(-260);
 }
 function pickBalanced(pool, n, rand = Math.random) {
   const groups = {};
-  (rand === Math.random ? freshSort(pool) : shuffle(pool, rand)).forEach(q => (groups[q.f] = groups[q.f] || []).push(q));
+  (rand === Math.random ? freshSort(pool, true) : shuffle(pool, rand)).forEach(q => (groups[q.f] = groups[q.f] || []).push(q));
   const keys = shuffle(Object.keys(groups).sort(), rand), out = [];
   while (out.length < n && keys.some(k => groups[k].length)) keys.forEach(k => { if (out.length < n && groups[k].length) out.push(groups[k].shift()); });
   return shuffle(out, rand);
@@ -531,11 +558,11 @@ async function startMode(mode, opt = {}) {
   const closed = BANK.filter(q => q.t !== "open");
   switch (mode) {
     case "quick": qs = pickBalanced(BANK, 10); title = "תרגול מהיר"; break;
-    case "topic": qs = shuffle(freshSort(BANK.filter(q => q.f === opt.f)).slice(0, 10)); title = TOPICS[opt.f].name; break;
+    case "topic": qs = shuffle(freshSort(BANK.filter(q => q.f === opt.f), true).slice(0, 10)); title = TOPICS[opt.f].name; break;
     case "custom": qs = shuffle(customPool()).slice(0, builder.count); title = "מבחן מותאם"; instant = S.settings.instant; break;
-    case "daily": rand = rng(parseInt(hash("daily" + today()), 36)); qs = pickBalanced(closed, 5, rand); title = "אתגר יומי"; break;
+    case "daily": rand = rng(parseInt(hash("daily" + today()), 36)); qs = pickBalanced(levelPool(closed), 5, rand); title = "אתגר יומי"; break;
     case "exam": qs = pickBalanced(closed, 30); title = "סימולציית מבחן"; instant = false; timeLimit = 35 * 60; break;
-    case "speed": qs = freshSort(closed); title = "מבחן מהירות"; timeLimit = 60 + 5 * ((S.up && S.up.time) || 0); break;
+    case "speed": qs = freshSort(closed, true); title = "מבחן מהירות"; timeLimit = 60 + 5 * ((S.up && S.up.time) || 0); break;
     case "sudden": qs = ["easy", "medium", "hard", "expert"].flatMap(l => freshSort(closed.filter(q => q.l === l))); title = "מוות פתאומי"; break;
     case "coach": qs = opt.qs; title = "🧑‍🏫 האימון האישי שלך"; break;
     case "img": qs = freshSort(BANK.filter(q => q.img)).slice(0, 10); title = "🖼️ אתגר תמונה"; break;
@@ -618,7 +645,7 @@ function renderQuestion() {
       const isBoss = s.mode === "boss";
       const verdict = ok ? (isBoss ? "💥 פגיעה בבוס!" : pickPraise()) : isSurv ? `לא מדויק – נשארו ${s.lives} ❤️` : isBoss ? `😵 הבוס פגע בך – נשארו ${s.lives} ❤️` : "לא מדויק";
       const coinTxt = PLAY() && ok && it.coins ? ` <span class="coin-pop">‎+${it.coins} 🪙</span>` : "";
-      const tools = `<div class="row" style="gap:14px">${more}<button class="link-btn xs" id="askQBtn">❓ יש לי שאלה</button></div>`;
+      const tools = `<div class="row" style="gap:14px;flex-wrap:wrap">${more}<button class="link-btn xs" id="askQBtn">❓ יש לי שאלה</button>${LESSONS[q.f] ? `<button class="link-btn xs" id="lessonQBtn">📘 שיעור על ${esc(topicOf(q.f).name)}</button>` : ""}</div>`;
       fb = PLAY()
         ? `<div class="feedback ${ok ? "good" : "bad"}"><b class="t">${verdict}${coinTxt}</b>${ok ? "" : `התשובה הנכונה: <b>${esc(right)}</b>`}<details class="why"><summary>💡 למה?</summary><div>${linkTerms(q.e)}</div>${tools}</details></div>`
         : `<div class="feedback ${ok ? "good" : "bad"}"><b class="t">${verdict}</b>${ok ? "" : `התשובה הנכונה: <b>${esc(right)}</b><br>`}${linkTerms(q.e)}${tools}</div>`;
@@ -689,6 +716,7 @@ function bindQuestion() {
   $("#learnMore") && ($("#learnMore").onclick = () => lessonSheet(it.q.f));
   $("#report") && ($("#report").onclick = () => reportQuestion(it.q));
   $("#askQBtn") && ($("#askQBtn").onclick = () => askSheet(it.q.q + " — " + it.q.e));
+  $("#lessonQBtn") && ($("#lessonQBtn").onclick = () => lessonSheet(it.q.f));
   app.querySelectorAll("[data-g]").forEach(b => b.onclick = () => gradeOpen(+b.dataset.g));
   app.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { s.idx = +b.dataset.n; renderQuestion(); });
   $("#bm") && ($("#bm").onclick = () => {
@@ -1001,7 +1029,7 @@ function usePower(k) {
     let pool = BANK.filter(x => x.t !== "open" && x.f === q.f && !used.has(x.id));
     if (!pool.length) pool = BANK.filter(x => x.t !== "open" && !used.has(x.id));
     if (!pool.length) return;
-    const nq = freshSort(pool)[0]; markSeen([nq]);
+    const nq = freshSort(pool, true)[0]; markSeen([nq]);
     s.items[s.idx] = Object.assign(mkItem(nq), it.gold ? { gold: true } : {});
   } else if (k === "time" && s.timeLimit) { s.start += 10000; }
   else return;
@@ -1504,6 +1532,10 @@ function renderFactsList(body) {
   $("#ff").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; factFilter = b.dataset.k; renderFactsList(body); };
   body.querySelectorAll("[data-fav]").forEach(b => b.onclick = () => { const i = +b.dataset.fav; toggleFav(i); if (!S.factSeen.includes(i)) S.factSeen.push(i); save(); b.textContent = S.factFav.includes(i) ? "❤️" : "🤍"; });
 }
+function lessonSheet(f) {
+  sheet(`<div style="max-height:74vh;overflow:auto"><h2>${TOPICS[f].icon} ${esc(TOPICS[f].name)}</h2><p class="muted xs">שיעור קצר – קרא ותחזור לשאלות 💪</p>${lessonBody(f)}</div>
+    <div class="row"><button class="btn primary" data-a="x">חזרה לשאלה</button></div>`, (e, close) => { if (e.target.dataset.a) close(); });
+}
 function lessonBody(f) {
   return (LESSONS[f] || []).map(([h, t]) => `<div class="lesson-sec"><h3>${esc(h)}</h3><p>${linkTerms(t)}</p></div>`).join("");
 }
@@ -1959,6 +1991,13 @@ function renderSettings() {
   </div>
 
   <div class="card">
+    <h2>🎯 רמת קושי</h2>
+    <p class="muted small">באוטומטי האפליקציה מתחילה בשאלות קלות, ומוסיפה שאלות קשות בכל נושא רק אחרי שענית נכון על מספיק שאלות בו.</p>
+    <div class="seg wrap" id="diffSeg">${[["auto", "🤖 אוטומטי"], ["easy", "🟢 מתחיל"], ["medium", "🟡 בינוני"], ["hard", "🔴 מתקדם"], ["all", "🎲 הכל"]].map(([k, v]) => `<button data-k="${k}" class="${(st.diff || "auto") === k ? "on" : ""}">${v}</button>`).join("")}</div>
+    <div class="muted xs" style="margin-top:8px">${(st.diff || "auto") === "auto" ? "הרמה שלך לפי נושא: " + TOPIC_KEYS.map(f => TOPICS[f].icon + " " + DIFF_NAMES[topicStage(f)]).join(" · ") : ""}</div>
+  </div>
+
+  <div class="card">
     <h2>🎨 תצוגה וצלילים</h2>
     <div class="seg" id="theme">${[["auto", "אוטומטי"], ["dark", "כהה 🌙"], ["light", "בהיר ☀️"]].map(([k, v]) => `<button data-k="${k}" class="${st.theme === k ? "on" : ""}">${v}</button>`).join("")}</div>
     <div style="margin-top:6px">
@@ -2016,6 +2055,7 @@ function renderSettings() {
   $("#svWake").onchange = e => { sv.wake = e.target.checked; save(); };
   $("#svTry").onclick = openSaver;
   segBind("#theme", k => { st.theme = k; applyTheme(); });
+  app.querySelectorAll("#diffSeg button").forEach(b => b.onclick = () => { st.diff = b.dataset.k; save(); toast("🎯", "רמת הקושי עודכנה"); renderSettings(); });
   app.querySelectorAll("[data-s]").forEach(i => i.onchange = () => { st[i.dataset.s] = i.checked; save(); if (i.dataset.s === "sound" && i.checked) beep(true); });
   $("#exp").onclick = () => {
     const blob = new Blob([JSON.stringify(S, null, 1)], { type: "application/json" });

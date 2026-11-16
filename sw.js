@@ -1,5 +1,5 @@
 // להעלות את המספר בכל עדכון של האפליקציה, כדי שהמשתמשים יקבלו את הגרסה החדשה
-const CACHE = 'coach-knowledge-v14';
+const CACHE = 'coach-knowledge-v15';
 const FILES = [
   './', './index.html', './styles.css', './app.js',
   './questions.js', './questions2.js', './questions3.js', './questions4.js', './facts.js', './lessons.js', './foods.js', './config.js', './duel.js', './fundata.js', './fun.js', './lib/peerjs.min.js',
