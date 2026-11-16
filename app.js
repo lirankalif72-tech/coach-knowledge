@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "8.0.0";
+const APP_VERSION = "8.2.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -547,7 +547,12 @@ async function startMode(mode, opt = {}) {
     case "exam": qs = pickBalanced(closed, 30); title = "סימולציית מבחן"; instant = false; timeLimit = 35 * 60; break;
     case "speed": qs = freshSort(closed, true); title = "מבחן מהירות"; timeLimit = 60 + 5 * ((S.up && S.up.time) || 0); break;
     case "sudden": qs = ["easy", "medium", "hard", "expert"].flatMap(l => freshSort(closed.filter(q => q.l === l))); title = "מוות פתאומי"; break;
-    case "coach": qs = opt.qs; title = "🧑‍🏫 האימון האישי שלך"; break;
+    case "coach": qs = opt.qs; title = opt.title || "🧑‍🏫 האימון האישי שלך"; break;
+    case "final": {
+      const plan = { anatomy: 6, physio: 5, nutrition: 4, technique: 6, program: 6, trx: 2, special: 3, psych: 3, scenarios: 2, safety: 3 };
+      qs = shuffle(Object.entries(plan).flatMap(([f, n]) => freshSort(closed.filter(q => q.f === f)).slice(0, n)));
+      title = "🎓 מבחן גמר מדומה"; instant = false; timeLimit = 50 * 60; break;
+    }
     case "img": qs = freshSort(BANK.filter(q => q.img)).slice(0, 10); title = "🖼️ אתגר תמונה"; break;
     case "survival": qs = ["easy", "medium", "hard", "expert"].flatMap(l => freshSort(closed.filter(q => q.l === l))); title = "הישרדות"; break;
     case "challenge":
@@ -567,7 +572,7 @@ async function startMode(mode, opt = {}) {
   }
   stopFactTimer();
   if (!seed && mode !== "daily") markSeen(qs.slice(0, mode === "speed" || mode === "survival" || mode === "sudden" ? 25 : qs.length));
-  const goldIdx = PLAY() && qs.length >= 5 && !["exam", "daily", "challenge", "speed"].includes(mode) && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * (qs.length - 1)) : -1;
+  const goldIdx = PLAY() && qs.length >= 5 && !["exam", "final", "daily", "challenge", "speed"].includes(mode) && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * (qs.length - 1)) : -1;
   const maxL = mode === "sudden" ? 1 : mode === "stage" ? stageLives() : 3;
   session = { mode, title, instant, timeLimit, start: Date.now(), seed, opt, lives: maxL, maxL, combo: 0, maxCombo: 0, coinsEarned: 0, bossHp: mode === "boss" ? BOSS_HP : 0,
     items: qs.map((q, i) => Object.assign(mkItem(q, rand), i === goldIdx ? { gold: true } : {})), idx: 0, speedOk: 0, speedNo: 0 };
@@ -825,7 +830,8 @@ function finish(timeUp = false) {
   if (s.mode === "daily") { S.daily[today()] = { score }; bonus += 30; }
   const perfect = score === 100 && graded.length >= 5;
   if (perfect) bonus += 25;
-  const examPassed = s.mode === "exam" && score >= 70;
+  const isExam = s.mode === "exam" || s.mode === "final", examPassed = isExam && score >= 70;
+  S.lastExamMode = s.mode;
   addXP(bonus); touchStreak();
   logHistory({ mode: s.mode, title: s.title, score, n: s.items.length });
   checkAchievements({ perfect, examPassed }); save();
@@ -833,7 +839,7 @@ function finish(timeUp = false) {
   const xpGained = graded.reduce((a, it) => a + it.grade * 10, 0) + bonus;
   const secs = (Date.now() - s.start) / 1000;
   let title = score >= 90 ? "מצוין! 🌟" : score >= 75 ? "עבודה טובה! 💪" : score >= 55 ? "בכיוון הנכון 👍" : "יש מה לחזק 📚";
-  if (s.mode === "exam") title = examPassed ? "עברת את המבחן! 🎓" : "עדיין לא – אבל קרוב 💡";
+  if (isExam) title = examPassed ? (s.mode === "final" ? "עברת את מבחן הגמר! 🎓" : "עברת את המבחן! 🎓") : "עדיין לא – אבל קרוב 💡";
   let vs = null;
   if (s.mode === "challenge" && s.opt.from) {
     const them = +s.opt.theirScore || 0;
@@ -842,7 +848,7 @@ function finish(timeUp = false) {
     if (typeof recordRival === "function") recordRival(s.opt.from, score > them ? 1 : score === them ? 0 : -1, "אתגר");
   }
   showResult({ title, big: score + "%", p: score, items: s.items, vs, examPassed, examScore: score,
-    sub: `${correct} נכונות מתוך ${graded.length}${timeUp ? " · הזמן נגמר ⏰" : ""} · זמן: ${fmtTime(secs)}${s.mode === "exam" ? " · סף מעבר 70%" : ""}`, xp: xpGained, shareText: `השיגו ${score}% ב${s.title}` });
+    sub: `${correct} נכונות מתוך ${graded.length}${timeUp ? " · הזמן נגמר ⏰" : ""} · זמן: ${fmtTime(secs)}${isExam ? " · סף מעבר 70%" : ""}`, xp: xpGained, shareText: `השיגו ${score}% ב${s.title}` });
 }
 
 function showResult({ title, big, bigLabel, p, sub, items, xp, vs, examPassed, examScore, shareText }) {
@@ -886,7 +892,7 @@ function showResult({ title, big, bigLabel, p, sub, items, xp, vs, examPassed, e
   </div>`;
   window.scrollTo(0, 0); updateHeader();
   $("#retry") && ($("#retry").onclick = () => startMode("retry", { qs: shuffle(wrong) }));
-  $("#cert") && ($("#cert").onclick = () => makeCertificate(examScore));
+  $("#cert") && ($("#cert").onclick = () => makeCertificate(examScore, S.lastExamMode === "final" ? "על מעבר מבחן גמר מדומה למדריכי כושר גופני ובריאות" : undefined));
   $("#sendCh") && ($("#sendCh").onclick = () => sendChallenge(seed, scoreNum));
   $("#again").onclick = () => ["retry", "topic", "daily"].includes(mode) ? startMode("quick") : startMode(mode);
   $("#home").onclick = () => go("home");
@@ -911,7 +917,7 @@ async function sendChallenge(seed, score) {
 }
 
 /* ───────── תעודה ───────── */
-async function makeCertificate(score) {
+async function makeCertificate(score, what = "על מעבר סימולציית מבחן ידע למדריכי כושר", head = "תעודת הצטיינות") {
   let name = S.name;
   name = await prompt2("השם על התעודה", "איך לכתוב את השם שלך על התעודה?", name || "", "שם מלא");
   if (name === null) return;
@@ -925,11 +931,11 @@ async function makeCertificate(score) {
   x.direction = "rtl"; x.textAlign = "center"; x.fillStyle = "#eef2f7";
   const F = "system-ui,-apple-system,'Segoe UI','Noto Sans Hebrew',Arial,sans-serif";
   x.font = `800 44px ${F}`; x.fillStyle = "#34d399"; x.fillText("✦ מאמן ידע ✦", W / 2, 170);
-  x.font = `900 96px ${F}`; x.fillStyle = "#eef2f7"; x.fillText("תעודת הצטיינות", W / 2, 310);
+  x.font = `900 96px ${F}`; x.fillStyle = "#eef2f7"; x.fillText(head, W / 2, 310);
   x.font = `500 40px ${F}`; x.fillStyle = "#8e9bb1"; x.fillText("מוענקת בזאת ל", W / 2, 420);
   x.font = `900 84px ${F}`; x.fillStyle = "#ffffff"; x.fillText(name || "מתאמן/ת מצטיין/ת", W / 2, 540);
   x.fillStyle = "#34d399"; x.fillRect(W / 2 - 260, 575, 520, 5);
-  x.font = `500 42px ${F}`; x.fillStyle = "#eef2f7"; x.fillText("על מעבר סימולציית מבחן ידע למדריכי כושר", W / 2, 680);
+  x.font = `500 42px ${F}`; x.fillStyle = "#eef2f7"; x.fillText(what, W / 2, 680);
   x.font = `900 120px ${F}`; x.fillStyle = "#34d399"; x.fillText(score + "%", W / 2, 840);
   x.font = `500 34px ${F}`; x.fillStyle = "#8e9bb1"; x.fillText(new Date().toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" }), W / 2, 950);
   x.font = `400 24px ${F}`; x.fillText("תעודה לימודית מתוך אפליקציית התרגול. אינה מהווה הסמכה מקצועית.", W / 2, 1020);

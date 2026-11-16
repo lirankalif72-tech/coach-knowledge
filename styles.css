@@ -629,3 +629,45 @@ body.night .play-hero,body.night .hero{background-image:linear-gradient(135deg,r
 .world.closed .world-h::after{content:"‹";font-size:22px;color:var(--muted);transform:rotate(-90deg)}
 .world.open .world-h::after{content:"‹";font-size:22px;color:var(--muted);transform:rotate(90deg)}
 .world.closed{padding:12px 14px}
+/* v8.1 – הכנה למבחן ותרגול מעשי */
+.prep-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-2px 0 6px}
+.prep-card{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:16px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;font:inherit;text-align:start}
+.prep-card>span{font-size:26px}.prep-card b{display:block;font-size:14px}.prep-card small{color:var(--muted);font-size:11px;line-height:1.3;display:block}
+.course-w.cur{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+.course-w.done{opacity:.8}
+.nb-item summary{cursor:pointer;font-weight:700;font-size:14px;line-height:1.5}
+.demo-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.demo-pair>div{position:relative;background:var(--card2);border-radius:14px;overflow:hidden}
+.demo-pair canvas{width:100%;height:auto;display:block}
+.demo-pair span{position:absolute;top:6px;right:8px;font-size:12px;font-weight:800}
+.ok-l{color:#10b981}.no-l{color:#ef4444}
+.drill-step{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;margin:6px 0;font-size:14px;font-weight:700}
+.drill-step.ok{background:var(--accent-soft)}
+.drill-step span{width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:12px;flex:none}
+.drill-opt{border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:14px;padding:13px 14px;font:inherit;font-size:15px;text-align:start;cursor:pointer}
+.drill-opt.bad{border-color:var(--bad);background:var(--bad-soft);animation:shakeX .38s}
+/* v8.2 – מפת גוף, מיליונר, טיימר, מפת חום */
+.bm-wrap{display:flex;justify-content:center}
+.bodymap{width:min(240px,62vw);height:auto}
+.bodymap .bb{fill:var(--card2);stroke:var(--line);stroke-width:1.5}
+.bodymap .mus>*{fill:color-mix(in srgb,var(--accent) 35%,var(--card2));stroke:var(--accent);stroke-width:1;cursor:pointer;transition:fill .15s}
+.bodymap .mus>*.on{fill:#f59e0b;stroke:#b45309}
+.bm-card h2{margin:0 0 8px}
+.mil-ladder{display:flex;gap:3px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.mil-ladder span{flex:none;font-size:11px;font-weight:800;padding:4px 7px;border-radius:8px;background:var(--card2);color:var(--muted)}
+.mil-ladder span.safe{border:1px solid #f59e0b}
+.mil-ladder span.won{background:var(--accent-soft);color:var(--accent)}
+.mil-ladder span.cur{background:#f59e0b;color:#111}
+.mil-life{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.mil-life button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:10px 4px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.mil-life button:disabled{opacity:.4}
+.opt.cut{opacity:.25}
+.timer-card{text-align:center}
+.tm-phase{font-size:20px;font-weight:900}.tm-phase.work{color:#10b981}.tm-phase.rest{color:#60a5fa}
+.tm-big{font-size:72px;font-weight:900;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.hm-grid{display:flex;gap:3px;margin:10px 0 6px;justify-content:center}
+.hm-col{display:flex;flex-direction:column;gap:3px}
+.hm{display:inline-block;width:14px;height:14px;border-radius:3px;background:var(--card2)}
+.hm.l-1{background:transparent}.hm.l1{background:color-mix(in srgb,var(--accent) 30%,var(--card2))}.hm.l2{background:color-mix(in srgb,var(--accent) 55%,var(--card2))}.hm.l3{background:color-mix(in srgb,var(--accent) 80%,var(--card2))}.hm.l4{background:var(--accent)}
+.hm-leg{display:flex;align-items:center;gap:3px;justify-content:center}
+.hm-leg .hm{width:11px;height:11px}
