@@ -76,6 +76,14 @@ function lSwapData() {
     }
   };
   L_DATA.forEach(g => { let v; try { v = eval(g); } catch (e) { return; } walk(v); });
+  // מאגר השאלות עצמו – כדי שכל המצבים (דו־קרב, מיליונר, משחקים, חזרה...) יהיו באנגלית
+  if (typeof BANK !== "undefined" && typeof QEN !== "undefined") BANK.forEach(q => {
+    const tr = QEN[q.id]; if (!tr) return;
+    const set = (k, v) => { if (v == null || q[k] === v) return; L_UNDO.push([q, k, q[k]]); q[k] = v; };
+    set("q", tr.q); set("e", tr.e);
+    if (q.t === "mc" && tr.o) set("o", tr.o);
+    if (q.t === "open" && tr.a) set("a", tr.a);
+  });
   if (typeof TERM_RE !== "undefined") { try { TERM_RE = null; } catch (e) { } }
 }
 const LETTERS_REF = (() => { try { return LETTERS; } catch (e) { return null; } })();
