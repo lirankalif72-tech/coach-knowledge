@@ -601,3 +601,31 @@ body.night .play-hero,body.night .hero{background-image:linear-gradient(135deg,r
 .prog-ex{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}.prog-ex:last-child{border:0}
 .wsum{text-align:center}
 .opt .aud{margin-inline-start:auto;font-style:normal;font-size:12px;font-weight:800;padding:3px 8px;border-radius:9px;background:linear-gradient(90deg,var(--blue-soft) var(--p),var(--card2) var(--p));color:var(--blue);min-width:44px;text-align:center}
+/* v8 – מסכי בית מסודרים */
+.spacer{flex:1}
+.status-row{display:flex;align-items:center;gap:8px;margin:10px 0 2px}
+.st-av,.st-pet{border:1px solid var(--line);background:var(--card);border-radius:14px;width:52px;height:52px;display:grid;place-items:center;cursor:pointer;padding:0;position:relative;flex:none}
+.st-av .avatar-svg{border-radius:12px}
+.st-pet span{font-size:28px;animation:petBob 2.4s ease-in-out infinite}
+.st-pet i{position:absolute;bottom:-4px;left:-4px;font-style:normal;font-size:14px;background:var(--card);border-radius:50%;width:20px;height:20px;display:grid;place-items:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.status-row .ft-chip{flex:1;text-align:center;padding:10px 6px}
+.today-row{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;margin:4px -2px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.today-row::-webkit-scrollbar{display:none}
+.t-chip{flex:none;width:96px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:16px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:inherit;position:relative}
+.t-chip .em{font-size:24px}.t-chip b{font-size:12.5px;white-space:nowrap}.t-chip small{font-size:11px;color:var(--muted);white-space:nowrap}
+.t-chip.hot{border-color:var(--accent)}
+.t-chip.hot::after{content:"";position:absolute;top:7px;left:7px;width:8px;height:8px;border-radius:50%;background:#ef4444}
+.tiles3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 8px}
+.tile{border:0;border-radius:18px;padding:14px 6px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:inherit;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.tile span{font-size:28px}.tile b{font-size:15px}.tile small{font-size:11px;opacity:.9}
+.t-duel{background:linear-gradient(135deg,#7c3aed,#db2777)}.t-games{background:linear-gradient(135deg,#0ea5e9,#6366f1)}.t-coll{background:linear-gradient(135deg,#f59e0b,#ef4444)}
+.locked-worlds{opacity:.75}
+.coach-card{width:100%;border:1px solid var(--line);font:inherit;color:var(--text);cursor:pointer;margin:10px 0}
+.more-btn{margin-top:4px}
+.more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.more-grid button{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:14px;padding:12px 4px;font:inherit;font-size:12.5px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.more-grid button span{font-size:24px}
+.world.closed .world-h,.world.open .world-h{cursor:pointer}
+.world.closed .world-h::after{content:"‹";font-size:22px;color:var(--muted);transform:rotate(-90deg)}
+.world.open .world-h::after{content:"‹";font-size:22px;color:var(--muted);transform:rotate(90deg)}
+.world.closed{padding:12px 14px}

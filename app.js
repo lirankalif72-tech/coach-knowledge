@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "7.2.0";
+const APP_VERSION = "8.0.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -354,42 +354,26 @@ function renderHome() {
     </div>
   </div>
 
-  <div class="card daily ${d ? "done" : ""}" id="dailyCard">
-    <div class="em">${d ? "✅" : "🏆"}</div>
-    <div style="flex:1"><b style="font-size:16px">אתגר יומי</b>
-      <div class="muted small">${d ? `הושלם היום · ${d.score}% · חוזר מחר` : "5 שאלות חדשות בכל יום · ‎+30 XP בונוס"}</div></div>
-    <span class="chev">‹</span>
-  </div>
+  <button class="card coach-card" id="coachCard"><span class="em">🧑‍🏫</span><div style="flex:1;text-align:start"><b>האימון האישי שלך</b><div class="muted small">${rec ? esc(rec.why) + " · " + TOPICS[rec.f].icon + " " + TOPICS[rec.f].name : "5 דקות על מה שהכי צריך חיזוק"}</div></div><span class="chev">‹</span></button>
+
+  <div id="todayRow" class="today-row"></div>
 
   <div class="card fact-card" id="factCard">
     <div class="row" style="justify-content:space-between"><b>💡 הידעת?</b><span class="tag">${factTag(fact.c)}</span></div>
     <p id="factText" style="margin:8px 0 10px;font-size:15.5px">${linkTerms(fact.t)}</p>
-    <div class="row"><button class="link-btn small" id="factFav">${S.factFav.includes(fact.i) ? "❤️ אהובה" : "🤍 שמירה"}</button><button class="link-btn small" id="factAsk">❓ לא הבנתי</button><span class="spacer"></span><button class="link-btn small" id="factNext">עובדה נוספת ←</button></div>
+    <div class="row"><button class="link-btn small" id="factFav">${S.factFav.includes(fact.i) ? "❤️ אהובה" : "🤍 שמירה"}</button><button class="link-btn small" id="factAsk">❓ לא הבנתי</button><span class="spacer"></span><button class="link-btn small" id="factNext">עוד אחת ←</button></div>
   </div>
 
+  <div class="section-title"><h2>🎯 תרגול</h2></div>
   <div class="grid2">
-    <button class="mode" data-go="quick"><span class="em">🎲</span><b>תרגול מהיר</b><span>10 שאלות מכל התחומים</span></button>
-    <button class="mode" data-go="speed"><span class="em">⚡</span><b>מבחן מהירות</b><span>60 שניות · שיא: ${S.best.speed}</span></button>
-    <button class="mode" data-go="survival"><span class="em">❤️</span><b>הישרדות</b><span>3 טעויות ונגמר · שיא: ${S.best.survival}</span></button>
-    <button class="mode" data-go="exam"><span class="em">🎓</span><b>סימולציית מבחן</b><span>30 שאלות · 35 דק׳ · סף 70%</span></button>
+    <button class="mode" data-go="quick"><span class="em">🎲</span><b>תרגול מהיר</b><span>10 שאלות ברמה שלך</span></button>
+    <button class="mode" data-go="exam"><span class="em">🎓</span><b>סימולציית מבחן</b><span>30 שאלות · 35 דק׳</span></button>
     <button class="mode" data-go="mistakes"><span class="em">🔁</span><b>חזרה על טעויות</b><span>${mis ? mis + " שאלות לחיזוק" : "אין טעויות פתוחות"}</span></button>
-    <button class="mode" data-go="challenge"><span class="em">🤝</span><b>אתגר חבר</b><span>10 שאלות – מי ינצח?</span></button>
-    <button class="mode" onclick="duelMenu()"><span class="em">⚔️</span><b>דו־קרב</b><span>חבר נגד חבר בזמן אמת</span></button>
-    <button class="mode" onclick="renderLeaderboard()"><span class="em">🏆</span><b>לוח מובילים</b><span>חברים ושיאים</span></button>
+    <button class="mode" id="flashBtn"><span class="em">🗂️</span><b>כרטיסיות</b><span>ידעתי / לא ידעתי</span></button>
   </div>
+  <button class="btn block more-btn" id="moreModes">➕ עוד דרכים לתרגל ולשחק</button>
 
-  <div class="card term-card" id="termCard">
-    <div class="row" style="justify-content:space-between"><span class="muted xs" style="font-weight:700">📖 מונח היום</span><button class="link-btn xs" id="termQuiz">מבחן מונחים ←</button></div>
-    <div style="font-size:19px;font-weight:800;margin:6px 0 4px">${esc(term)}</div>
-    <div class="muted small" id="termDef">👆 הקש כדי לראות את ההגדרה</div>
-  </div>
-
-  <div class="card food-cta" id="foodCta"><span class="em">🍽️</span><div style="flex:1"><b>כמה יש באוכל?</b><div class="muted small">כתוב מה אכלת וקבל קלוריות, חלבון, פחמימות ושומן</div></div><span class="chev">‹</span></div>
-
-  ${rec ? `<div class="tip" data-topic="${rec.f}"><span style="font-size:22px">💡</span><div><b>המלצה: ${topicOf(rec.f).name}</b><div class="small muted">${rec.why}</div></div></div>` : ""}
-
-  <div id="funLearn"></div>
-  <div class="section-title"><h2>תחומי לימוד</h2><span class="muted xs">${BANK.length} שאלות במאגר</span></div>
+  <div class="section-title"><h2>📚 תחומי לימוד</h2><span class="muted xs">${BANK.length} שאלות</span></div>
   <div class="card" style="padding:4px 16px">
     ${ts.map(t => `<div class="topic" data-topic="${t.f}">
       <div class="em">${TOPICS[t.f].icon}</div>
@@ -399,12 +383,11 @@ function renderHome() {
   <p class="footer-note">זהו כלי לימודי בלבד. הוא אינו תחליף להכשרה מוסמכת, להנחיות רפואיות או לייעוץ מקצועי.</p>
   </div>`;
 
-  $("#dailyCard").onclick = () => d ? toast("✅", "כבר השלמת את האתגר היום – נתראה מחר!") : startMode("daily");
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => startMode(b.dataset.go));
   app.querySelectorAll("[data-topic]").forEach(b => b.onclick = () => topicSheet(b.dataset.topic));
-  $("#termCard").onclick = e => { if (e.target.id === "termQuiz") return; $("#termDef").textContent = def; $("#termDef").classList.remove("muted"); };
-  $("#termQuiz").onclick = () => startMode("terms");
-  $("#foodCta").onclick = () => go("tools", { seg: "food" });
+  $("#coachCard").onclick = () => typeof coachSession === "function" ? coachSession() : startMode("quick");
+  $("#flashBtn").onclick = () => typeof flashSwipe === "function" ? flashSwipe() : startFlash(TOPIC_KEYS);
+  $("#moreModes").onclick = () => typeof moreModesSheet === "function" && moreModesSheet();
   let cur = fact;
   const showFact = f => {
     cur = f; const el = $("#factText"); if (!el) return stopFactTimer();
@@ -1225,7 +1208,7 @@ function bossIntro(f) {
     <div class="row" style="margin-top:14px"><button class="btn" data-x>ביטול</button><button class="btn primary" data-go>להילחם! ⚔️</button></div></div>`,
     (e, close) => { if (e.target.closest("[data-x]")) close(); if (e.target.closest("[data-go]")) { close(); startMode("boss", { f }); } });
 }
-function worldHtml(f, w) {
+function worldHtml(f, w, ex = true) {
   const un = worldUnlocked(w), st = STAGES[f], m = mapOf(f), nx = nextStage();
   let nodes = "";
   st.forEach((x, i) => {
@@ -1239,46 +1222,38 @@ function worldHtml(f, w) {
   });
   const bu = un && bossUnlocked(f);
   const prev = TOPIC_KEYS[w - 1];
-  return `<div class="world ${un ? "" : "locked"}"><div class="world-h"><span class="em">${TOPICS[f].icon}</span><div style="flex:1"><b>${TOPICS[f].name}</b>
-    <div class="muted xs">${un ? `⭐ ${worldStars(f)}/${st.length * 3}${m.boss ? " · 👑 הבוס הובס" : ""}` : `🔒 נפתח אחרי שתסיים את דרגת המתחיל ב${TOPICS[prev].name}`}</div></div></div>
-    ${un ? `<div class="path">${nodes}<div class="tier-h boss-h ${bu ? "" : "locked"}">${bu ? "👹" : "🔒"} <b>בוס העולם</b><span>${bu ? "מוכן לקרב!" : "נפתח אחרי כל השלבים"}</span></div><button class="node boss ${m.boss ? "done" : ""} ${bu ? "" : "locked"} ${nx.f === f && nx.boss ? "cur" : ""}" data-boss="${f}" ${bu ? "" : "disabled"}><span>${m.boss ? "👑" : "👹"}</span><i>${m.boss ? "הובס" : bu ? "בוס!" : ""}</i></button></div>` : ""}</div>`;
+  return `<div class="world ${un ? "" : "locked"} ${ex ? "open" : "closed"}"><div class="world-h" data-wt="${f}"><span class="em">${TOPICS[f].icon}</span><div style="flex:1"><b>${TOPICS[f].name}</b>
+    <div class="muted xs">${un ? `⭐ ${worldStars(f)}/${st.length * 3}${m.boss ? " · 👑 הבוס הובס" : ""}${ex ? "" : `<div class="mini-bar" style="margin-top:4px"><i style="width:${pct(worldStars(f), st.length * 3)}%"></i></div>`}` : `🔒 נפתח אחרי שתסיים את דרגת המתחיל ב${TOPICS[prev].name}`}</div></div></div>
+    ${un && ex ? `<div class="path">${nodes}<div class="tier-h boss-h ${bu ? "" : "locked"}">${bu ? "👹" : "🔒"} <b>בוס העולם</b><span>${bu ? "מוכן לקרב!" : "נפתח אחרי כל השלבים"}</span></div><button class="node boss ${m.boss ? "done" : ""} ${bu ? "" : "locked"} ${nx.f === f && nx.boss ? "cur" : ""}" data-boss="${f}" ${bu ? "" : "disabled"}><span>${m.boss ? "👑" : "👹"}</span><i>${m.boss ? "הובס" : bu ? "בוס!" : ""}</i></button></div>` : ""}</div>`;
 }
 function renderPlayHome() {
-  const L = levelOf(S.xp), lo = xpFor(L), hi = xpFor(L + 1), d = S.daily[today()], nx = nextStage();
+  const L = levelOf(S.xp), lo = xpFor(L), hi = xpFor(L + 1), nx = nextStage();
   const nxLabel = nx.boss ? `👹 קרב בוס · ${TOPICS[nx.f].name}` : `${TOPICS[nx.f].icon} ${TOPICS[nx.f].name} · שלב ${nx.i + 1}`;
+  const openW = TOPIC_KEYS.filter((f, w) => worldUnlocked(w)), lockedW = TOPIC_KEYS.filter((f, w) => !worldUnlocked(w));
   app.innerHTML = `<div class="fade-in">
   <div class="hero play-hero"><div class="level-row">
     <div class="level-badge">${L}</div>
     <div style="flex:1;min-width:0"><b style="font-size:17px">${S.name ? esc(S.name) + " · " : ""}${levelTitle(L)}</b><div class="muted xs">${S.xp - lo}/${hi - lo} XP · ⭐ ${totalStars()} כוכבים</div><div class="xpbar"><i style="width:${pct(S.xp - lo, hi - lo)}%"></i></div></div>
     ${goalRing()}</div></div>
-  <button class="play-btn" id="playNow"><span class="pb-ic">▶</span><div><b>שחק עכשיו</b><span>${nxLabel}</span></div></button>
   <div id="funTop"></div>
-  ${missionsCard()}
-  ${wheelCard()}
-  <div class="card daily ${d ? "done" : ""}" id="dailyCard"><div class="em">${d ? "✅" : "🏆"}</div>
-    <div style="flex:1"><b style="font-size:16px">אתגר יומי</b><div class="muted small">${d ? `הושלם · ${d.score}% · חוזר מחר` : "5 שאלות חדשות · ‎+30 XP בונוס"}</div></div><span class="chev">‹</span></div>
-  <div class="duel-hero"><button class="duel-big" id="duelBtn"><span>⚔️</span><div><b>דו־קרב</b><small>חבר נגד חבר · אונליין או על אותו טלפון</small></div></button><button class="lb-big" id="lbBtn"><span>🏆</span><small>מובילים</small></button></div>
-  <div class="section-title"><h2>🎮 זירה</h2></div>
-  <div class="grid2">
-    <button class="mode" data-go="speed"><span class="em">⚡</span><b>מבחן מהירות</b><span>60 שניות · שיא: ${S.best.speed}</span></button>
-    <button class="mode" data-go="survival"><span class="em">❤️</span><b>הישרדות</b><span>3 טעויות ונגמר · שיא: ${S.best.survival}</span></button>
-    <button class="mode" data-go="challenge"><span class="em">🤝</span><b>אתגר חבר</b><span>שלח קישור – מי ינצח?</span></button>
-    <button class="mode" data-go="quick"><span class="em">🎲</span><b>סיבוב אקראי</b><span>10 שאלות מכל העולמות</span></button>
+  <button class="play-btn" id="playNow"><span class="pb-ic">▶</span><div><b>שחק עכשיו</b><span>${nxLabel}</span></div></button>
+  <div id="todayRow" class="today-row"></div>
+  <div class="tiles3">
+    <button class="tile t-duel" id="tDuel"><span>⚔️</span><b>דו־קרב</b><small>נגד חבר</small></button>
+    <button class="tile t-games" id="tGames"><span>🎪</span><b>משחקים</b><small>מצבים מיוחדים</small></button>
+    <button class="tile t-coll" id="tColl"><span>🎁</span><b>אוספים</b><small>ליגה, קלפים ועוד</small></button>
   </div>
-  <div id="funHub"></div>
   <div class="section-title"><h2>🗺️ המסע</h2><span class="muted xs">⭐ ${totalStars()}/${maxStars()}</span></div>
-  ${TOPIC_KEYS.map((f, w) => worldHtml(f, w)).join("")}
-  <p class="footer-note">רוצה שיעורים והסברים מלאים? עבור למצב לימוד בכפתור 📚 למעלה.</p>
+  ${openW.map(f => worldHtml(f, TOPIC_KEYS.indexOf(f), f === (S.openW || nx.f))).join("")}
+  ${lockedW.length ? `<div class="card locked-worlds"><b>🔒 עוד ${lockedW.length} עולמות</b><div class="muted xs">${lockedW.map(f => TOPICS[f].icon + " " + TOPICS[f].name).join(" · ")}</div><div class="muted xs" style="margin-top:4px">כל עולם נפתח אחרי שמסיימים את דרגת המתחיל בעולם שלפניו.</div></div>` : ""}
   </div>`;
   $("#playNow").onclick = () => startNext(nx);
-  $("#dailyCard").onclick = () => d ? toast("✅", "כבר השלמת את האתגר היום") : startMode("daily");
-  $("#chestBtn").onclick = openChest;
-  $("#wheelCard") && ($("#wheelCard").onclick = wheelSheet);
-  $("#duelBtn").onclick = () => duelMenu();
-  $("#lbBtn").onclick = () => renderLeaderboard();
-  app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => startMode(b.dataset.go));
+  $("#tDuel").onclick = () => duelMenu();
+  $("#tGames").onclick = () => typeof gamesPage === "function" && gamesPage();
+  $("#tColl").onclick = () => typeof collectionsPage === "function" && collectionsPage();
   app.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const [f, i] = b.dataset.stage.split(":"); stageIntro(f, +i); });
   app.querySelectorAll("[data-boss]").forEach(b => b.onclick = () => bossIntro(b.dataset.boss));
+  app.querySelectorAll("[data-wt]").forEach(h => h.onclick = () => { const f = h.dataset.wt; S.openW = (S.openW || nx.f) === f ? "__none" : f; renderHome(); const el = document.querySelector(`[data-wt="${f}"]`); el && el.scrollIntoView({ block: "start", behavior: "smooth" }); });
 }
 function reviewList(items) {
   return items.filter(it => it.done).map((it, i) => {

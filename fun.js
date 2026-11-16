@@ -82,15 +82,15 @@ levelUp = function (L) {
 const _logHistory = logHistory;
 logHistory = function (e) { _logHistory(e); if (e.mode === "daily") groupPostDaily(e.score); };
 const _worldHtml = worldHtml;
-worldHtml = function (f, w) {
-  const c = CAREER[f]; let h = _worldHtml(f, w);
+worldHtml = function (f, w, ex) {
+  const c = CAREER[f]; let h = _worldHtml(f, w, ex);
   if (c) h = h.replace(`<b>${TOPICS[f].name}</b>`, `<b>${TOPICS[f].name}</b><div class="career">💼 שלב ${w + 1} בקריירה: ${c[0]}</div>`);
   return h;
 };
 const _renderPlayHome = renderPlayHome;
-renderPlayHome = function () { _renderPlayHome(); fillFunTop(); fillFunHub(); };
+renderPlayHome = function () { _renderPlayHome(); fillFunTop(); fillToday(); };
 const _renderHome = renderHome;
-renderHome = function () { _renderHome(); if (S.mode !== "play") fillFunLearn(); };
+renderHome = function () { _renderHome(); if (S.mode !== "play") fillToday(); };
 const _goFun = go;
 go = function (t, sub) { funCleanup(); const r = _goFun(t, sub); nightCheck(); return r; };
 
@@ -725,72 +725,114 @@ renderLeaderboard = function (k) {
 };
 (function () { const g = new URLSearchParams(location.search).get("group"); if (g && /^[A-Za-z0-9]{5}$/.test(g)) { history.replaceState(null, "", baseUrl()); setTimeout(() => { if (!lbOn()) return; modal("👥 הוזמנת לקבוצה!", `להצטרף לקבוצה ${g.toUpperCase()}?`, "הצטרף", "לא עכשיו").then(async ok => { if (ok && await needName()) { S.group = g.toUpperCase(); save(); lbSync(true); toast("👥", "הצטרפת לקבוצה!"); } }); }, 1200); } })();
 
-/* ═════ מסכי הבית ═════ */
+/* ═════ מסכי הבית (מסודרים) ═════ */
 function fillFunTop() {
   const el = $("#funTop"); if (!el) return;
   ensureLeague(); ensureSeason(); petTick();
   const L = LEAGUES[S.lg.tier], rows = leagueRows(), rank = rows.findIndex(r => r.me) + 1, sTier = Math.min(SS_TIERS, Math.floor(S.ss.xp / SS_STEP));
-  const [face, ptxt] = petMood(), tod = topicOfDay();
-  el.innerHTML = `${isWeekend() ? `<div class="event-banner">🎉 אירוע סוף שבוע: כל המטבעות כפולים!</div>` : ""}
-    <div class="fun-top">
-      <button class="ft-av" id="ftAv">${avatarSvg(S.av, 78)}<small>המאמן שלי</small></button>
-      <button class="ft-pet" id="ftPet"><span class="pet-em">${petEm()}</span><b>${S.pet ? esc(S.pet.name) + " " + face : "חיית מחמד"}</b><small>${S.pet ? ptxt : "בחר אחת! 🥚"}</small></button>
-      <div class="ft-side"><button class="ft-chip" id="ftLg" style="--lc:${L.col}">${L.em} ${L.n} · #${rank}</button><button class="ft-chip" id="ftSs">🎟️ דרגה ${sTier}/${SS_TIERS}</button></div>
-    </div>
-    <div class="tod-card" id="todCard"><span>${TOPICS[tod].icon}</span><div style="flex:1"><b>נושא היום: ${TOPICS[tod].name}</b><small>‎+5 XP בונוס על כל תשובה נכונה בנושא</small></div><span class="chev">‹</span></div>`;
+  const [face] = petMood();
+  el.innerHTML = `${isWeekend() ? `<div class="event-banner">🎉 סוף שבוע: כל המטבעות כפולים!</div>` : ""}
+    <div class="status-row">
+      <button class="st-av" id="ftAv" title="המאמן שלי">${avatarSvg(S.av, 44)}</button>
+      <button class="st-pet" id="ftPet" title="חיית המחמד"><span>${petEm()}</span>${S.pet ? `<i>${face}</i>` : `<i>➕</i>`}</button>
+      <button class="ft-chip" id="ftLg" style="--lc:${L.col}">${L.em} ${L.n} · #${rank}</button>
+      <button class="ft-chip" id="ftSs">🎟️ ${sTier}/${SS_TIERS}</button>
+    </div>`;
   $("#ftAv").onclick = avatarSheet; $("#ftPet").onclick = petSheet; $("#ftLg").onclick = leaguePage; $("#ftSs").onclick = seasonPage;
-  $("#todCard").onclick = () => startMode("topic", { f: tod });
   maybeWeeklySummary();
 }
+function chip(id, em, label, sub, hot) { return `<button class="t-chip ${hot ? "hot" : ""}" data-chip="${id}"><span class="em">${em}</span><b>${label}</b><small>${sub}</small></button>`; }
+function fillToday() {
+  const el = $("#todayRow"); if (!el) return;
+  const d = S.daily[today()], ex = exToday(), tod = topicOfDay();
+  let html = chip("daily", d ? "✅" : "🏆", "אתגר יומי", d ? d.score + "%" : "5 שאלות", !d);
+  if (PLAY()) {
+    const m = missions(), done = m.list.filter(x => x.done).length;
+    html += chip("wheel", "🎡", "גלגל מזל", wheelReady() ? "סיבוב חינם!" : "מחר", wheelReady());
+    html += chip("missions", "🎯", "משימות", m.claimed ? "הושלמו ✓" : `${done}/3`, done === 3 && !m.claimed);
+    html += chip("tod", TOPICS[tod].icon, "נושא היום", "‎+5 XP", false);
+  } else {
+    const due = dueQuestions().length;
+    html += chip("term", "📖", "מונח היום", "הקש לגלות", false);
+    html += chip("due", "🔁", "חזרה חכמה", due ? due + " מחכות" : "הכל מעודכן", due > 0);
+    html += chip("food", "🍽️", "כמה יש באוכל?", "קלוריות וחלבון", false);
+  }
+  html += chip("ex", ex.em, "תרגיל היום", S.exDone === today() ? "בוצע ✓" : "‎+15 🪙", S.exDone !== today());
+  el.innerHTML = html;
+  const act = { daily: () => d ? toast("✅", "כבר השלמת את האתגר היום") : startMode("daily"), wheel: wheelSheet, missions: missionsSheet, tod: () => startMode("topic", { f: tod }),
+    term: termSheet, due: () => startMode("due"), food: () => go("tools", { seg: "food" }), ex: exerciseSheet };
+  el.querySelectorAll("[data-chip]").forEach(b => b.onclick = () => act[b.dataset.chip]());
+}
+function missionsSheet() {
+  const { bg } = sheet(`${missionsCard()}<div class="row" style="margin-top:8px"><button class="btn" data-a="x">סגירה</button></div>`, (e, close) => { if (e.target.dataset.a) close(); });
+  const c = bg.querySelector("#chestBtn"); c && (c.onclick = () => { bg.remove(); openChest(); });
+}
+function termSheet() {
+  const [term, def] = GLOSSARY[parseInt(hash("term" + today()), 36) % GLOSSARY.length];
+  sheet(`<div style="text-align:center"><div class="muted small">📖 מונח היום</div><h2>${esc(term)}</h2></div><p style="font-size:16px;line-height:1.7">${linkTerms(def)}</p>
+    <div class="row"><button class="btn" data-a="x">סגירה</button><button class="btn primary" data-a="q">מבחן מונחים ←</button></div>`, (e, close) => { const a = e.target.dataset.a; if (a === "x") close(); if (a === "q") { close(); startMode("terms"); } });
+}
 function hubBtn(id, em, n, sub, lock) { return `<button class="mode fun-mode ${lock ? "locked" : ""}" data-fun="${id}"><span class="em">${lock ? "🔒" : em}</span><b>${n}</b><span>${lock || sub}</span></button>`; }
-function fillFunHub() {
-  const el = $("#funHub"); if (!el) return;
-  ensureWQ();
-  const L = levelOf(S.xp), wqDone = WQ.filter(([k, n]) => S.wq.p[k] >= n && !S.wq.claimed.includes(k)).length, ex = exToday();
-  el.innerHTML = `<div class="section-title"><h2>🎪 מצבי משחק</h2></div>
+function gamesPage() {
+  const L = levelOf(S.xp);
+  funScreen(`<div class="fade-in">${funExitBtn()}<h2>🎪 משחקים</h2>
+    <div class="section-title"><h2>⚔️ זירה</h2></div>
+    <div class="grid2">
+      ${hubBtn("quick", "🎲", "סיבוב אקראי", "10 שאלות ברמה שלך")}
+      ${hubBtn("speed", "⚡", "מבחן מהירות", `60 שניות · שיא ${S.best.speed}`)}
+      ${hubBtn("survival", "❤️", "הישרדות", `3 טעויות · שיא ${S.best.survival}`)}
+      ${hubBtn("sudden", "💀", "מוות פתאומי", `טעות אחת · שיא ${S.best.sudden}`, L < 8 ? `נפתח ברמה 8 (אתה ${L})` : "")}
+      ${hubBtn("challenge", "🤝", "אתגר חבר", "שולחים קישור")}
+      ${hubBtn("duel", "⚔️", "דו־קרב", "אונליין או טלפון")}
+    </div>
+    <div class="section-title"><h2>🧩 מצבים מיוחדים</h2></div>
     <div class="grid2">
       ${hubBtn("who", "🕵️", "מי אני?", `3 רמזים · שיא ${S.best.whoami}`)}
-      ${hubBtn("swipe", "👆", "נכון/לא נכון מהיר", `החלק מהר! · שיא ${S.best.swipe}`)}
+      ${hubBtn("swipe", "👆", "נכון/לא נכון מהיר", `שיא ${S.best.swipe}`)}
       ${hubBtn("story", "🎬", "המאמן בשטח", "סיפורים עם החלטות")}
-      ${hubBtn("sudden", "💀", "מוות פתאומי", `טעות אחת ונגמר · שיא ${S.best.sudden}`, L < 8 ? `נפתח ברמה 8 (אתה ${L})` : "")}
       ${hubBtn("img", "🖼️", "אתגר תמונה", "זהה מה באיור")}
       ${hubBtn("guess", "🎯", "נחש את המספר", "קלוריות ו־1RM")}
-    </div>
-    <div class="section-title"><h2>🎁 אוספים והתקדמות</h2></div>
-    <div class="grid2">
+      ${hubBtn("terms", "📖", "מבחן מונחים", "10 מושגים")}
+    </div></div>`);
+  bindExit(); bindFun(app);
+}
+function collectionsPage() {
+  ensureWQ(); ensureLeague();
+  const wqDone = WQ.filter(([k, n]) => S.wq.p[k] >= n && !S.wq.claimed.includes(k)).length, Lg = LEAGUES[S.lg.tier];
+  funScreen(`<div class="fade-in">${funExitBtn()}<h2>🎁 אוספים והתקדמות</h2>
+    <div class="grid2" style="margin-top:12px">
+      ${hubBtn("league", Lg.em, "ליגה שבועית", `ליגת ${Lg.n}`)}
+      ${hubBtn("season", "🎟️", "מסלול העונה", "30 דרגות בחודש")}
       ${hubBtn("quests", "📅", "משימות השבוע", wqDone ? `${wqDone} פרסים מחכים! 🎁` : "פרס גדול כל שבוע")}
-      ${hubBtn("album", "🃏", "אלבום קלפים", `${Object.keys(S.cards).length}/${CARDS.length} נאספו`)}
+      ${hubBtn("album", "🃏", "אלבום קלפים", `${Object.keys(S.cards).length}/${CARDS.length}`)}
+      ${hubBtn("avatar", "🧍", "אווטאר", "בגדים וציוד")}
+      ${hubBtn("pet", petEm(), "חיית מחמד", S.pet ? esc(S.pet.name) : "בחר אחת")}
       ${hubBtn("upgrades", "⬆️", "שדרוגים", "לב רביעי, זמן, מטבעות")}
-      ${hubBtn("avatar", "🧍", "אווטאר וחנות", "בגדים וציוד")}
+      ${hubBtn("shop", "🛒", "חנות עזרים", `🪙 ${S.coins}`)}
+      ${hubBtn("lb", "🏆", "לוח מובילים", "חברים ושיאים")}
       ${hubBtn("summary", "📊", "סיכום שבועי", "ושיתוף בסטורי")}
-      ${hubBtn("groups", "👥", "קבוצות", lbOn() ? (S.group ? `קבוצה ${S.group}` : "לוח לחברים מהקורס") : "דורש לוח עולמי")}
+      ${lbOn() ? hubBtn("groups", "👥", "קבוצות", S.group ? "קבוצה " + S.group : "לוח לחברים") : ""}
     </div>
-    <div class="card ex-card" data-fun="ex"><span class="em">${ex.em}</span><div style="flex:1"><b>תרגיל היום: ${esc(ex.n)}</b><div class="muted xs">${S.exDone === today() ? "✅ בוצע היום" : "עשית? ‎+15 🪙"}</div></div><span class="chev">‹</span></div>
-    <div class="music-row"><span>🎵 מוזיקת רקע</span><label class="switch"><input type="checkbox" id="musicSw" ${S.settings.music ? "checked" : ""}><i></i></label></div>`;
-  bindFun(el);
+    <div class="music-row"><span>🎵 מוזיקת רקע</span><label class="switch"><input type="checkbox" id="musicSw" ${S.settings.music ? "checked" : ""}><i></i></label></div></div>`);
+  bindExit(); bindFun(app);
   $("#musicSw").onchange = e => toggleMusic(e.target.checked);
 }
-function fillFunLearn() {
-  const el = $("#funLearn"); if (!el) return;
-  const ex = exToday(), due = dueQuestions().length;
-  el.innerHTML = `<div class="card coach-card" data-fun="coach"><span class="em">🧑‍🏫</span><div style="flex:1"><b>האימון האישי שלך</b><div class="muted small">5 דקות על הנושאים שהכי צריכים חיזוק</div></div><span class="chev">‹</span></div>
-    <div class="section-title"><h2>🧰 כלים ללמידה</h2></div>
-    <div class="grid2">
-      ${hubBtn("flash", "🗂️", "כרטיסיות", due ? `${due} מחכות לחזרה` : "ידעתי / לא ידעתי")}
-      ${hubBtn("why", "🤔", "למה זה נכון?", "בחר את ההסבר הנכון")}
-      ${hubBtn("img", "🖼️", "אתגר תמונה", "איורים ומנופים")}
-      ${hubBtn("story", "🎬", "המאמן בשטח", "סיפורים עם החלטות")}
-      ${hubBtn("program", "📋", "בונה תוכנית", "תוכנית אימון מוכנה")}
-      ${hubBtn("log", "📓", "יומן אימונים", "אימון אמיתי = XP")}
-      ${hubBtn("guess", "🎯", "נחש את המספר", "קלוריות ו־1RM")}
-      ${hubBtn("ex", ex.em, "תרגיל היום", esc(ex.n))}
-    </div>`;
-  bindFun(el);
+function moreModesSheet() {
+  const L = levelOf(S.xp);
+  const items = [["speed", "⚡", "מבחן מהירות"], ["survival", "❤️", "הישרדות"], ["challenge", "🤝", "אתגר חבר"], ["duel", "⚔️", "דו־קרב"], ["terms", "📖", "מבחן מונחים"], ["why", "🤔", "למה זה נכון?"],
+    ["img", "🖼️", "אתגר תמונה"], ["story", "🎬", "המאמן בשטח"], ["guess", "🎯", "נחש את המספר"], ["custom", "🛠️", "מבחן מותאם אישית"], ["program", "📋", "בונה תוכנית"], ["log", "📓", "יומן אימונים"], ["lb", "🏆", "לוח מובילים"]];
+  const { bg } = sheet(`<div style="max-height:74vh;overflow:auto"><h2>➕ עוד דרכים לתרגל</h2><div class="more-grid">${items.map(([k, em, n]) => `<button data-fun="${k}"><span>${em}</span>${n}</button>`).join("")}</div></div>
+    <div class="row"><button class="btn" data-a="x">סגירה</button></div>`, (e, close) => { if (e.target.dataset.a) close(); else if (e.target.closest("[data-fun]")) close(); });
+  bindFun(bg);
 }
+function fillFunHub() { }
+function fillFunLearn() { }
 function bindFun(el) {
   const map = { who: whoAmI, swipe: swipeTF, story: storiesPage, sudden: () => startMode("sudden"), img: () => startMode("img"), guess: () => sheet(`<h2>🎯 נחש את המספר</h2><div class="duel-opts"><button class="duel-opt" data-g="cal"><span>🍽️</span><div><b>נחש את הקלוריות</b><small>כמה קלוריות יש במנה?</small></div></button><button class="duel-opt" data-g="rm"><span>🏋️</span><div><b>נחש את ה־1RM</b><small>משקל × חזרות → מקסימום</small></div></button></div>`, (e, close) => { const b = e.target.closest("[data-g]"); if (b) { close(); guessGame(b.dataset.g); } }),
     quests: questsPage, album: albumPage, upgrades: upgradesSheet, avatar: avatarSheet, summary: weeklySummary, groups: groupsSheet, ex: exerciseSheet,
-    coach: coachSession, flash: flashSwipe, why: whyMode, program: programBuilder, log: workoutLog };
+    coach: coachSession, flash: flashSwipe, why: whyMode, program: programBuilder, log: workoutLog,
+    quick: () => startMode("quick"), speed: () => startMode("speed"), survival: () => startMode("survival"), challenge: () => startMode("challenge"), terms: () => startMode("terms"),
+    duel: () => duelMenu(), league: leaguePage, season: seasonPage, pet: petSheet, shop: shopSheet, lb: () => renderLeaderboard(), custom: () => go("practice") };
   el.querySelectorAll("[data-fun]").forEach(b => b.onclick = () => { if (b.classList.contains("locked")) return toast("🔒", "עלה עוד כמה רמות כדי לפתוח"); map[b.dataset.fun] && map[b.dataset.fun](); });
 }
 
