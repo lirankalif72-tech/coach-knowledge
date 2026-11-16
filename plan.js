@@ -104,7 +104,7 @@ const STAND = { p: [60, 62], tor: 0 };
 const PB_EX = [
   /* ── חזה ── */
   { id: "bench", g: "chest", n: "לחיצת חזה במוט", al: ["בנץ׳", "בנץ'", "bench press", "לחיצת חזה", "מוט חזה"], t: "c", pat: "press", base: 92, f: { u: .55, m: 1, l: .75 },
-    prim: ["pecs"], sec: ["triceps", "delts"], why: "תרגיל הבסיס לחזה – הכי קל להעמיס ולהתקדם בו לאורך זמן.", cue: "שכמות מקובצות לאחור, כפות רגליים על הרצפה, המוט יורד לאמצע החזה.", bad: "מרפקים פתוחים ל־90°, ישבן מתרומם, קפיצת המוט מהחזה.",
+    prim: ["pecs"], sec: ["triceps", "delts"], why: "תרגיל הבסיס לחזה – הכי קל להעמיס ולהתקדם בו לאורך זמן.", cue: "שכמות מקובצות לאחור, כפות רגליים על הרצפה, המוט יורד לאמצע–תחתית החזה.", bad: "מרפקים פתוחים ל־90°, ישבן מתרומם, קפיצת המוט מהחזה.",
     fig: { st: FLAT, eq: "bb", A: { p: [42, 78], tor: 90, at: [20, 112], kb: 1, wt: [72, 47] }, B: { p: [42, 78], tor: 90, at: [20, 112], kb: 1, wt: [70, 72], eb: -1 } } },
   { id: "inclinedb", g: "chest", n: "לחיצת חזה בשיפוע עליון עם משקולות", al: ["שיפוע עליון", "incline", "אינקליין", "לחיצה בשיפוע"], t: "c", pat: "incl", base: 88, f: { u: 1, m: .6, l: .25 },
     prim: ["pecs"], sec: ["delts", "triceps"], why: "השיפוע (30°–45°) מעביר את הדגש לחזה העליון, והמשקולות מאפשרות טווח עמוק.", cue: "ספסל בשיפוע 30°, משקולות יורדות לגובה החזה העליון, מרפקים בזווית 45°–60°.", bad: "שיפוע גבוה מדי (הכתף הקדמית לוקחת את העבודה).",
@@ -195,7 +195,7 @@ const PB_EX = [
 
   /* ── רגליים ── */
   { id: "squat", g: "legs", n: "סקוואט עם מוט", al: ["סקוואט", "squat", "כריעה", "back squat"], t: "c", pat: "squat", base: 95, f: { q: 1, g: .8, h: .3 },
-    prim: ["quads", "glutes"], sec: ["erectors", "abs", "hams"], why: "'מלך התרגילים' – הכי הרבה שריר עובד בבת אחת, וקל להתקדם בעומס.", cue: "ירכיים לאחור, ברכיים בכיוון הבהונות, עקבים על הרצפה, יורדים לפחות עד מקביל.", bad: "ברכיים קורסות פנימה, עקבים מתרוממים, גב מתעגל.",
+    prim: ["quads", "glutes"], sec: ["erectors", "abs", "hams"], why: "'מלך התרגילים' – הכי הרבה שריר עובד בבת אחת, וקל להתקדם בעומס.", cue: "ירכיים לאחור, ברכיים בכיוון הבהונות, עקבים על הרצפה, יורדים לעומק שבו הגב נשאר ניטרלי (לרוב עד מקביל או מתחת).", bad: "ברכיים קורסות פנימה, עקבים מתרוממים, גב מתעגל.",
     fig: { eq: "bk", A: { p: [58, 62], tor: 5, at: [60, 112], ua: 222, fa: 25 }, B: { p: [40, 88], tor: 40, at: [60, 112], ua: 262, fa: 70 } } },
   { id: "frontsquat", g: "legs", n: "סקוואט קדמי", al: ["front squat", "סקוואט קדמי"], t: "c", pat: "squat", base: 88, f: { q: 1, g: .6, h: .2 },
     prim: ["quads"], sec: ["glutes", "abs", "erectors"], why: "גו זקוף יותר = יותר ארבע־ראשי ופחות עומס על הגב התחתון.", cue: "מרפקים גבוהים, חזה למעלה, יורדים עמוק בין הרגליים.", bad: "מרפקים נופלים והמוט מתגלגל קדימה.",
@@ -260,7 +260,7 @@ const PB_GOALS = { str: "💪 כוח", hyp: "📈 מסת שריר", end: "🔋 �
 const PB_LVLS = { beg: "מתחיל", int: "בינוני", adv: "מתקדם" };
 const PB_REPS = ["3–5", "5–8", "6–10", "8–12", "10–15", "15–20"];
 function pbState() {
-  if (!S.plan) S.plan = { goal: "hyp", lvl: "beg", cur: 0, days: [{ n: "אימון A", g: [] }] };
+  if (!S.plan) S.plan = { goal: "hyp", lvl: "beg", sex: (S.body && S.body.sex) || "m", cur: 0, days: [{ n: "אימון A", g: [] }] };
   return S.plan;
 }
 function pbScore(ex, dom) {
@@ -379,7 +379,7 @@ function pbMkGroup(k, n, dom, plan) {
   return { k, dom, ex: pick.map((e, i) => { const r = pbRec(e, plan.goal, plan.lvl); return { id: e.id, s: i ? Math.min(3, r.s) : r.s, r: r.r }; }) };
 }
 const PB_TPL = {
-  fb: { n: "גוף מלא × 3 בשבוע", d: "הכי מומלץ למתחילים – A, B, A ואז B, A, B", x: [2, 1], days: [["אימון A", [["legs", 1, "q"], ["chest", 1], ["back", 1, "w"], ["shoulders", 1], ["core", 1]]], ["אימון B", [["legs", 1, "h"], ["back", 1, "t"], ["chest", 1, "u"], ["shoulders", 1, "r"], ["biceps", 1], ["triceps", 1]]]] },
+  fb: { n: "גוף מלא × 3 בשבוע", d: "הכי מומלץ למתחילים – אימונים A ו־B לסירוגין", x: [2, 1], days: [["אימון A", [["legs", 1, "q"], ["chest", 1], ["back", 1, "w"], ["shoulders", 1], ["core", 1]]], ["אימון B", [["legs", 1, "h"], ["back", 1, "t"], ["chest", 1, "u"], ["shoulders", 1, "r"], ["biceps", 1], ["triceps", 1]]]] },
   ul: { n: "עליון / תחתון × 4 בשבוע", d: "מתאים לבינוניים – כל אימון פעמיים בשבוע", x: [2, 2], days: [["עליון", [["chest", 2], ["back", 2], ["shoulders", 2, "s,r"], ["biceps", 1], ["triceps", 1]]], ["תחתון", [["legs", 3], ["calves", 1], ["core", 1]]]] },
   ppl: { n: "דחיפה / משיכה / רגליים", d: "מתאים למתקדמים – 3 או 6 אימונים בשבוע", x: [1, 1, 1], days: [["דחיפה", [["chest", 3], ["shoulders", 2, "s,r"], ["triceps", 2]]], ["משיכה", [["back", 3], ["biceps", 2]]], ["רגליים", [["legs", 4], ["calves", 1], ["core", 1]]]] }
 };
@@ -458,17 +458,47 @@ function pbGroupSheet(di) {
     setTimeout(() => pbAddSheet(di, day.g.length - 1), 80);
   });
 }
+/* תבניות לפי מין: [שם יום, [[קבוצה, דומיננטי, [תרגילים]], ...]] */
+const PB_TPLS = {
+  m: {
+    fb: { n: "גוף מלא × 3 בשבוע", d: "הכי מומלץ למתחילים – אימונים A ו־B לסירוגין", x: [2, 1], days: [
+      ["אימון A", [["legs", "q", ["squat"]], ["chest", "m", ["bench"]], ["back", "w", ["pulldown"]], ["shoulders", "s", ["latraise"]], ["biceps", "sh", ["bbcurl"]]]],
+      ["אימון B", [["legs", "h", ["rdl"]], ["chest", "u", ["inclinedb"]], ["back", "t", ["bbrow"]], ["shoulders", "r", ["facepull"]], ["triceps", "la", ["pushdown"]], ["core", "a", ["hlr"]]]]] },
+    ul: { n: "עליון / תחתון × 4 בשבוע", d: "מתאים לבינוניים – כל אימון פעמיים בשבוע", x: [2, 2], days: [
+      ["עליון", [["chest", "m", ["bench", "inclinedb"]], ["back", "w", ["pullup", "bbrow"]], ["shoulders", "s", ["latraise", "facepull"]], ["biceps", "sh", ["bbcurl"]], ["triceps", "lo", ["ohext"]]]],
+      ["תחתון", [["legs", "q", ["squat", "rdl", "legext", "legcurl"]], ["calves", "ga", ["calfstand"]], ["core", "a", ["cablecrunch"]]]]] },
+    ppl: { n: "דחיפה / משיכה / רגליים", d: "מתאים למתקדמים – 3 או 6 אימונים בשבוע", x: [1, 1, 1], days: [
+      ["דחיפה", [["chest", "m", ["bench", "inclinedb", "cablefly"]], ["shoulders", "s", ["ohp", "latraise"]], ["triceps", "lo", ["ohext", "pushdown"]]]],
+      ["משיכה", [["back", "w", ["pullup", "bbrow", "straightpd"]], ["shoulders", "r", ["facepull"]], ["biceps", "lo", ["inclinecurl", "hammer"]]]],
+      ["רגליים", [["legs", "q", ["squat", "rdl", "legext", "legcurl"]], ["calves", "ga", ["calfstand"]], ["core", "a", ["hlr"]]]]] }
+  },
+  f: {
+    fb: { n: "גוף מלא × 3 בשבוע", d: "הכי מומלץ למתחילות – אימונים A ו־B לסירוגין", x: [2, 1], days: [
+      ["אימון A", [["legs", "g", ["squat", "hipthrust"]], ["back", "w", ["pulldown"]], ["chest", "m", ["chestmachine"]], ["shoulders", "s", ["latraise"]]]],
+      ["אימון B", [["legs", "h", ["rdl", "bss"]], ["back", "t", ["cablerow"]], ["shoulders", "r", ["facepull"]], ["triceps", "la", ["pushdown"]], ["core", "s", ["deadbug"]]]]] },
+    ul: { n: "עליון / תחתון × 4 בשבוע", d: "מתאים לבינוניות – כל אימון פעמיים בשבוע", x: [2, 2], days: [
+      ["עליון", [["back", "w", ["pulldown", "cablerow"]], ["chest", "u", ["inclinedb"]], ["shoulders", "s", ["latraise", "facepull"]], ["triceps", "lo", ["ohext"]], ["biceps", "br", ["hammer"]]]],
+      ["תחתון", [["legs", "g", ["hipthrust", "squat", "rdl", "bss"]], ["calves", "ga", ["calfstand"]], ["core", "o", ["sideplank"]]]]] },
+    ppl: { n: "תחתון / עליון / ישבן", d: "מתאים למתקדמות – דגש על רגליים וישבן", x: [1, 1, 1], days: [
+      ["רגליים", [["legs", "q", ["squat", "lunge", "legext", "legcurl"]], ["calves", "ga", ["calfstand"]]]],
+      ["עליון", [["back", "w", ["pulldown", "cablerow"]], ["chest", "u", ["inclinedb", "chestmachine"]], ["shoulders", "s", ["dbpress", "latraise", "facepull"]], ["triceps", "lo", ["ohext"]]]],
+      ["ישבן והמסטרינג", [["legs", "g", ["hipthrust", "rdl", "bss", "legcurl"]], ["core", "s", ["deadbug"]]]]] }
+  }
+};
 function pbTplSheet() {
   const plan = pbState();
   sheet(`<h2>✨ תבנית מוכנה</h2><p class="muted small">התבנית תחליף את התוכנית הנוכחית. אחר כך אפשר לשנות כל דבר.</p>
-    ${Object.entries(PB_TPL).map(([k, t]) => `<button class="pb-tpl" data-t="${k}"><b>${t.n}</b><span>${t.d} · ${t.days.map(d => d[0]).join(" / ")}</span></button>`).join("")}
+    <div class="seg" id="pbTplSex" style="margin:4px 0 8px">${[["m", "🙋‍♂️ תוכנית לגבר"], ["f", "🙋‍♀️ תוכנית לאישה"]].map(([k, v]) => `<button data-sx="${k}" class="${(plan.sex || "m") === k ? "on" : ""}">${v}</button>`).join("")}</div>
+    <p class="xs muted" style="margin:0 0 6px">${(plan.sex || "m") === "f" ? "דגש על רגליים וישבן, ופלג גוף עליון מאוזן." : "דגש על חזה, גב, כתפיים וידיים, ורגליים בסיסיות (סקוואט + דדליפט רומני)."} זו רק נקודת התחלה – הכול ניתן לשינוי.</p>
+    ${Object.entries(PB_TPLS[plan.sex || "m"]).map(([k, t]) => `<button class="pb-tpl" data-t="${k}"><b>${t.n}</b><span>${t.d} · ${t.days.map(d => d[0]).join(" / ")}</span></button>`).join("")}
     <div class="row"><button class="btn" data-x>ביטול</button></div>`, (e, close) => {
     if (e.target.closest("[data-x]")) return close();
+    const sx = e.target.closest("[data-sx]"); if (sx) { plan.sex = sx.dataset.sx; S.body = S.body || {}; S.body.sex = plan.sex; save(); close(); return pbTplSheet(); }
     const b = e.target.closest("[data-t]"); if (!b) return;
-    const t = PB_TPL[b.dataset.t];
-    const tk = b.dataset.t, big = ["chest", "back", "legs"];
-    plan.days = t.days.map(([n, gs], i) => ({ n, x: tk === "ppl" && plan.lvl === "adv" && plan.goal === "hyp" ? 2 : (t.x || [])[i] || 1,
-      g: gs.map(([k, cnt, dom]) => pbMkGroup(k, cnt + (tk === "fb" && i === 0 && plan.lvl !== "beg" && plan.goal === "hyp" && big.includes(k) ? 1 : 0), dom, plan)) }));
+    const tk = b.dataset.t, t = PB_TPLS[plan.sex || "m"][tk];
+    const cap = plan.lvl === "beg" || plan.goal === "str";
+    plan.days = t.days.map(([n, gs], i) => ({ n, x: tk === "ppl" && (plan.sex || "m") === "m" && plan.lvl === "adv" && plan.goal === "hyp" ? 2 : (t.x || [])[i] || 1,
+      g: gs.map(([k, dom, ids]) => ({ k, dom, ex: (cap && k === "legs" ? ids.slice(0, 3) : ids).map((id, j) => { const r = pbRec(PB_BY[id], plan.goal, plan.lvl); return { id, s: j ? Math.min(3, r.s) : r.s, r: r.r }; }) })) }));
     plan.cur = 0; plan.tpl = b.dataset.t; save(); close(); renderPlan(); toast("✨", "התבנית נטענה – עכשיו אפשר להתאים אותה");
   });
 }
@@ -520,6 +550,7 @@ function renderPlan() {
     <h1>🏋️ בניית תוכנית אימון</h1>
     <div class="card pb-set">
       <div class="xs muted">המטרה שלי</div><div class="chips" id="pbGoal">${Object.entries(PB_GOALS).map(([k, v]) => `<button class="chip ${plan.goal === k ? "on" : ""}" data-k="${k}">${v}</button>`).join("")}</div>
+      <div class="xs muted" style="margin-top:10px">התוכנית בשביל</div><div class="seg" id="pbSex">${[["m", "🙋‍♂️ גבר"], ["f", "🙋‍♀️ אישה"]].map(([k, v]) => `<button data-k="${k}" class="${(plan.sex || "m") === k ? "on" : ""}">${v}</button>`).join("")}</div>
       <div class="xs muted" style="margin-top:10px">הרמה שלי</div><div class="seg" id="pbLvl">${Object.entries(PB_LVLS).map(([k, v]) => `<button data-k="${k}" class="${plan.lvl === k ? "on" : ""}">${v}</button>`).join("")}</div>
       <div class="row" style="margin-top:10px"><button class="btn" id="pbTpl">✨ תבנית מוכנה</button><button class="btn" id="pbRecAll">🔢 סטים וחזרות לפי היעד</button></div>
     </div>
@@ -541,6 +572,7 @@ function renderPlan() {
     <div class="row" style="margin-bottom:16px"><button class="btn" id="pbCopy">📋 העתק תוכנית</button><button class="btn danger" id="pbReset">🗑️ התחל מחדש</button></div>
   </div>`;
   $("#pbGoal").onclick = e => { const b = e.target.closest("[data-k]"); if (!b) return; plan.goal = b.dataset.k; save(); renderPlan(); };
+  $("#pbSex").onclick = e => { const b = e.target.closest("[data-k]"); if (!b || b.dataset.k === (plan.sex || "m")) return; plan.sex = b.dataset.k; S.body = S.body || {}; S.body.sex = plan.sex; save(); renderPlan(); toast(plan.sex === "f" ? "🙋‍♀️" : "🙋‍♂️", "רוצה תוכנית מותאמת? לחץ על ✨ תבנית מוכנה"); };
   $("#pbLvl").onclick = e => { const b = e.target.closest("[data-k]"); if (!b) return; plan.lvl = b.dataset.k; save(); renderPlan(); };
   $("#pbTpl").onclick = pbTplSheet;
   $("#pbRecAll").onclick = () => { plan.days.forEach(d => d.g.forEach(g => g.ex.forEach(it => { const r = pbRec(PB_BY[it.id], plan.goal, plan.lvl); it.s = r.s; it.r = r.r; }))); save(); renderPlan(); toast("🔢", `עודכן לפי ${PB_GOALS[plan.goal]}`); };
