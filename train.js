@@ -140,7 +140,7 @@ function trBuild(plan, di) {
 function trStart(di) {
   const plan = pbState();
   if (!plan.days[di].g.some(g => g.ex.length)) { toast("📋", "אין תרגילים ביום הזה"); return; }
-  S.wcur = trBuild(plan, di); save(); trRender();
+  S.wcur = trBuild(plan, di); S.wcur.di = di; save(); trRender();
 }
 function trRender() {
   const W = S.wcur; if (!W) return go("plan");
@@ -211,7 +211,7 @@ function trFinish() {
     lines.push(`${it.name} – ${sets.map(s => `${s.w ? wlKg(s.w) + "×" : ""}${s.r}`).join(", ")}`);
   });
   const mins = Math.max(1, Math.round((d - W.start) / 60000));
-  S.wsess = S.wsess || []; S.wsess.push({ d: W.start, n: W.name, min: mins, sets: nsets, vol: Math.round(vol), prs: prs.length });
+  S.wsess = S.wsess || []; S.wsess.push({ d: W.start, n: W.name, di: W.di, min: mins, sets: nsets, vol: Math.round(vol), prs: prs.length });
   delete S.wcur; save();
   funScreen(`<div class="fade-in tr-done"><div class="card" style="text-align:center"><div style="font-size:52px">🏁</div><h2>כל הכבוד! האימון נשמר</h2>
     <div class="tr-stats"><div><b>${nsets}</b><span>סטים</span></div><div><b>${Math.round(vol).toLocaleString("he-IL")}</b><span>ק״ג נפח</span></div><div><b>${prs.length}</b><span>שיאים 🏆</span></div></div>
@@ -354,8 +354,16 @@ renderPlan = function (sub) {
   const h1 = app.querySelector(".pb h1"); if (h1) h1.insertAdjacentHTML("afterend", trSeg() + (S.wcur ? trResumeCard() : ""));
   const ov = app.querySelector(".wl-ov"); if (ov) ov.remove();
   const plan = pbState(), dc = app.querySelector(".pb-daycard");
-  const last = (S.wsess || []).slice(-1)[0], li = last ? plan.days.findIndex(d => d.n === last.n) : -1;
-  if (dc && li > -1 && plan.days.length > 1) { const nx = plan.days[(li + 1) % plan.days.length]; dc.insertAdjacentHTML("beforeend", `<div class="small tr-next">⏭️ הבא בסבב: <b>${esc(nx.n)}</b> <span class="muted xs">(האחרון: ${esc(last.n)}, ${wlDateLong(last.d)})</span></div>`); }
+  const last = (S.wsess || []).slice(-1)[0];
+  let li = -1;
+  if (last) { li = last.di != null && plan.days[last.di] && plan.days[last.di].n === last.n ? last.di : plan.days.findIndex(d => d.n === last.n); }
+  if (dc && li > -1 && plan.days.length > 1) {
+    const L = plan.days.length; let j = (li + 1) % L, rests = 0;
+    while (plan.days[j].rest && rests < L) { rests++; j = (j + 1) % L; }
+    const nx = plan.days[j];
+    dc.insertAdjacentHTML("beforeend", `<div class="small tr-next">⏭️ הבא בסבב: ${rests ? `😴 מנוחה${rests > 1 ? ` (${rests} ימים)` : ""}, ואחריה ` : ""}<b>${esc(nx.n)}</b> <button class="link-btn xs" id="trGoNext" data-j="${j}">הצג</button> <span class="muted xs">(האחרון: ${esc(last.n)}, ${wlDateLong(last.d)})</span></div>`);
+    const gn = $("#trGoNext"); if (gn) gn.onclick = () => { plan.cur = +gn.dataset.j; save(); renderPlan(); };
+  }
   if (dc && plan.days[plan.cur].g.some(g => g.ex.length)) dc.insertAdjacentHTML("beforeend", `<button class="btn primary block tr-go" id="trGo">▶️ התחל את ${esc(plan.days[plan.cur].n)} עכשיו</button>`);
   const ana = app.querySelector(".pb-ana"); if (ana) ana.insertAdjacentHTML("afterend", `<button class="btn block" id="trQ2" style="margin-bottom:12px">🎓 שאלות על התוכנית שלי</button>`);
   trBindSeg(); trBindResume();

@@ -914,3 +914,11 @@ html[dir="ltr"] .fact-row.new span::before{content:"New · "}
 .t-chip{width:104px;padding:10px 8px;justify-content:flex-start}
 .t-chip b{white-space:normal;line-height:1.2;text-align:center;font-size:12px;overflow-wrap:anywhere}
 .t-chip small{white-space:normal;text-align:center;line-height:1.2}
+/* v8.9.6 – בניית סבב */
+.pb-rotbtn{display:block;margin:2px 0 8px;font-size:13px}
+.pb-pats{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pb-pats button{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:12px;padding:8px 10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.pb-pats button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pb-rotprev{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.pb-rotprev span{background:var(--accent-soft);border-radius:8px;padding:4px 8px;font-size:12.5px;font-weight:700}
+.pb-rotprev span.r{background:var(--blue-soft)}

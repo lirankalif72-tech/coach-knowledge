@@ -11,7 +11,7 @@ const LD = typeof LANG_EN !== "undefined" ? LANG_EN : {};
 
 /* ───── תרגום מחרוזת ───── */
 const RUN_RX = /[֐-׿][֐-׿0-9 ׳״'־\-–—,.?!:;()%\/]*/g;
-const PFX = { "ו": "and ", "ב": "in ", "ל": "to ", "מ": "from ", "ה": "the ", "ש": "that ", "כ": "as " };
+const PFX = { "ו": "and ", "ב": "in ", "ל": "to ", "מ": "from ", "ה": "the ", "ש": "that ", "כ": "about " };
 function lCore(t) {
   t = t.trim();
   for (let k = 0; k < 3; k++) {
@@ -233,3 +233,6 @@ renderSettings = function () {
 
 lApply();
 if (isEn()) { try { go(typeof tab !== "undefined" ? tab : "home"); } catch (e) { } }
+
+/* העתקת תוכנית באנגלית */
+if (typeof pbText === "function") { const _pt = pbText; pbText = function (plan) { const t = _pt(plan); return isEn() ? t.split("\n").map(l => trStr(swapArrows(l))).join("\n") : t; }; }
