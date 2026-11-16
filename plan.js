@@ -288,14 +288,19 @@ function pbSearch(txt) {
   const q = n(txt); if (q.length < 2) return [];
   return PB_EX.filter(e => [e.n, ...(e.al || [])].some(a => n(a).includes(q) || (q.length >= 4 && q.includes(n(a)))));
 }
+/* כמה פעמים בשבוע כל יום בתוכנית מתבצע: האימונים רצים בסבב (A → B → C → A...) עם ימי מנוחה ביניהם */
+function pbWk(plan) { if (!plan.wk) plan.wk = Math.min(7, plan.days.reduce((a, d) => a + (d.x || 1), 0)); return plan.wk; }
+function pbFreq(plan) { return pbWk(plan) / Math.max(1, plan.days.length); }
+const pbFmt = x => (Math.round(x * 10) / 10).toString();
 function pbWeekly(plan) {
   const v = {};
   const IND = { triceps: "triceps", biceps: "biceps", delts: "shoulders" };
-  plan.days.forEach(d => { const x = d.x || 1; d.g.forEach(gr => { v[gr.k] = v[gr.k] || { sets: 0, days: 0, ind: 0 }; v[gr.k].days += x; gr.ex.forEach(it => v[gr.k].sets += (+it.s || 0) * x); }); });
+  const fq = pbFreq(plan);
+  plan.days.forEach(d => { const x = fq; d.g.forEach(gr => { v[gr.k] = v[gr.k] || { sets: 0, days: 0, ind: 0 }; v[gr.k].days += x; gr.ex.forEach(it => v[gr.k].sets += (+it.s || 0) * x); }); });
   // עבודה עקיפה: תרגיל מורכב מפעיל גם את השרירים העוזרים (נספר כחצי סט)
   plan.days.forEach(d => d.g.forEach(gr => gr.ex.forEach(it => { const ex = PB_BY[it.id]; if (!ex || ex.t !== "c") return;
-    (ex.sec || []).forEach(m => { const k = IND[m]; if (k && k !== gr.k && v[k]) v[k].ind += (+it.s || 0) * (d.x || 1) / 2; }); })));
-  Object.values(v).forEach(o => o.eff = Math.round(o.sets + o.ind));
+    (ex.sec || []).forEach(m => { const k = IND[m]; if (k && k !== gr.k && v[k]) v[k].ind += (+it.s || 0) * fq / 2; }); })));
+  Object.values(v).forEach(o => { o.sets = Math.round(o.sets); o.eff = Math.round(o.sets + o.ind); });
   return v;
 }
 function pbTarget(plan, gk) {
@@ -340,11 +345,11 @@ function pbPlanTips(plan) {
     const small = k === "calves" || k === "core";
     if (v.eff < lo && !small) tips.push({ i: "📉", t: `<b>${G.n}</b>: כ־${v.eff} סטים בשבוע${v.ind ? " (כולל עבודה עקיפה)" : ""} – מעט. ליעד שלך מומלץ ${lo}–${hi}.` });
     else if (v.sets > hi) tips.push({ i: "📈", t: `<b>${G.n}</b>: ${v.sets} סטים בשבוע – יותר מהמומלץ (${lo}–${hi}). יותר לא תמיד טוב יותר – קשה להתאושש.` });
-    if (v.days === 1 && v.sets >= 8 && plan.goal !== "end") tips.push({ i: "🔁", t: `<b>${G.n}</b> מאומן פעם אחת בשבוע. חלוקה ל־2 אימונים (אותם סטים) נותנת בדרך כלל תוצאות טובות יותר.` });
+    if (v.days < 1.5 && v.sets >= 8 && plan.goal !== "end") tips.push({ i: "🔁", t: `<b>${G.n}</b> מאומן בערך ${v.days < 1.15 ? "פעם אחת" : pbFmt(v.days) + " פעמים"} בשבוע. פיזור הסטים על 2 אימונים בשבוע נותן בדרך כלל תוצאות טובות יותר.` });
   });
   // דחיפה מול משיכה
   let push = sets("chest"), pull = sets("back");
-  plan.days.forEach(d => d.g.forEach(g => { if (g.k === "shoulders") g.ex.forEach(it => { const e = PB_BY[it.id], n = (+it.s || 0) * (d.x || 1); if (e && e.id === "facepull") pull += n; else push += n; }); }));
+  plan.days.forEach(d => d.g.forEach(g => { if (g.k === "shoulders") g.ex.forEach(it => { const e = PB_BY[it.id], n = (+it.s || 0) * pbFreq(plan); if (e && e.id === "facepull") pull += n; else push += n; }); }));
   if (push > 0 && push > pull * 1.4) tips.push({ i: "⚖️", t: `יש ${push} סטי דחיפה מול ${pull} סטי משיכה. כדאי להוסיף חתירות או פייס פול – זה שומר על כתפיים ויציבה טובות.` });
   const hasRear = plan.days.some(d => d.g.some(g => g.ex.some(it => it.id === "facepull")));
   if (!hasRear && push >= 8) tips.push({ i: "🛡️", t: "אין עבודה לכתף האחורית. <b>פייס פול</b> פעם–פעמיים בשבוע מאזן את כל הלחיצות." });
@@ -497,15 +502,16 @@ function pbTplSheet() {
     const b = e.target.closest("[data-t]"); if (!b) return;
     const tk = b.dataset.t, t = PB_TPLS[plan.sex || "m"][tk];
     const cap = plan.lvl === "beg" || plan.goal === "str";
-    plan.days = t.days.map(([n, gs], i) => ({ n, x: tk === "ppl" && (plan.sex || "m") === "m" && plan.lvl === "adv" && plan.goal === "hyp" ? 2 : (t.x || [])[i] || 1,
+    plan.wk = tk === "fb" ? 3 : tk === "ul" ? 4 : (plan.lvl === "beg" ? 4 : (plan.sex || "m") === "m" && plan.lvl === "adv" && plan.goal === "hyp" ? 6 : 5);
+    plan.days = t.days.map(([n, gs], i) => ({ n,
       g: gs.map(([k, dom, ids]) => ({ k, dom, ex: (cap && k === "legs" ? ids.slice(0, 3) : ids).map((id, j) => { const r = pbRec(PB_BY[id], plan.goal, plan.lvl); return { id, s: j ? Math.min(3, r.s) : r.s, r: r.r }; }) })) }));
     plan.cur = 0; plan.tpl = b.dataset.t; save(); close(); renderPlan(); toast("✨", "התבנית נטענה – עכשיו אפשר להתאים אותה");
   });
 }
 function pbText(plan) {
-  const lines = [`🏋️ תוכנית אימון – ${PB_GOALS[plan.goal].replace(/^\S+ /, "")} (${PB_LVLS[plan.lvl]})`];
+  const lines = [`🏋️ תוכנית אימון – ${PB_GOALS[plan.goal].replace(/^\S+ /, "")} (${PB_LVLS[plan.lvl]})`, `🔁 ${pbWk(plan)} אימונים בשבוע, בסבב: ${plan.days.map(d => d.n).join(" ← ")} ← שוב מההתחלה`];
   plan.days.forEach(d => {
-    lines.push("", `▪️ ${d.n} – ${d.x || 1} פעמים בשבוע (~${pbDayMinutes(d, plan)} דק׳)`);
+    lines.push("", `▪️ ${d.n} (~${pbDayMinutes(d, plan)} דק׳)`);
     d.g.forEach(g => g.ex.forEach(it => { const ex = PB_BY[it.id]; lines.push(`• ${ex ? ex.n : it.name} – ${it.s}×${it.r}`); }));
   });
   lines.push("", "נבנה באפליקציית מאמן ידע");
@@ -554,9 +560,10 @@ function renderPlan() {
       <div class="xs muted" style="margin-top:10px">הרמה שלי</div><div class="seg" id="pbLvl">${Object.entries(PB_LVLS).map(([k, v]) => `<button data-k="${k}" class="${plan.lvl === k ? "on" : ""}">${v}</button>`).join("")}</div>
       <div class="row" style="margin-top:10px"><button class="btn" id="pbTpl">✨ תבנית מוכנה</button><button class="btn" id="pbRecAll">🔢 סטים וחזרות לפי היעד</button></div>
     </div>
-    <div class="card pb-daycard"><div class="pb-days" id="pbDays">${plan.days.map((d, i) => `<button class="${i === plan.cur ? "on" : ""}" data-d="${i}">${esc(d.n)}</button>`).join("")}<button data-d="new" class="pb-newday">➕ יום</button></div>
+    <div class="card pb-daycard"><div class="pb-wk"><span>🔁 אימונים בשבוע</span><span class="pb-step pb-freq"><button id="pbXm">−</button><span><b>${pbWk(plan)}</b></span><button id="pbXp">+</button></span></div>
+      <div class="xs muted pb-wkh">האימונים רצים בסבב${plan.days.length > 1 ? `: ${plan.days.map(d => esc(d.n)).join(" ← ")} ← שוב מההתחלה` : ""}, עם ימי מנוחה ביניהם. כל אימון יוצא בערך <b>${pbFmt(pbFreq(plan))}</b> פעמים בשבוע.</div><div class="pb-days" id="pbDays">${plan.days.map((d, i) => `<button class="${i === plan.cur ? "on" : ""}" data-d="${i}">${esc(d.n)}</button>`).join("")}<button data-d="new" class="pb-newday">➕ יום</button></div>
     <div class="pb-dayh"><span class="small muted">⏱️ בערך ${pbDayMinutes(day, plan)} דק׳ · ${day.g.reduce((a, g) => a + g.ex.length, 0)} תרגילים · ${day.g.reduce((a, g) => a + g.ex.reduce((b, it) => b + (+it.s || 0), 0), 0)} סטים</span>
-      <span class="pb-step pb-freq"><button id="pbXm">−</button><span>🔁 <b>${day.x || 1}</b> בשבוע</span><button id="pbXp">+</button></span>
+
       <span><button class="link-btn" id="pbRen">✏️ שם</button>${plan.days.length > 1 ? `<button class="link-btn" id="pbDelDay">🗑️ מחק יום</button>` : ""}</span></div></div>
     <div id="pbGroups">${day.g.map(groupCard).join("")}</div>
     <button class="btn primary block" id="pbAddG">➕ הוסף קבוצת שרירים</button>
@@ -582,8 +589,8 @@ function renderPlan() {
     else plan.cur = +b.dataset.d;
     save(); renderPlan();
   };
-  $("#pbXm").onclick = () => { day.x = Math.max(1, (day.x || 1) - 1); save(); renderPlan(); };
-  $("#pbXp").onclick = () => { day.x = Math.min(3, (day.x || 1) + 1); save(); renderPlan(); };
+  $("#pbXm").onclick = () => { plan.wk = Math.max(1, pbWk(plan) - 1); save(); renderPlan(); };
+  $("#pbXp").onclick = () => { plan.wk = Math.min(7, pbWk(plan) + 1); save(); renderPlan(); };
   $("#pbRen").onclick = () => { const n = prompt("שם האימון:", day.n); if (n && n.trim()) { day.n = n.trim().slice(0, 20); save(); renderPlan(); } };
   const dd = $("#pbDelDay"); if (dd) dd.onclick = async () => { if (await modal("למחוק את " + day.n + "?", "כל התרגילים ביום הזה יימחקו.", "מחק", "ביטול", true)) { plan.days.splice(plan.cur, 1); plan.cur = 0; save(); renderPlan(); } };
   $("#pbAddG").onclick = () => pbGroupSheet(plan.cur);

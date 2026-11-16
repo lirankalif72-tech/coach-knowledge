@@ -259,13 +259,14 @@ function trWeekStats(ws) {
     e.sets.forEach(s => { if (s.r > 0) { o.sets++; o.vol += s.w * s.r; } });
     o.ex[id] = Math.max(o.ex[id] || 0, wlSess(e).est);
   }));
+  (S.wsess || []).forEach(x => { if (x.d >= ws && x.d < we) o.days.add(trDayKey(x.d)); });
   return o;
 }
 function trWeekly() {
   const ws = trWeekStart(Date.now()), a = trWeekStats(ws), b = trWeekStats(ws - 7 * 864e5);
   const cmp = (x, y) => { if (!y) return ""; const p = Math.round((x - y) / y * 100); return `<i class="${p > 0 ? "up" : p < 0 ? "down" : ""}">${p > 0 ? "▲" : p < 0 ? "▼" : "■"}${Math.abs(p)}%</i>`; };
   const imp = Object.keys(a.ex).filter(id => b.ex[id] && a.ex[id] > b.ex[id] * 1.005).map(id => wlName(id));
-  const plan = S.plan, planned = plan ? plan.days.reduce((s, d) => s + (d.x || 1), 0) : 0;
+  const plan = S.plan, planned = plan ? pbWk(plan) : 0;
   return `<div class="card tr-week"><h2>🗓️ השבוע שלך</h2>
     <div class="tr-stats"><div><b>${a.days.size}${planned ? `<small>/${planned}</small>` : ""}</b><span>אימונים</span></div><div><b>${a.sets}</b><span>סטים ${cmp(a.sets, b.sets)}</span></div><div><b>${Math.round(a.vol).toLocaleString("he-IL")}</b><span>ק״ג נפח ${cmp(a.vol, b.vol)}</span></div><div><b>${a.prs}</b><span>שיאים 🏆</span></div></div>
     ${imp.length ? `<div class="small">📈 השתפרת לעומת שבוע שעבר ב: <b>${imp.map(esc).join(", ")}</b></div>` : ""}
@@ -353,6 +354,8 @@ renderPlan = function (sub) {
   const h1 = app.querySelector(".pb h1"); if (h1) h1.insertAdjacentHTML("afterend", trSeg() + (S.wcur ? trResumeCard() : ""));
   const ov = app.querySelector(".wl-ov"); if (ov) ov.remove();
   const plan = pbState(), dc = app.querySelector(".pb-daycard");
+  const last = (S.wsess || []).slice(-1)[0], li = last ? plan.days.findIndex(d => d.n === last.n) : -1;
+  if (dc && li > -1 && plan.days.length > 1) { const nx = plan.days[(li + 1) % plan.days.length]; dc.insertAdjacentHTML("beforeend", `<div class="small tr-next">⏭️ הבא בסבב: <b>${esc(nx.n)}</b> <span class="muted xs">(האחרון: ${esc(last.n)}, ${wlDateLong(last.d)})</span></div>`); }
   if (dc && plan.days[plan.cur].g.some(g => g.ex.length)) dc.insertAdjacentHTML("beforeend", `<button class="btn primary block tr-go" id="trGo">▶️ התחל את ${esc(plan.days[plan.cur].n)} עכשיו</button>`);
   const ana = app.querySelector(".pb-ana"); if (ana) ana.insertAdjacentHTML("afterend", `<button class="btn block" id="trQ2" style="margin-bottom:12px">🎓 שאלות על התוכנית שלי</button>`);
   trBindSeg(); trBindResume();

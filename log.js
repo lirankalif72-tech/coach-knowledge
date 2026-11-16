@@ -25,7 +25,16 @@ function wlPRs(list) {
   return pr;
 }
 
+/* טקסט שיאים: אם כמה שיאים הם באותו משקל – מציגים אחד ("שיא משקל") */
+function wlPRText(before, after, d) {
+  const ns = [1, 2, 3].filter(n => after[n] && (d == null || after[n].d === d) && (!before[n] || after[n].w > before[n].w));
+  if (!ns.length) return [];
+  const ws = [...new Set(ns.map(n => after[n].w))];
+  if (ws.length === 1) { const n = ns[ns.length - 1]; return [ns.length === 3 || after[n].r > n ? `שיא משקל ${wlKg(ws[0])} ק״ג × ${after[n].r}` : `${ns.map(n => n + "RM").join("/")} ${wlKg(ws[0])} ק״ג`]; }
+  return ns.map(n => `${n}RM ${wlKg(after[n].w)}`);
+}
 /* ───── גרף ───── */
+const WL_RIR = [["", "RIR"], ["0", "0 – כשל"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4+"]];
 const WL_METRICS = { top: "משקל מרבי", est: "1RM משוער", vol: "נפח (ק״ג × חזרות)", reps: "חזרות מרביות" };
 function wlSeries(list, m) {
   return list.map(e => { const s = wlSess(e); return { d: e.d, v: m === "top" ? s.top.w : m === "est" ? s.est : m === "vol" ? s.vol : s.reps, s }; });
@@ -77,11 +86,12 @@ function wlSheet(id, planSets, planReps) {
   const list = () => L[id].slice().sort((a, b) => a.d - b.d);
   const rMin = parseInt(String(planReps || "8").split(/[–-]/)[0]) || 8;
   // מילוי מראש: הסטים מהאימון האחרון (נוח להעלות קצת משקל או חזרות)
-  const preFill = () => { const last = list().slice(-1)[0]; return last ? last.sets.map(s => ({ w: s.w || "", r: s.r })) : Array.from({ length: planSets || 3 }, () => ({ w: "", r: rMin })); };
+  const preFill = () => { const last = list().slice(-1)[0]; return last ? last.sets.map(s => ({ w: s.w || "", r: s.r, rir: s.rir })) : Array.from({ length: planSets || 3 }, () => ({ w: "", r: rMin })); };
   const today = new Date(); const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const setRow = (s, i) => `<div class="wl-set" data-i="${i}"><span class="wl-n">${i + 1}</span>
     <label><input type="number" inputmode="decimal" step="0.5" min="0" class="wl-w" value="${s.w}" placeholder="0"><i>ק״ג</i></label><span class="wl-x">×</span>
     <label><input type="number" inputmode="numeric" min="0" class="wl-r" value="${s.r}" placeholder="0"><i>חזרות</i></label>
+    <select class="wl-rir" title="RIR – כמה חזרות נשארו לך במיכל">${WL_RIR.map(([v, t]) => `<option value="${v}" ${String(s.rir ?? "") === v ? "selected" : ""}>${t}</option>`).join("")}</select>
     <button class="wl-del" data-act="rm" title="הסר סט">✕</button></div>`;
   const body = () => {
     const ls = list(), pr = wlPRs(ls), bw = ls.length && ls.every(e => wlSess(e).bw);
@@ -92,13 +102,14 @@ function wlSheet(id, planSets, planReps) {
       [1, 2, 3].map(n => tile(`${n}RM`, pr[n] ? wlKg(pr[n].w) : "–", pr[n] ? `${pr[n].r > n ? `(${pr[n].r} חז׳) ` : ""}${wlDateLong(pr[n].d)}` : "")).join("") + tile("1RM משוער", pr.est ? wlKg(Math.round(pr.est.v * 2) / 2) : "–", pr.est ? `מ־${wlKg(pr.est.w)}×${pr.est.r}` : "")}</div>
       <div class="xs muted wl-note">nRM = המשקל הכבד ביותר שהרמת לפחות n חזרות. המשוער מחושב מנוסחת Epley.</div>
       ${!bw ? `<div class="seg wl-seg" id="wlSeg">${["top", "est", "vol"].map(k => `<button data-m="${k}" class="${met === k ? "on" : ""}">${WL_METRICS[k].split(" (")[0]}</button>`).join("")}</div>` : ""}
-      <div class="wl-chartbox">${wlTrend(ls, met)}${wlChart(ls, met)}<div class="wl-tip" id="wlTip">${ls.length >= 2 ? "👆 הקש על נקודה בגרף כדי לראות פרטים" : ""}</div></div>` : `<p class="muted small">עוד אין רישומים לתרגיל הזה. רשום את האימון הראשון – וכאן יופיעו השיאים והגרף.</p>`}
+      <div class="wl-chartbox">${wlTrend(ls, met)}${wlChart(ls, met)}<div class="wl-tip" id="wlTip">${ls.length >= 2 ? "👆 הקש על נקודה בגרף כדי לראות פרטים" : ""}</div></div>${typeof wlExtra === "function" ? wlExtra(id, ls, planReps) : ""}` : `<p class="muted small">עוד אין רישומים לתרגיל הזה. רשום את האימון הראשון – וכאן יופיעו השיאים והגרף.</p>`}
     <div class="help-sec"><b>➕ אימון חדש</b>
       <label class="wl-date">📅 תאריך <input type="date" id="wlDate" value="${iso}" max="${iso}"></label>
+      <div class="xs muted">RIR = כמה חזרות עוד היו נשארות לך (0 = כשל). לא חובה.</div>
       <div id="wlSets">${preFill().map(setRow).join("")}</div>
       <div class="row wl-add"><button class="btn" data-act="addset">➕ סט</button><button class="btn" data-act="dup">⧉ שכפל סט אחרון</button></div>
       <button class="btn primary block" data-act="save">💾 שמור אימון</button></div>
-    ${ls.length ? `<div class="help-sec"><b>🗓️ היסטוריה</b>${ls.slice().reverse().map(e => { const s = wlSess(e); return `<div class="wl-hist"><span class="wl-hd">${wlDateLong(e.d)}</span><span class="wl-hs" dir="ltr">${e.sets.map(x => `${x.w ? wlKg(x.w) + "×" : ""}${x.r}`).join(" · ")}</span>${e.pr ? `<span title="שיא">🏆</span>` : ""}<button class="wl-del" data-act="delday" data-d="${e.d}" title="מחק">🗑️</button></div>`; }).join("")}</div>` : ""}`;
+    ${ls.length ? `<div class="help-sec"><b>🗓️ היסטוריה</b>${ls.slice().reverse().map(e => { const s = wlSess(e); return `<div class="wl-hist"><span class="wl-hd">${wlDateLong(e.d)}</span><span class="wl-hs" dir="ltr">${e.sets.map(x => `${x.w ? wlKg(x.w) + "×" : ""}${x.r}${x.rir != null ? `<sub>@${x.rir}</sub>` : ""}`).join(" · ")}</span>${e.pr ? `<span title="שיא">🏆</span>` : ""}<button class="wl-del" data-act="delday" data-d="${e.d}" title="מחק">🗑️</button></div>`; }).join("")}</div>` : ""}`;
   };
   const { bg, close } = sheet(`<div class="wl" style="max-height:78vh;overflow:auto"><h2>📝 ${esc(wlName(id))}</h2><div id="wlBody"></div></div><div class="row"><button class="btn" data-x>סגור</button></div>`, (e, cl) => {
     if (e.target.closest("[data-x]")) { cl(); if (tab === "plan") renderPlan(); return; }
@@ -106,7 +117,7 @@ function wlSheet(id, planSets, planReps) {
     const hit = e.target.closest(".wl-hit"); if (hit) return showTip(+hit.dataset.i);
     const b = e.target.closest("[data-act]"); if (!b) return;
     const box = bg.querySelector("#wlSets");
-    const read = () => [...box.querySelectorAll(".wl-set")].map(r => ({ w: +r.querySelector(".wl-w").value || 0, r: +r.querySelector(".wl-r").value || 0 }));
+    const read = () => [...box.querySelectorAll(".wl-set")].map(r => { const o = { w: +r.querySelector(".wl-w").value || 0, r: +r.querySelector(".wl-r").value || 0 }, v = r.querySelector(".wl-rir").value; if (v !== "") o.rir = +v; return o; });
     const rows = read();
     if (b.dataset.act === "addset") { rows.push({ w: "", r: rMin }); box.innerHTML = rows.map(setRow).join(""); }
     else if (b.dataset.act === "dup") { rows.push({ ...(rows[rows.length - 1] || { w: "", r: rMin }) }); box.innerHTML = rows.map(setRow).join(""); }
@@ -120,7 +131,7 @@ function wlSheet(id, planSets, planReps) {
       L[id] = L[id].filter(x => wlDateLong(x.d) !== wlDateLong(d));          // אימון אחד ביום לכל תרגיל
       const entry = { d, sets }; L[id].push(entry);
       const after = wlPRs(L[id]), got = [];
-      [1, 2, 3].forEach(n => { if (after[n] && after[n].d === d && (!before[n] || after[n].w > before[n].w)) got.push(`${n}RM ${wlKg(after[n].w)}`); });
+      got.push(...wlPRText(before, after, d));
       if (!got.length && after.est && after.est.d === d && before.est && after.est.v > before.est.v + 0.01) got.push(`1RM משוער ${wlKg(Math.round(after.est.v * 2) / 2)}`);
       if (got.length && before[1]) { entry.pr = 1; toast("🏆", `שיא חדש! ${got.join(" · ")}`); } else toast("💾", "האימון נשמר");
       S.wlogLast = d; save(); draw();
@@ -148,7 +159,7 @@ function wlOverview() {
   return `<div class="card wl-ov"><h2>📈 מעקב משקלים</h2>${ids.map(id => {
     const ls = L[id].slice().sort((a, b) => a.d - b.d), s = wlSess(ls[ls.length - 1]), pr = wlPRs(ls), bw = s.bw;
     return `<button class="wl-row" data-wl="${esc(id)}"><div class="wl-rt"><b>${esc(wlName(id))}</b><span class="xs muted">${bw ? `אחרון: ${s.reps} חזרות` : `אחרון: ${wlKg(s.top.w)} ק״ג × ${s.top.r}`} · ${wlDateLong(ls[ls.length - 1].d)}</span></div>
-      ${wlSpark(ls)}<div class="wl-rp">${bw ? `<b>${pr.reps.r}</b><i>שיא חז׳</i>` : `<b>${pr[1] ? wlKg(pr[1].w) : wlKg(Math.round(pr.est.v * 2) / 2)}</b><i>${pr[1] ? "1RM" : "1RM משוער"}</i>`}</div></button>`;
+      ${wlSpark(ls)}<div class="wl-rp">${bw ? `<b>${pr.reps.r}</b><i>שיא חז׳</i>` : `<b>${pr[1] ? wlKg(pr[1].w) : wlKg(Math.round(pr.est.v * 2) / 2)}</b><i>${pr[1] ? "שיא ק״ג" : "1RM משוער"}</i>`}</div></button>`;
   }).join("")}</div>`;
 }
 function wlRowInfo(id) {
