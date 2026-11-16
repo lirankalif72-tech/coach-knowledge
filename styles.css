@@ -922,3 +922,7 @@ html[dir="ltr"] .fact-row.new span::before{content:"New · "}
 .pb-rotprev{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .pb-rotprev span{background:var(--accent-soft);border-radius:8px;padding:4px 8px;font-size:12.5px;font-weight:700}
 .pb-rotprev span.r{background:var(--blue-soft)}
+/* v8.9.7 – סידור קבוצות שרירים */
+.pb-gmv{display:flex;align-items:center;gap:6px}
+.pb-gmv button[data-act=gup],.pb-gmv button[data-act=gdn]{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--text);cursor:pointer;font-size:12px}
+.pb-gmv button:disabled{opacity:.3;cursor:default}

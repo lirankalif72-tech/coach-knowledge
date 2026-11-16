@@ -561,7 +561,7 @@ function renderPlan() {
   const groupCard = (gr, gi) => {
     const G = PB_GROUPS[gr.k], swaps = pbSwaps(gr), gt = pbGroupTips(gr, plan, Object.keys(swaps).length > 0);
     return `<div class="card pb-group" data-gi="${gi}">
-      <div class="pb-gh"><b>${G.ic} ${G.n}</b><button class="icon-x" data-act="delg" title="הסר קבוצה">✕</button></div>
+      <div class="pb-gh"><b>${G.ic} ${G.n}</b><span class="pb-gmv"><button data-act="gup" ${gi ? "" : "disabled"} title="הזז קבוצה למעלה">▲</button><button data-act="gdn" ${gi < day.g.length - 1 ? "" : "disabled"} title="הזז קבוצה למטה">▼</button><button class="icon-x" data-act="delg" title="הסר קבוצה">✕</button></span></div>
       <div class="xs muted" style="margin:6px 0 4px">מה יהיה הדומיננטי?</div>
       <div class="seg pb-dom">${Object.entries(G.dom).map(([k, v]) => `<button data-act="dom" data-k="${k}" class="${gr.dom === k ? "on" : ""}">${v}</button>`).join("")}</div>
       ${gr.ex.map((it, ei) => {
@@ -574,7 +574,7 @@ function renderPlan() {
           <div class="pb-ctl"><div class="pb-step"><button data-act="s-">−</button><span><b>${it.s}</b> סטים</span><button data-act="s+">+</button></div>
             <select data-act="reps" class="pb-sel">${PB_REPS.concat(PB_REPS.includes(it.r) ? [] : [it.r]).map(r => `<option ${r === it.r ? "selected" : ""}>${r}</option>`).join("")}</select><span class="xs muted">חזרות</span>
             <span class="pb-mv"><button data-act="up" ${ei ? "" : "disabled"}>▲</button><button data-act="del">🗑️</button></span></div>
-          ${swap ? `<div class="pb-swap">💡 ל${G.dom[gr.dom]} עדיף <b>${esc(swap[0].n)}</b> (${swap[1]}% מול ${sc}%) <button data-act="swap" data-to="${swap[0].id}">החלף</button></div>` : ""}
+          ${swap ? `<div class="pb-swap">💡 עבור ${G.dom[gr.dom]}: עדיף <b>${esc(swap[0].n)}</b> (${swap[1]}% מול ${sc}%) <button data-act="swap" data-to="${swap[0].id}">החלף</button></div>` : ""}
         </div>`;
       }).join("")}
       ${gt.map(t => `<div class="pb-tip">💡 ${t.t} ${t.add ? `<button data-act="addbest" data-to="${t.add}">הוסף</button>` : ""}${t.sort ? `<button data-act="sort">סדר אוטומטית</button>` : ""}</div>`).join("")}
@@ -636,6 +636,8 @@ function renderPlan() {
     const gi = +b.closest("[data-gi]").dataset.gi, gr = day.g[gi], exEl = b.closest("[data-ei]"), ei = exEl ? +exEl.dataset.ei : -1, it = gr.ex[ei];
     switch (b.dataset.act) {
       case "delg": day.g.splice(gi, 1); break;
+      case "gup": if (gi > 0) [day.g[gi - 1], day.g[gi]] = [day.g[gi], day.g[gi - 1]]; break;
+      case "gdn": if (gi < day.g.length - 1) [day.g[gi + 1], day.g[gi]] = [day.g[gi], day.g[gi + 1]]; break;
       case "dom": gr.dom = b.dataset.k; break;
       case "add": return pbAddSheet(plan.cur, gi);
       case "info": if (PB_BY[it.id]) pbExSheet(it.id, gr.dom); return;
