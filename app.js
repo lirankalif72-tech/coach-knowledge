@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "8.9.2";
+const APP_VERSION = "8.9.3";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -1417,6 +1417,7 @@ function termsIn(text) {
 document.addEventListener("click", e => {
   const t = e.target.closest(".term-link"); if (!t) return;
   e.preventDefault(); e.stopPropagation();
+  const open = t.closest(".modal-bg"); if (open) open.remove(); // מחליף את החלון הפתוח במקום לפתוח עוד אחד מעליו
   termSheet(t.dataset.term);
 }, true);
 function termSheet(k) {

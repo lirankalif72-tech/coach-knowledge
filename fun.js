@@ -760,14 +760,14 @@ function fillToday() {
   html += chip("ex", ex.em, "תרגיל היום", S.exDone === today() ? "בוצע ✓" : "‎+15 🪙", S.exDone !== today());
   el.innerHTML = html;
   const act = { daily: () => d ? toast("✅", "כבר השלמת את האתגר היום") : startMode("daily"), wheel: wheelSheet, missions: missionsSheet, tod: () => startMode("topic", { f: tod }),
-    term: termSheet, due: () => startMode("due"), food: () => go("tools", { seg: "food" }), ex: exerciseSheet };
+    term: termOfDaySheet, due: () => startMode("due"), food: () => go("tools", { seg: "food" }), ex: exerciseSheet };
   el.querySelectorAll("[data-chip]").forEach(b => b.onclick = () => act[b.dataset.chip]());
 }
 function missionsSheet() {
   const { bg } = sheet(`${missionsCard()}<div class="row" style="margin-top:8px"><button class="btn" data-a="x">סגירה</button></div>`, (e, close) => { if (e.target.dataset.a) close(); });
   const c = bg.querySelector("#chestBtn"); c && (c.onclick = () => { bg.remove(); openChest(); });
 }
-function termSheet() {
+function termOfDaySheet() {
   const [term, def] = GLOSSARY[parseInt(hash("term" + today()), 36) % GLOSSARY.length];
   sheet(`<div style="text-align:center"><div class="muted small">📖 מונח היום</div><h2>${esc(term)}</h2></div><p style="font-size:16px;line-height:1.7">${linkTerms(def)}</p>
     <div class="row"><button class="btn" data-a="x">סגירה</button><button class="btn primary" data-a="q">מבחן מונחים ←</button></div>`, (e, close) => { const a = e.target.dataset.a; if (a === "x") close(); if (a === "q") { close(); startMode("terms"); } });
