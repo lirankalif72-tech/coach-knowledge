@@ -910,3 +910,7 @@ html:not([data-theme="light"]) body.night .play-hero,html:not([data-theme="light
 html[dir="ltr"] .mode,html[dir="ltr"] .opt,html[dir="ltr"] .onb-in .lbl,html[dir="ltr"] .onb-in .search,html[dir="ltr"] .play-btn,html[dir="ltr"] .food-name,html[dir="ltr"] .ntable td:first-child,html[dir="ltr"] .wl-hs{text-align:left}
 html[dir="ltr"] .tf .opt{justify-content:center;text-align:center}
 html[dir="ltr"] .fact-row.new span::before{content:"New · "}
+/* v8.9.4 – כרטיסי "היום" לא נדחסים */
+.t-chip{width:104px;padding:10px 8px;justify-content:flex-start}
+.t-chip b{white-space:normal;line-height:1.2;text-align:center;font-size:12px;overflow-wrap:anywhere}
+.t-chip small{white-space:normal;text-align:center;line-height:1.2}
