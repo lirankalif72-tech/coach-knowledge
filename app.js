@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "5.0.0";
+const APP_VERSION = "6.0.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -83,7 +83,7 @@ function addXP(n) {
   const before = levelOf(S.xp);
   S.xp += Math.round(n);
   const after = levelOf(S.xp);
-  if (after > before) setTimeout(() => toast("🚀", `עלית לרמה ${after} – ${levelTitle(after)}!`), 400);
+  if (after > before) setTimeout(() => levelUp(after), 500);
 }
 
 /* ───────── רצף, מטרה יומית ───────── */
@@ -200,8 +200,8 @@ function checkAchievements(ctx = {}) {
   if (S.flashSeen >= 50) unlock("flash50");
   if (S.factSeen.length >= 50) unlock("facts50");
   if (S.challenges > 0) unlock("challenge");
-  if (Object.values(S.map || {}).some(m => m.boss)) unlock("boss");
-  if (Object.values(S.map || {}).reduce((a, m) => a + (m.st || []).reduce((x, y) => x + (y || 0), 0), 0) >= 30) unlock("stars30");
+  if (Object.values(S.jr || {}).some(m => m.boss)) unlock("boss");
+  if (Object.values(S.jr || {}).reduce((a, m) => a + (m.st || []).reduce((x, y) => x + (y || 0), 0), 0) >= 30) unlock("stars30");
   if ((S.best.combo || 0) >= 10) unlock("combo10");
   if ((S.coinsTotal || 0) >= 500) unlock("rich");
   if (S.chests > 0) unlock("chest");
@@ -209,12 +209,12 @@ function checkAchievements(ctx = {}) {
 
 /* ───────── סאונד ורטט ───────── */
 let actx = null;
-function beep(good) {
+function beep(good, up = 0) {
   if (S.settings.vib && navigator.vibrate) navigator.vibrate(good ? 25 : [40, 50, 40]);
   if (!S.settings.sound) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-    (good ? [660, 880] : [220, 180]).forEach((f, i) => {
+    (good ? [660 * (1 + up * 0.06), 880 * (1 + up * 0.06)] : [220, 180]).forEach((f, i) => {
       const o = actx.createOscillator(), g = actx.createGain();
       o.type = good ? "sine" : "triangle"; o.frequency.value = f;
       const t = actx.currentTime + i * 0.09;
@@ -225,6 +225,16 @@ function beep(good) {
 }
 
 /* ───────── ממשק כללי ───────── */
+function floatReward(text) {
+  const el = document.createElement("div"); el.className = "float-rew"; el.setAttribute("dir", "ltr"); el.textContent = text;
+  document.body.append(el); setTimeout(() => el.remove(), 1300);
+}
+function levelUp(L) {
+  const bonus = 25 + L * 5; addCoins(bonus); save();
+  confetti(); beep(true, 6);
+  sheet(`<div class="lvup"><div class="lvup-badge">${L}</div><h2>עלית רמה!</h2><p class="muted">התואר החדש שלך: <b>${levelTitle(L)}</b></p>
+    <div class="lvup-gift" dir="ltr">+${bonus} 🪙</div><button class="btn primary lg" data-close>יאללה, ממשיכים 💪</button></div>`, (e, close) => { if (e.target.closest("[data-close]")) close(); });
+}
 function toast(em, text) {
   const t = document.createElement("div");
   t.className = "toast"; t.innerHTML = `<span class="em">${em}</span><span>${esc(text)}</span>`;
@@ -487,15 +497,26 @@ function customPool() {
 /* ───────── בניית סשן ───────── */
 let session = null, timerId = null;
 function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+/* טריות: שאלות שלא נראו – קודם; שאלות שהופיעו לאחרונה – בסוף */
+function freshSort(pool) {
+  const rec = new Map((S.recent || []).map((id, i) => [id, i + 1]));
+  return pool.map(q => ({ q, k: (rec.has(q.id) ? 1e14 * (1 + rec.get(q.id) / 1000) : 0) + ((S.qs[q.id] && S.qs[q.id].last) || 0) + Math.random() * 864e5 }))
+    .sort((a, b) => a.k - b.k).map(x => x.q);
+}
+function markSeen(qs) {
+  S.recent = (S.recent || []).filter(id => !qs.some(q => q.id === id)).concat(qs.map(q => q.id)).slice(-260);
+}
 function pickBalanced(pool, n, rand = Math.random) {
   const groups = {};
-  shuffle(pool, rand).forEach(q => (groups[q.f] = groups[q.f] || []).push(q));
+  (rand === Math.random ? freshSort(pool) : shuffle(pool, rand)).forEach(q => (groups[q.f] = groups[q.f] || []).push(q));
   const keys = shuffle(Object.keys(groups).sort(), rand), out = [];
   while (out.length < n && keys.some(k => groups[k].length)) keys.forEach(k => { if (out.length < n && groups[k].length) out.push(groups[k].shift()); });
   return shuffle(out, rand);
 }
 function termQuestions(n) {
-  return shuffle(GLOSSARY).slice(0, n).map(([k, v]) => {
+  const rec = new Set(S.recent || []);
+  const fresh = shuffle(GLOSSARY).sort((a, b) => rec.has("g-" + hash(a[0])) - rec.has("g-" + hash(b[0])));
+  return fresh.slice(0, n).map(([k, v]) => {
     const wrong = shuffle(GLOSSARY.filter(g => g[0] !== k)).slice(0, 3).map(g => g[1]);
     return { id: "g-" + hash(k), f: "glossary", l: "medium", t: "mc", q: `מה פירוש המונח "${k}"?`, o: [v, ...wrong], a: 0, e: `${k}: ${v}` };
   });
@@ -507,12 +528,12 @@ async function startMode(mode, opt = {}) {
   const closed = BANK.filter(q => q.t !== "open");
   switch (mode) {
     case "quick": qs = pickBalanced(BANK, 10); title = "תרגול מהיר"; break;
-    case "topic": qs = shuffle(BANK.filter(q => q.f === opt.f)).slice(0, 10); title = TOPICS[opt.f].name; break;
+    case "topic": qs = shuffle(freshSort(BANK.filter(q => q.f === opt.f)).slice(0, 10)); title = TOPICS[opt.f].name; break;
     case "custom": qs = shuffle(customPool()).slice(0, builder.count); title = "מבחן מותאם"; instant = S.settings.instant; break;
     case "daily": rand = rng(parseInt(hash("daily" + today()), 36)); qs = pickBalanced(closed, 5, rand); title = "אתגר יומי"; break;
     case "exam": qs = pickBalanced(closed, 30); title = "סימולציית מבחן"; instant = false; timeLimit = 35 * 60; break;
-    case "speed": qs = shuffle(closed); title = "מבחן מהירות"; timeLimit = 60; break;
-    case "survival": qs = ["easy", "medium", "hard", "expert"].flatMap(l => shuffle(closed.filter(q => q.l === l))); title = "הישרדות"; break;
+    case "speed": qs = freshSort(closed); title = "מבחן מהירות"; timeLimit = 60; break;
+    case "survival": qs = ["easy", "medium", "hard", "expert"].flatMap(l => freshSort(closed.filter(q => q.l === l))); title = "הישרדות"; break;
     case "challenge":
       seed = opt.seed || Math.floor(Math.random() * 2e9);
       rand = rng(seed); qs = pickBalanced(closed, 10, rand); title = opt.from ? `אתגר מ${opt.from}` : "אתגר חבר"; break;
@@ -521,16 +542,18 @@ async function startMode(mode, opt = {}) {
     case "bookmarks": qs = shuffle(S.bm.map(id => BY_ID[id]).filter(Boolean)).slice(0, 20); title = "שאלות שמורות"; break;
     case "due": qs = shuffle(dueQuestions()).slice(0, 15); title = "חזרה חכמה"; break;
     case "retry": qs = opt.qs; title = "תרגול חוזר"; break;
-    case "stage": qs = shuffle(STAGES[opt.f][opt.i]); title = `${TOPICS[opt.f].name} · שלב ${opt.i + 1}`; break;
-    case "boss": { const pool = closed.filter(q => q.f === opt.f), hard = pool.filter(q => q.l === "hard" || q.l === "expert"); qs = shuffle(hard.length >= 12 ? hard : pool).slice(0, 20); title = `קרב בוס · ${TOPICS[opt.f].name}`; break; }
+    case "stage": { const st = STAGES[opt.f][opt.i], t = TIERS[st.tier]; qs = shuffle(freshSort(st.pool).slice(0, t.q)); title = `${TOPICS[opt.f].name} · ${t.em} ${t.n} ${st.j + 1}`; break; }
+    case "boss": { const pool = closed.filter(q => q.f === opt.f), hard = pool.filter(q => q.l === "hard" || q.l === "expert"); qs = freshSort(hard.length >= 20 ? hard : pool).slice(0, 20); title = `קרב בוס · ${TOPICS[opt.f].name}`; break; }
   }
   if (!qs.length) {
     const msg = { mistakes: "אין כרגע שאלות לחזרה – כל הכבוד! ענה על עוד שאלות והטעויות יופיעו כאן.", bookmarks: "עוד לא שמרת שאלות. במהלך מבחן אפשר ללחוץ על ☆ כדי לשמור שאלה.", due: "אין שאלות שמחכות לחזרה היום. תרגל עוד, והאפליקציה תתזמן לך חזרות." }[mode] || "לא נמצאו שאלות.";
     await modal("אין שאלות כאן", msg, "הבנתי", null); return;
   }
   stopFactTimer();
+  if (!seed && mode !== "daily") markSeen(qs.slice(0, mode === "speed" || mode === "survival" ? 25 : qs.length));
+  const goldIdx = PLAY() && qs.length >= 5 && !["exam", "daily", "challenge", "speed"].includes(mode) && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * (qs.length - 1)) : -1;
   session = { mode, title, instant, timeLimit, start: Date.now(), seed, opt, lives: 3, combo: 0, maxCombo: 0, coinsEarned: 0, bossHp: mode === "boss" ? BOSS_HP : 0,
-    items: qs.map(q => mkItem(q, rand)), idx: 0, speedOk: 0, speedNo: 0 };
+    items: qs.map((q, i) => Object.assign(mkItem(q, rand), i === goldIdx ? { gold: true } : {})), idx: 0, speedOk: 0, speedNo: 0 };
   document.body.classList.add("in-quiz");
   if (timeLimit) timerId = setInterval(tick, 250);
   renderQuestion();
@@ -602,6 +625,7 @@ function renderQuestion() {
   else if (!it.done) actions = `<button class="btn primary lg" id="check">בדיקת תשובה</button>`;
   else if (q.t === "open" && it.grade === null) actions = "";
   else if ((isSurv || s.mode === "boss") && s.lives <= 0) actions = `<button class="btn primary lg" id="nextQ">לתוצאות 🏁</button>`;
+  else if (s.mode === "stage" && s.lives <= 0) actions = `<button class="btn primary lg" id="nextQ">💔 נגמרו הלבבות – לתוצאות</button>`;
   else if (s.mode === "boss" && s.bossHp <= 0) actions = `<button class="btn primary lg" id="nextQ">👑 ניצחון! לתוצאות</button>`;
   else actions = `<button class="btn primary lg" id="nextQ">${last ? "לתוצאות 🏁" : "לשאלה הבאה ←"}</button>`;
 
@@ -609,6 +633,8 @@ function renderQuestion() {
   if (isSpeed) headMid = `<div class="speed-score" style="flex:1">✅ ${s.speedOk} · ❌ ${s.speedNo}</div>`;
   if (isSurv) headMid = `<div class="speed-score" style="flex:1">${"❤️".repeat(Math.max(0, s.lives))}${"🤍".repeat(3 - Math.max(0, s.lives))} <span class="muted small">· ${s.items.filter(x => x.grade === 1).length} נכונות</span></div>`;
   if (s.mode === "boss") headMid = `<div class="boss-bar"><span class="boss-em ${it.done && it.grade === 1 ? "hit" : ""}">👹</span><div class="hp"><i style="width:${pct(s.bossHp, BOSS_HP)}%"></i></div><span class="xs">${"❤️".repeat(Math.max(0, s.lives))}${"🤍".repeat(3 - Math.max(0, s.lives))}</span></div>`;
+  if (s.mode === "stage") { const need = TIERS[STAGES[s.opt.f][s.opt.i].tier].q - 2, ok = s.items.filter(x => x.grade === 1).length;
+    headMid = `<div class="stage-hud"><div class="progress"><i style="width:${progress}%"></i></div><span class="xs" title="תשובות נכונות מתוך הנדרש">🎯 ${ok}/${need}</span><span class="xs">${"❤️".repeat(Math.max(0, s.lives))}${"🖤".repeat(3 - Math.max(0, s.lives))}</span></div>`; }
   const mult = comboMult(s.combo);
   const comboTag = PLAY() && s.combo >= 2 ? `<span class="tag combo ${mult > 1 ? "hot" : ""}">🔥 ${s.combo} ברצף${mult > 1 ? ` · x${mult}` : ""}</span>` : "";
   const puBar = PLAY() && s.instant && !it.done && q.t !== "open" ? `<div class="pu-bar">
@@ -621,7 +647,7 @@ function renderQuestion() {
 
   app.innerHTML = `<div class="fade-in">
     <div class="qhead"><button class="x" id="quit" aria-label="יציאה">✕</button>${headMid}${headEnd}</div>
-    <div class="tags"><span class="tag">${tp.icon} ${tp.name}</span><span class="tag lv-${q.l}">${LEVELS[q.l]}</span><span class="tag">${TYPES[q.t]}</span>${isExam ? `<span class="tag">שאלה ${s.idx + 1} מתוך ${total}</span>` : ""}${comboTag}</div>
+    <div class="tags"><span class="tag">${tp.icon} ${tp.name}</span><span class="tag lv-${q.l}">${LEVELS[q.l]}</span><span class="tag">${TYPES[q.t]}</span>${it.gold && PLAY() ? `<span class="tag gold">✨ שאלת זהב · x3</span>` : ""}${isExam ? `<span class="tag">שאלה ${s.idx + 1} מתוך ${total}</span>` : ""}${comboTag}</div>
     <div class="qtext">${esc(q.q)}</div>
     ${figHtml(q)}
     <div id="opts">${opts}</div>
@@ -688,7 +714,7 @@ async function check() {
     it.grade = scoreOf(it);
     record(it.q, it.grade);
     onAnswer(s, it);
-    beep(it.grade === 1);
+    beep(it.grade === 1, s.combo);
     save();
   }
   renderQuestion(); updateHeader();
@@ -703,6 +729,7 @@ function next() {
   const s = session;
   if (!s.instant) { if (s.idx < s.items.length - 1) { s.idx++; renderQuestion(); } return; }
   if (s.mode === "survival" && s.lives <= 0) return finishSurvival();
+  if (s.mode === "stage" && s.lives <= 0) return finishStage();
   if (s.mode === "boss" && (s.lives <= 0 || s.bossHp <= 0)) return finishBoss();
   if (s.mode === "boss" && s.idx >= s.items.length - 1) return finishBoss();
   if (s.idx < s.items.length - 1) { s.idx++; renderQuestion(); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -932,15 +959,17 @@ function onAnswer(s, it) {
   if (it.grade === 1) {
     s.combo++; s.maxCombo = Math.max(s.maxCombo, s.combo);
     S.best.combo = Math.max(S.best.combo || 0, s.combo);
-    const m = comboMult(s.combo);
+    const m = comboMult(s.combo) * (it.gold ? 3 : 1);
     addXP(10 * m);
-    it.coins = 2 * m; s.coinsEarned += it.coins; addCoins(it.coins);
+    it.coins = 2 * m;
+    setTimeout(() => floatReward(`+${it.coins} 🪙${it.gold ? " ✨" : ""}`), 60);
+    if (it.gold) setTimeout(() => { toast("✨", "שאלת זהב! פרס x3"); confetti(); }, 200); s.coinsEarned += it.coins; addCoins(it.coins);
     if (s.combo >= 3) missionEvent("combo", { n: s.combo });
     if (s.combo === 3 || s.combo === 5 || s.combo === 10) setTimeout(() => toast("🔥", s.combo === 3 ? "קומבו! נקודות כפולות" : s.combo === 5 ? "קומבו x3 – אתה בוער!" : "10 ברצף – בלתי עציר!"), 150);
     if (s.mode === "boss") s.bossHp--;
   } else {
     s.combo = 0;
-    if (s.mode === "survival" || s.mode === "boss") s.lives--;
+    if (s.mode === "survival" || s.mode === "boss" || s.mode === "stage") s.lives--;
   }
 }
 function usePower(k) {
@@ -957,7 +986,8 @@ function usePower(k) {
     let pool = BANK.filter(x => x.t !== "open" && x.f === q.f && !used.has(x.id));
     if (!pool.length) pool = BANK.filter(x => x.t !== "open" && !used.has(x.id));
     if (!pool.length) return;
-    s.items[s.idx] = mkItem(pool[Math.floor(Math.random() * pool.length)]);
+    const nq = freshSort(pool)[0]; markSeen([nq]);
+    s.items[s.idx] = Object.assign(mkItem(nq), it.gold ? { gold: true } : {});
   } else if (k === "time" && s.timeLimit) { s.start += 10000; }
   else return;
   S.items[k]--; save(); beep(true);
@@ -1038,6 +1068,49 @@ function missionEvent(type, data = {}) {
   });
   if (changed) save();
 }
+/* גלגל המזל היומי */
+const WHEEL = [
+  { l: "20 🪙", c: 20, w: 22 }, { l: "✂️ 50:50", it: "fifty", w: 14 }, { l: "50 🪙", c: 50, w: 14 }, { l: "⏭️ דילוג", it: "skip", w: 12 },
+  { l: "+60 XP", xp: 60, w: 14 }, { l: "⏱️ זמן", it: "time", w: 10 }, { l: "🛡️ מגן", it: "shield", w: 8 }, { l: "💎 150", c: 150, w: 6 }
+];
+const wheelReady = () => S.wheel !== today();
+function wheelCard() {
+  const r = wheelReady();
+  return `<div class="card wheel-card ${r ? "ready" : ""}" id="wheelCard"><div class="em">🎡</div>
+    <div style="flex:1"><b style="font-size:16px">גלגל המזל</b><div class="muted small">${r ? "סיבוב חינם מחכה לך היום!" : "סובבת היום · חוזר מחר"}</div></div>${r ? `<span class="tag gold">סובב!</span>` : `<span class="chev">‹</span>`}</div>`;
+}
+function wheelSheet() {
+  const n = WHEEL.length, seg = 360 / n, cols = ["#34d399", "#60a5fa", "#fbbf24", "#a78bfa", "#f87171", "#22d3ee", "#fb923c", "#f472b6"];
+  const pt = a => [100 + 92 * Math.cos((a - 90) * Math.PI / 180), 100 + 92 * Math.sin((a - 90) * Math.PI / 180)];
+  const slices = WHEEL.map((w, i) => {
+    const [x1, y1] = pt(i * seg), [x2, y2] = pt((i + 1) * seg), [tx, ty] = [100 + 60 * Math.cos(((i + .5) * seg - 90) * Math.PI / 180), 100 + 60 * Math.sin(((i + .5) * seg - 90) * Math.PI / 180)];
+    return `<path d="M100 100 L${x1.toFixed(1)} ${y1.toFixed(1)} A92 92 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${cols[i]}"/>
+      <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" transform="rotate(${(i + .5) * seg + ((i + .5) * seg > 90 && (i + .5) * seg < 270 ? 180 : 0)} ${tx.toFixed(1)} ${ty.toFixed(1)})" text-anchor="middle" dominant-baseline="middle" class="wl">${w.l}</text>`;
+  }).join("");
+  const r = wheelReady();
+  const { bg, close } = sheet(`<h2 style="text-align:center">🎡 גלגל המזל</h2>
+    <div class="wheel-wrap"><div class="wheel-ptr">▼</div><svg viewBox="0 0 200 200" class="wheel" id="wheel"><circle cx="100" cy="100" r="96" fill="#111827"/>${slices}<circle cx="100" cy="100" r="14" fill="#fff"/></svg></div>
+    <p class="muted small" style="text-align:center" id="wheelMsg">${r ? "סיבוב אחד חינם בכל יום. בהצלחה!" : "כבר סובבת היום – נתראה מחר 😉"}</p>
+    <div class="row"><button class="btn" data-close>סגירה</button><button class="btn primary" id="spinBtn" ${r ? "" : "disabled"}>סובב! 🎯</button></div>`,
+    (e, close) => { if (e.target.closest("[data-close]")) { close(); if (tab === "home" && !session) go("home"); } });
+  bg.querySelector("#spinBtn").onclick = () => {
+    if (!wheelReady()) return;
+    const tot = WHEEL.reduce((a, w) => a + w.w, 0); let x = Math.random() * tot, k = 0;
+    while (x >= WHEEL[k].w) { x -= WHEEL[k].w; k++; }
+    S.wheel = today(); save();
+    bg.querySelector("#spinBtn").disabled = true;
+    const wh = bg.querySelector("#wheel"), deg = 360 * 6 + (360 - (k + .5) * seg) + (Math.random() - .5) * seg * .6;
+    let tk = 0; const tic = setInterval(() => beep(true, (tk++ % 4)), 180);
+    wh.style.transform = `rotate(${deg}deg)`;
+    setTimeout(() => {
+      clearInterval(tic);
+      const w = WHEEL[k];
+      if (w.c) addCoins(w.c); if (w.xp) addXP(w.xp); if (w.it) S.items[w.it] = (S.items[w.it] || 0) + 1;
+      save(); confetti(); beep(true, 8);
+      bg.querySelector("#wheelMsg").innerHTML = `<b style="font-size:18px">זכית: ${w.l}!</b>`;
+    }, 4200);
+  };
+}
 function missionsCard() {
   const m = missions(), all = m.list.every(x => x.done);
   return `<div class="card missions"><div class="row" style="justify-content:space-between"><b>🎯 משימות היום</b><span class="muted xs">${m.list.filter(x => x.done).length}/3 · ‎+15 🪙 למשימה</span></div>
@@ -1056,14 +1129,20 @@ function openChest() {
 }
 
 /* מסע: עולמות, שלבים ובוסים */
-const LV_ORD = { easy: 0, medium: 1, hard: 2, expert: 3 };
+const TIERS = [
+  { k: "easy", n: "מתחיל", em: "🟢", lv: ["easy"], st: 2, q: 6 },
+  { k: "mid", n: "מתקדם", em: "🟡", lv: ["medium"], st: 3, q: 8 },
+  { k: "pro", n: "מומחה", em: "🔴", lv: ["hard", "expert"], st: 2, q: 10 }
+];
+/* בכל שלב: 3 לבבות. טעות שלישית = נפסלת. כדי לעבור צריך לפחות (מספר השאלות − 2) תשובות נכונות */
 const STAGES = Object.fromEntries(TOPIC_KEYS.map(f => {
-  const pool = BANK.filter(q => q.f === f && q.t !== "open").sort((a, b) => (LV_ORD[a.l] - LV_ORD[b.l]) || (a.id < b.id ? -1 : 1));
-  const st = []; for (let i = 0; i + 5 <= pool.length && st.length < 6; i += 5) st.push(pool.slice(i, i + 5));
+  const st = [];
+  TIERS.forEach((t, ti) => { const pool = BANK.filter(q => q.f === f && q.t !== "open" && t.lv.includes(q.l)); for (let j = 0; j < t.st; j++) st.push({ tier: ti, j, pool }); });
   return [f, st];
 }));
-const mapOf = f => (S.map[f] = S.map[f] || { st: [], boss: false });
-const worldUnlocked = w => w < 2 || mapOf(TOPIC_KEYS[w - 1]).st.filter(x => x > 0).length >= 2;
+const mapOf = f => { S.jr = S.jr || {}; return (S.jr[f] = S.jr[f] || { st: [], boss: false, tiers: [] }); };
+const tierDone = (f, ti) => STAGES[f].every((x, i) => x.tier !== ti || (mapOf(f).st[i] || 0) > 0);
+const worldUnlocked = w => w < 2 || tierDone(TOPIC_KEYS[w - 1], 0);
 const stageUnlocked = (f, i) => i === 0 || (mapOf(f).st[i - 1] || 0) > 0;
 const bossUnlocked = f => STAGES[f].every((_, i) => (mapOf(f).st[i] || 0) > 0);
 const worldStars = f => mapOf(f).st.reduce((a, b) => a + (b || 0), 0);
@@ -1080,17 +1159,44 @@ function nextStage() {
   TOPIC_KEYS.forEach((f, w) => { if (!worldUnlocked(w)) return; STAGES[f].forEach((_, i) => { const s = mapOf(f).st[i] || 0; if (s < 3 && (!best || s < best.s)) best = { f, i, s }; }); });
   return best || { f: TOPIC_KEYS[0], i: 0 };
 }
-const startNext = nx => nx.boss ? startMode("boss", { f: nx.f }) : startMode("stage", { f: nx.f, i: nx.i });
+const startNext = nx => nx.boss ? bossIntro(nx.f) : stageIntro(nx.f, nx.i);
+function stageIntro(f, i) {
+  const st = STAGES[f][i], t = TIERS[st.tier], best = mapOf(f).st[i] || 0;
+  const { bg, close } = sheet(`<div class="intro"><div class="intro-em">${TOPICS[f].icon}</div>
+    <div class="muted small">${TOPICS[f].name}</div><h2>${t.em} דרגת ${t.n} · שלב ${st.j + 1}</h2>
+    <div class="rules">
+      <div><span>📝</span><b>${t.q} שאלות</b></div>
+      <div><span>🎯</span><b>צריך לפחות ${t.q - 2} נכונות כדי לעבור</b></div>
+      <div><span>❤️</span><b>3 לבבות – בטעות השלישית נפסלים</b></div>
+      <div><span>⭐</span><b>${t.q}/${t.q} = שלושה כוכבים</b></div>
+    </div>
+    ${best ? `<div class="muted small">השיא שלך: ${"★".repeat(best)}${"☆".repeat(3 - best)}</div>` : ""}
+    <div class="row" style="margin-top:14px"><button class="btn" data-x>ביטול</button><button class="btn primary" data-go>יאללה! ▶</button></div></div>`,
+    (e, close) => { if (e.target.closest("[data-x]")) close(); if (e.target.closest("[data-go]")) { close(); startMode("stage", { f, i }); } });
+}
+function bossIntro(f) {
+  sheet(`<div class="intro"><div class="intro-em">👹</div><div class="muted small">${TOPICS[f].name}</div><h2>קרב הבוס</h2>
+    <div class="rules"><div><span>💥</span><b>${BOSS_HP} תשובות נכונות מביסות אותו</b></div><div><span>❤️</span><b>3 לבבות בלבד</b></div><div><span>🔴</span><b>שאלות ברמה הכי קשה</b></div><div><span>👑</span><b>ניצחון = העולם הושלם</b></div></div>
+    <div class="row" style="margin-top:14px"><button class="btn" data-x>ביטול</button><button class="btn primary" data-go>להילחם! ⚔️</button></div></div>`,
+    (e, close) => { if (e.target.closest("[data-x]")) close(); if (e.target.closest("[data-go]")) { close(); startMode("boss", { f }); } });
+}
 function worldHtml(f, w) {
   const un = worldUnlocked(w), st = STAGES[f], m = mapOf(f), nx = nextStage();
-  const nodes = st.map((_, i) => {
+  let nodes = "";
+  st.forEach((x, i) => {
+    const t = TIERS[x.tier];
+    if (x.j === 0) {
+      const tOpen = x.tier === 0 || tierDone(f, x.tier - 1);
+      nodes += `<div class="tier-h t${x.tier} ${tOpen ? "" : "locked"}">${tOpen ? t.em : "🔒"} <b>${t.n}</b><span>${tOpen ? `${t.q} שאלות · צריך ${t.q - 2} נכונות` : `נפתח אחרי שתסיים את דרגת ה${TIERS[x.tier - 1].n}`}</span>${tierDone(f, x.tier) ? `<em>🏅</em>` : ""}</div>`;
+    }
     const s = m.st[i] || 0, open = un && stageUnlocked(f, i), cur = nx.f === f && nx.i === i && !nx.boss;
-    return `<button class="node ${s ? "done" : ""} ${open ? "" : "locked"} ${cur ? "cur" : ""} off${i % 4}" data-stage="${f}:${i}" ${open ? "" : "disabled"}><span>${open ? i + 1 : "🔒"}</span><i>${s ? "★".repeat(s) + "☆".repeat(3 - s) : cur ? "התחל" : ""}</i></button>`;
-  }).join("");
+    nodes += `<button class="node t${x.tier} ${s ? "done" : ""} ${open ? "" : "locked"} ${cur ? "cur" : ""} off${i % 4}" data-stage="${f}:${i}" ${open ? "" : "disabled"}><span>${open ? x.j + 1 : "🔒"}</span><i>${s ? "★".repeat(s) + "☆".repeat(3 - s) : cur ? "התחל" : ""}</i></button>`;
+  });
   const bu = un && bossUnlocked(f);
+  const prev = TOPIC_KEYS[w - 1];
   return `<div class="world ${un ? "" : "locked"}"><div class="world-h"><span class="em">${TOPICS[f].icon}</span><div style="flex:1"><b>${TOPICS[f].name}</b>
-    <div class="muted xs">${un ? `⭐ ${worldStars(f)}/${st.length * 3}${m.boss ? " · 👑 הבוס הובס" : ""}` : "🔒 נפתח אחרי 2 שלבים בעולם הקודם"}</div></div></div>
-    ${un ? `<div class="path">${nodes}<button class="node boss ${m.boss ? "done" : ""} ${bu ? "" : "locked"} ${nx.f === f && nx.boss ? "cur" : ""}" data-boss="${f}" ${bu ? "" : "disabled"}><span>${m.boss ? "👑" : "👹"}</span><i>${m.boss ? "הובס" : bu ? "בוס!" : "🔒 בוס"}</i></button></div>` : ""}</div>`;
+    <div class="muted xs">${un ? `⭐ ${worldStars(f)}/${st.length * 3}${m.boss ? " · 👑 הבוס הובס" : ""}` : `🔒 נפתח אחרי שתסיים את דרגת המתחיל ב${TOPICS[prev].name}`}</div></div></div>
+    ${un ? `<div class="path">${nodes}<div class="tier-h boss-h ${bu ? "" : "locked"}">${bu ? "👹" : "🔒"} <b>בוס העולם</b><span>${bu ? "מוכן לקרב!" : "נפתח אחרי כל השלבים"}</span></div><button class="node boss ${m.boss ? "done" : ""} ${bu ? "" : "locked"} ${nx.f === f && nx.boss ? "cur" : ""}" data-boss="${f}" ${bu ? "" : "disabled"}><span>${m.boss ? "👑" : "👹"}</span><i>${m.boss ? "הובס" : bu ? "בוס!" : ""}</i></button></div>` : ""}</div>`;
 }
 function renderPlayHome() {
   const L = levelOf(S.xp), lo = xpFor(L), hi = xpFor(L + 1), d = S.daily[today()], nx = nextStage();
@@ -1102,6 +1208,7 @@ function renderPlayHome() {
     ${goalRing()}</div></div>
   <button class="play-btn" id="playNow"><span class="pb-ic">▶</span><div><b>שחק עכשיו</b><span>${nxLabel}</span></div></button>
   ${missionsCard()}
+  ${wheelCard()}
   <div class="card daily ${d ? "done" : ""}" id="dailyCard"><div class="em">${d ? "✅" : "🏆"}</div>
     <div style="flex:1"><b style="font-size:16px">אתגר יומי</b><div class="muted small">${d ? `הושלם · ${d.score}% · חוזר מחר` : "5 שאלות חדשות · ‎+30 XP בונוס"}</div></div><span class="chev">‹</span></div>
   <div class="section-title"><h2>⚔️ זירה</h2></div>
@@ -1118,9 +1225,10 @@ function renderPlayHome() {
   $("#playNow").onclick = () => startNext(nx);
   $("#dailyCard").onclick = () => d ? toast("✅", "כבר השלמת את האתגר היום") : startMode("daily");
   $("#chestBtn").onclick = openChest;
+  $("#wheelCard") && ($("#wheelCard").onclick = wheelSheet);
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => startMode(b.dataset.go));
-  app.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const [f, i] = b.dataset.stage.split(":"); startMode("stage", { f, i: +i }); });
-  app.querySelectorAll("[data-boss]").forEach(b => b.onclick = () => startMode("boss", { f: b.dataset.boss }));
+  app.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const [f, i] = b.dataset.stage.split(":"); stageIntro(f, +i); });
+  app.querySelectorAll("[data-boss]").forEach(b => b.onclick = () => bossIntro(b.dataset.boss));
 }
 function reviewList(items) {
   return items.filter(it => it.done).map((it, i) => {
@@ -1130,33 +1238,45 @@ function reviewList(items) {
   }).join("");
 }
 function finishStage() {
-  const s = session, graded = s.items.filter(x => x.grade !== null), correct = graded.filter(x => x.grade === 1).length;
-  const stars = correct >= 5 ? 3 : correct === 4 ? 2 : correct === 3 ? 1 : 0;
-  const m = mapOf(s.opt.f), prev = m.st[s.opt.i] || 0;
-  let bonus = 0;
-  if (stars > prev) { bonus = (stars - prev) * 10 + (prev === 0 ? 10 : 0); m.st[s.opt.i] = stars; addCoins(bonus, true); }
-  if (stars) { missionEvent("stage", { stars }); addXP(15 * stars); }
-  touchStreak(); logHistory({ mode: "stage", title: s.title, score: pct(correct, graded.length), n: graded.length });
-  checkAchievements({ perfect: correct === 5 }); save();
-  if (stars === 3) confetti();
-  const f = s.opt.f, i = s.opt.i;
+  const s = session, f = s.opt.f, i = s.opt.i, st = STAGES[f][i], t = TIERS[st.tier];
+  const graded = s.items.filter(x => x.grade !== null), correct = graded.filter(x => x.grade === 1).length, wrong = graded.length - correct;
+  const failed = s.lives <= 0, need = t.q - 2;
+  const stars = failed ? 0 : wrong === 0 ? 3 : wrong === 1 ? 2 : 1;
+  const m = mapOf(f), prev = m.st[i] || 0, wNow = TOPIC_KEYS.indexOf(f);
+  const nextWorldWas = TOPIC_KEYS[wNow + 1] ? worldUnlocked(wNow + 1) : true, tierWas = tierDone(f, st.tier);
+  let bonus = 0, banners = [];
+  if (stars > prev) { bonus = (stars - prev) * 10 + (prev === 0 ? 10 : 0); m.st[i] = stars; addCoins(bonus, true); }
+  if (!tierWas && tierDone(f, st.tier)) {
+    const tb = 40 * (st.tier + 1); bonus += tb; addCoins(tb, true); addXP(30 * (st.tier + 1));
+    banners.push(`🏅 סיימת את דרגת ה${t.n}! ‎+${tb} 🪙${TIERS[st.tier + 1] ? ` · נפתחה דרגת ${TIERS[st.tier + 1].em} ${TIERS[st.tier + 1].n}` : " · הבוס מחכה לך 👹"}`);
+  }
+  if (!nextWorldWas && worldUnlocked(wNow + 1)) banners.push(`🌍 עולם חדש נפתח: ${TOPICS[TOPIC_KEYS[wNow + 1]].icon} ${TOPICS[TOPIC_KEYS[wNow + 1]].name}`);
+  if (stars) { missionEvent("stage", { stars }); addXP(15 * stars * (st.tier + 1)); }
+  touchStreak(); logHistory({ mode: "stage", title: s.title, score: pct(correct, t.q), n: graded.length });
+  checkAchievements({ perfect: stars === 3 }); save();
+  if (stars === 3 || banners.length) confetti();
   const nx = stars ? (STAGES[f][i + 1] ? { f, i: i + 1 } : (bossUnlocked(f) && !m.boss ? { f, boss: true } : nextStage())) : null;
   const coins = s.coinsEarned + bonus, items = s.items, maxC = s.maxCombo, title = s.title;
   session = null; document.body.classList.remove("in-quiz");
+  const head = failed ? "נפסלת הפעם 💔" : stars === 3 ? "מושלם! 🌟" : stars === 2 ? "כמעט מושלם!" : "עברת את השלב!";
+  const sub = failed ? `${correct} נכונות · 3 טעויות. כדי לעבור צריך ${need} נכונות מתוך ${t.q} – אתה יכול! 💪` : `${correct}/${t.q} נכונות${stars < 3 ? ` · ${t.q}/${t.q} = שלושה כוכבים` : ""}`;
   app.innerHTML = `<div class="fade-in"><div class="card stage-res" style="text-align:center">
     <div class="muted small">${esc(title)}</div>
     <div class="stars-big">${[0, 1, 2].map(k => `<span class="${k < stars ? "on" : ""}" style="animation-delay:${0.2 + k * 0.25}s">★</span>`).join("")}</div>
-    <h1>${stars === 3 ? "מושלם! 🌟" : stars === 2 ? "כמעט מושלם!" : stars === 1 ? "עברת את השלב!" : "לא נורא – עוד ניסיון"}</h1>
-    <p class="muted" style="margin:4px 0 14px">${correct}/5 נכונות${stars === 0 ? " · צריך לפחות 3 כדי לעבור" : stars < 3 ? " · 5/5 = שלושה כוכבים" : ""}</p>
+    <h1>${head}</h1>
+    <p class="muted" style="margin:4px 0 14px">${sub}</p>
+    ${banners.map(b => `<div class="banner-win">${b}</div>`).join("")}
     <div class="grid3"><div class="statbox"><b dir="ltr">+${coins}</b><span>🪙 מטבעות</span></div><div class="statbox"><b>🔥 ${maxC}</b><span>קומבו מרבי</span></div><div class="statbox"><b>⭐ ${totalStars()}</b><span>כוכבים במסע</span></div></div>
     <div class="col" style="margin-top:16px">
-      ${nx ? `<button class="btn primary lg block" id="nextSt">${nx.boss ? "👹 לקרב הבוס!" : "▶ לשלב הבא"}</button>` : ""}
-      <div class="row"><button class="btn" id="againSt" style="flex:1">🔁 ${stars ? "שפר כוכבים" : "נסה שוב"}</button><button class="btn" id="toMap" style="flex:1">🗺️ למפה</button></div>
+      ${nx ? `<button class="btn primary lg block" id="nextSt">${nx.boss ? "👹 לקרב הבוס!" : "▶ לשלב הבא"}</button>` : `<button class="btn primary lg block" id="againSt2">🔁 נסה שוב</button>`}
+      <div class="row">${nx ? `<button class="btn" id="againSt" style="flex:1">🔁 ${stars < 3 ? "שפר כוכבים" : "שחק שוב"}</button>` : `<button class="btn" id="learnSt" style="flex:1">📘 שיעור בנושא</button>`}<button class="btn" id="toMap" style="flex:1">🗺️ למפה</button></div>
     </div></div>
-    <details class="why card"><summary>סקירת תשובות</summary>${reviewList(items)}</details></div>`;
+    <details class="why card" ${failed ? "open" : ""}><summary>סקירת תשובות</summary>${reviewList(items)}</details></div>`;
   window.scrollTo(0, 0); updateHeader();
   $("#nextSt") && ($("#nextSt").onclick = () => startNext(nx));
-  $("#againSt").onclick = () => startMode("stage", { f, i });
+  $("#againSt") && ($("#againSt").onclick = () => startMode("stage", { f, i }));
+  $("#againSt2") && ($("#againSt2").onclick = () => startMode("stage", { f, i }));
+  $("#learnSt") && ($("#learnSt").onclick = () => { setMode("learn", false); go("learn"); });
   $("#toMap").onclick = () => go("home");
 }
 function finishBoss() {
@@ -1387,11 +1507,18 @@ function lessonSheet(f) {
 
 
 /* ───────── אוכל: ערכים תזונתיים ───────── */
-const FOODS = FOODS_RAW.map(([n, al, k, p, c, f, sg, sl, u]) => ({
-  n, al: [n, ...(al ? al.split("|") : [])], k, p, c, f, sg, sl,
+const FOODS = FOODS_RAW.map(([n, al, k, p, c, f, sg, sl, u, src]) => ({
+  n, al: [n, ...(al ? al.split("|") : [])], k, p, c, f, sg, sl, src: src || "e",
   u: Object.fromEntries((u || "").split("|").filter(Boolean).map(x => { const [a, b] = x.split(":"); return [a, +b]; }))
 }));
-const allFoods = () => [...FOODS, ...(S.myFoods || []).map(m => ({ ...m, al: [m.n], u: {}, mine: true }))];
+const allFoods = () => [
+  ...FOODS.map(f => S.foodFix && S.foodFix[f.n] ? { ...f, ...S.foodFix[f.n], fixed: true } : f),
+  ...(S.myFoods || []).map(m => ({ ...m, al: [m.n], u: {}, mine: true, src: "m" }))];
+const SRC_LABEL = { u: "מאגר USDA", l: "תווית / נתוני יצרן", e: "הערכה לפי מתכון ממוצע", m: "מזון שהוספת", fix: "תוקן על ידך" };
+// זוגות "לפני בישול" ↔ "אחרי בישול"
+const RAW_PAIRS = [["אורז לבן מבושל", "אורז לא מבושל"], ["אורז מלא מבושל", "אורז לא מבושל"], ["אורז בסמטי מבושל", "אורז לא מבושל"], ["פסטה מבושלת", "פסטה לא מבושלת"], ["קינואה מבושלת", "קינואה לא מבושלת"], ["קוסקוס מבושל", "קוסקוס לא מבושל"], ["בורגול מבושל", "בורגול לא מבושל"], ["פתיתים מבושלים", "פתיתים לא מבושלים"], ["עדשים מבושלות", "עדשים יבשות"], ["חזה עוף מבושל", "חזה עוף לא מבושל"], ["פרגית מבושלת", "פרגית לא מבושלת"], ["בשר טחון מבושל", "בשר טחון לא מבושל"], ["סלמון מבושל", "סלמון לא מבושל"], ["תפוח אדמה מבושל", "תפוח אדמה לא מבושל"], ["בטטה אפויה", "בטטה לא מבושלת"]];
+const pairOf = n => { const p = RAW_PAIRS.find(x => x[0] === n || x[1] === n); return p ? { other: p[0] === n ? p[1] : p[0], isCooked: p[0] === n } : null; };
+const findFood = n => allFoods().find(f => f.n === n);
 const fnorm = s => String(s).replace(/[״"׳'`]/g, "").replace(/[־\-–]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
 const NUMW = { "חצי": .5, "רבע": .25, "שליש": 1 / 3, "אחד": 1, "אחת": 1, "שניים": 2, "שתיים": 2, "שני": 2, "שתי": 2, "שלוש": 3, "שלושה": 3, "ארבע": 4, "ארבעה": 4, "חמש": 5, "חמישה": 5, "שש": 6, "שישה": 6, "שבע": 7, "שבעה": 7, "שמונה": 8, "תשע": 9, "תשעה": 9, "עשר": 10, "עשרה": 10, "זוג": 2 };
 const UNITS = {
@@ -1488,7 +1615,7 @@ function renderFood(body) {
   </div>
   <div id="foodOut"></div>
   <div class="row" style="margin:6px 0"><button class="btn block" id="foodList" style="flex:1">📋 כל המזונות (${allFoods().length})</button><button class="btn block" id="foodAdd" style="flex:1">➕ הוספת מזון משלי</button></div>
-  <p class="footer-note">הערכים הם ממוצעים לכל 100 גרם (בעיקר לפי מאגר USDA ותוויות של מוצרים ישראליים). למוצר מסוים – הכי מדויק לבדוק את התווית. אין כאן המלצה תזונתית אישית.</p>`;
+  <p class="footer-note">ערכים ל־100 גרם לפי מאגר USDA, תוויות של מוצרים ישראליים, ובמאכלים מוכנים – הערכה לפי מתכון ממוצע (מסומן "משוער"). שים לב: אורז, פסטה, עוף ובשר מופיעים <b>אחרי בישול</b> כברירת מחדל. הקש על שם מזון כדי לראות פרטים או לתקן לפי התווית. אין כאן המלצה תזונתית אישית.</p>`;
   const inp = $("#foodIn");
   let tmr = null;
   inp.oninput = () => { clearTimeout(tmr); tmr = setTimeout(() => { S.foodText = inp.value; save(); drawFood(); }, 250); };
@@ -1525,8 +1652,8 @@ function drawFood() {
     </div></div>` : ""}
   <div class="card" style="padding:4px 16px">${rows.map((r, i) => r.food ? `
     <div class="food-row">
-      <div class="food-main"><b>${esc(r.food.n)}${r.food.mine ? ' <span class="pill mid">שלי</span>' : ""}</b>
-        <div class="muted xs">${esc(r.desc)}${r.desc.includes("גרם") ? "" : ` · ${r.grams} ג׳`}${r.alts.length > 1 ? ` · <button class="link-btn xs" data-alt="${i}">לא זה?</button>` : ""}</div></div>
+      <div class="food-main"><button class="food-name" data-info="${i}">${esc(r.food.n)}${r.food.mine ? ' <span class="pill mid">שלי</span>' : r.food.fixed ? ' <span class="pill mid">תוקן</span>' : r.food.src === "e" ? ' <span class="pill est">משוער</span>' : ""} <span class="info-i">ⓘ</span></button>
+        <div class="muted xs">${esc(r.desc)}${r.desc.includes("גרם") ? "" : ` · ${r.grams} ג׳`}${r.alts.length > 1 ? ` · <button class="link-btn xs" data-alt="${i}">לא זה?</button>` : ""}${pairOf(r.food.n) ? ` · <button class="link-btn xs" data-pair="${i}">${pairOf(r.food.n).isCooked ? "⚖️ שקלתי לפני בישול" : "⚖️ שקלתי אחרי בישול"}</button>` : ""}</div></div>
       <div class="food-nums"><b>${Math.round(r.k)}</b><span>קל׳</span></div>
       <div class="food-macros"><span>ח׳ ${r1(r.p)}</span><span>פ׳ ${r1(r.c)}</span><span>ש׳ ${r1(r.f)}</span></div>
       <div class="food-edit"><button class="qty-btn" data-g="${i}" data-d="-1" aria-label="פחות">−</button><button class="qty-g" data-gi="${i}">${r.grams} ג׳</button><button class="qty-btn" data-g="${i}" data-d="1" aria-label="יותר">+</button></div>
@@ -1550,6 +1677,8 @@ function drawFood() {
       (e, close) => { const t = e.target.closest("[data-pick]"); if (!t) return; close(); setFoodLine(+b.dataset.alt, r.line.replace(new RegExp(r.food.al.map(x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((x, y) => y.length - x.length).join("|")), "").trim().replace(/\s+/g, " ") + " " + t.dataset.pick); });
   });
   out.querySelectorAll("[data-fix]").forEach(b => b.onclick = () => setFoodLine(+b.dataset.fix, b.dataset.name));
+  out.querySelectorAll("[data-info]").forEach(b => b.onclick = () => foodInfoSheet(rows[+b.dataset.info].food.n, +b.dataset.info, rows[+b.dataset.info].grams));
+  out.querySelectorAll("[data-pair]").forEach(b => b.onclick = () => { const r = rows[+b.dataset.pair]; setFoodLine(+b.dataset.pair, `${r.grams} גרם ${pairOf(r.food.n).other}`); toast("⚖️", pairOf(r.food.n).isCooked ? "עברתי לערכים של לפני בישול" : "עברתי לערכים של אחרי בישול"); });
   out.querySelectorAll("[data-addname]").forEach(b => b.onclick = () => addFoodSheet(b.dataset.addname));
   $("#foodCopy") && ($("#foodCopy").onclick = async () => {
     const txt = ok.map(r => `${r.food.n} (${r.grams} ג׳): ${Math.round(r.k)} קל׳, חלבון ${r1(r.p)} ג׳`).join("\n") + `\n— סה״כ: ${Math.round(T.k)} קלוריות · חלבון ${r1(T.p)} ג׳ · פחמימות ${r1(T.c)} ג׳ · שומן ${r1(T.f)} ג׳`;
@@ -1566,9 +1695,48 @@ function foodListSheet() {
   const draw = () => {
     const q = fnorm(bg.querySelector("#flq").value);
     const list = allFoods().filter(f => !q || f.al.some(a => fnorm(a).includes(q)));
-    bg.querySelector("#fll").innerHTML = list.map(f => `<div class="term food-li" data-fn="${esc(f.n)}"><div><b>${esc(f.n)}</b>${f.mine ? ' <span class="pill mid">שלי</span>' : ""}<div class="muted xs">מנה: ${esc(f.sl)} (${f.sg} ג׳)</div></div><div class="xs muted" style="text-align:left">${f.k} קל׳<br>ח׳ ${f.p} · פ׳ ${f.c} · ש׳ ${f.f}</div></div>`).join("") || `<div class="empty">לא נמצא</div>`;
+    bg.querySelector("#fll").innerHTML = list.map(f => `<div class="term food-li" data-fn="${esc(f.n)}"><div><b>${esc(f.n)}</b>${f.mine ? ' <span class="pill mid">שלי</span>' : ""}<div class="muted xs">מנה: ${esc(f.sl)} (${f.sg} ג׳)${f.src === "e" ? " · משוער" : f.fixed ? " · תוקן" : ""}</div></div><div class="xs muted" style="text-align:left">${f.k} קל׳<br>ח׳ ${f.p} · פ׳ ${f.c} · ש׳ ${f.f}</div></div>`).join("") || `<div class="empty">לא נמצא</div>`;
   };
   bg.querySelector("#flq").oninput = draw; draw();
+}
+function foodInfoSheet(n, lineIdx, grams) {
+  const f = findFood(n); if (!f) return;
+  const r1 = x => Math.round(x * 10) / 10, sv = f.sg / 100, pr = pairOf(n);
+  const row = (lbl, m) => `<tr><td>${lbl}</td><td><b>${Math.round(f.k * m)}</b></td><td>${r1(f.p * m)}</td><td>${r1(f.c * m)}</td><td>${r1(f.f * m)}</td></tr>`;
+  sheet(`<div style="max-height:78vh;overflow:auto"><h2>${esc(f.n)}</h2>
+    <div class="muted xs">מקור הנתונים: <b>${f.fixed ? SRC_LABEL.fix : SRC_LABEL[f.src] || ""}</b></div>
+    <table class="ntable"><thead><tr><th></th><th>קלוריות</th><th>חלבון</th><th>פחמ׳</th><th>שומן</th></tr></thead><tbody>
+      ${row("100 גרם", 1)}${row(`${esc(f.sl)} (${f.sg} ג׳)`, sv)}${grams && grams !== 100 && grams !== f.sg ? row(`הכמות שלך (${grams} ג׳)`, grams / 100) : ""}</tbody></table>
+    ${pr ? `<div class="tip" style="cursor:default;margin-top:10px"><span>⚖️</span><div class="small">${pr.isCooked ? "הערכים כאן הם למשקל <b>אחרי בישול</b>. שקלת לפני הבישול? הערכים שונים מאוד." : "הערכים כאן הם למשקל <b>לפני בישול</b> (חי/יבש)."}</div></div>` : ""}
+    ${f.src === "e" && !f.fixed ? `<p class="muted xs">זהו ערך משוער למנה ממוצעת. מתכונים ומוצרים שונים יכולים להיות שונים – אם יש לך תווית, עדיף לתקן לפיה.</p>` : ""}
+    </div><div class="col" style="margin-top:12px">
+      ${pr && lineIdx !== undefined ? `<button class="btn block" data-a="pair">⚖️ החלף ל"${esc(pr.other)}"</button>` : ""}
+      ${!f.mine ? `<button class="btn block" data-a="edit">✏️ תיקון ערכים לפי התווית</button>` : ""}
+      <button class="btn primary block" data-a="x">סגירה</button></div>`,
+    (e, close) => {
+      const a = e.target.dataset.a; if (!a) return; close();
+      if (a === "pair") setFoodLine(lineIdx, `${grams} גרם ${pr.other}`);
+      if (a === "edit") editFoodSheet(n);
+    });
+}
+function editFoodSheet(n) {
+  const base = FOODS.find(f => f.n === n), cur = findFood(n); if (!base) return;
+  const inp = (id, l, v) => `<div><label class="lbl">${l}</label><input class="search" id="${id}" type="number" inputmode="decimal" value="${v}"></div>`;
+  const { bg } = sheet(`<div style="max-height:78vh;overflow:auto"><h2>✏️ ${esc(n)}</h2><p class="muted small" style="margin-top:0">העתק מהתווית את הערכים ל־100 גרם. התיקון נשמר רק אצלך.</p>
+    <div class="grid2">${inp("efK", "קלוריות", cur.k)}${inp("efP", "חלבון (ג׳)", cur.p)}${inp("efC", "פחמימות (ג׳)", cur.c)}${inp("efF", "שומן (ג׳)", cur.f)}</div>
+    <div class="grid2">${inp("efS", "גרם במנה רגילה", cur.sg)}<div></div></div>
+    <p class="muted xs">ערכים מקוריים: ${base.k} קל׳ · ח׳ ${base.p} · פ׳ ${base.c} · ש׳ ${base.f} · מנה ${base.sg} ג׳</p></div>
+    <div class="row">${cur.fixed ? `<button class="btn" data-a="reset">↩️ ערכים מקוריים</button>` : `<button class="btn" data-a="x">ביטול</button>`}<button class="btn primary" data-a="save">שמירה</button></div>`,
+    (e, close) => {
+      const a = e.target.dataset.a; if (!a) return;
+      S.foodFix = S.foodFix || {};
+      if (a === "x") return close();
+      if (a === "reset") { delete S.foodFix[n]; save(); close(); drawFood(); toast("↩️", "חזר לערכים המקוריים"); return; }
+      const v = id => parseFloat(bg.querySelector("#" + id).value);
+      if (!(v("efK") >= 0)) return toast("✍️", "צריך מספר קלוריות");
+      S.foodFix[n] = { k: v("efK"), p: v("efP") || 0, c: v("efC") || 0, f: v("efF") || 0, sg: v("efS") || base.sg };
+      save(); close(); drawFood(); toast("✅", "הערכים עודכנו");
+    });
 }
 function addFoodSheet(name = "") {
   const f = (id, l, ph) => `<div><label class="lbl">${l}</label><input class="search" id="${id}" type="number" inputmode="decimal" placeholder="${ph}"></div>`;
@@ -1705,7 +1873,7 @@ function renderStats() {
     <div class="statbox"><b>⚡ ${S.best.speed}</b><span>שיא מהירות</span></div>
     <div class="statbox"><b>❤️ ${S.best.survival}</b><span>שיא הישרדות</span></div>
     <div class="statbox"><b>⭐ ${totalStars()}</b><span>כוכבים במסע</span></div>
-    <div class="statbox"><b>👑 ${Object.values(S.map || {}).filter(m => m.boss).length}</b><span>בוסים שהובסו</span></div>
+    <div class="statbox"><b>👑 ${Object.values(S.jr || {}).filter(m => m.boss).length}</b><span>בוסים שהובסו</span></div>
     <div class="statbox"><b>☄️ ${S.best.combo || 0}</b><span>קומבו שיא</span></div>
   </div>
   <div class="card"><h2>השבוע שלך</h2>
