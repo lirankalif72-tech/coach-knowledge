@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "8.4.0";
+const APP_VERSION = "8.5.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -304,7 +304,7 @@ function go(t, sub) {
   stopTimer(); stopFactTimer();
   tab = t; session = null; flash = null; document.body.classList.remove("in-quiz");
   document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
-  ({ home: renderHome, practice: renderPractice, learn: renderLearn, tools: renderTools, stats: renderStats, settings: renderSettings })[t](sub);
+  ({ home: renderHome, practice: renderPractice, learn: renderLearn, plan: s => renderPlan(s), tools: renderTools, stats: renderStats, settings: renderSettings })[t](sub);
   updateHeader(); window.scrollTo(0, 0);
 }
 document.querySelectorAll(".nav button").forEach(b => b.onclick = () => go(b.dataset.tab));
