@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "7.0.0";
+const APP_VERSION = "7.0.1";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -2235,7 +2235,12 @@ async function install() {
   else if (matchMedia("(display-mode: standalone)").matches) toast("✅", "האפליקציה כבר מותקנת");
   else modal("התקנה למסך הבית", "פתח את תפריט הדפדפן ובחר 'הוספה למסך הבית' או 'התקנת אפליקציה'.", "הבנתי", null);
 }
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").then(() => syncReminders()).catch(() => { });
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).then(reg => { syncReminders(); reg.update().catch(() => { }); }).catch(() => { });
+  // כשגרסה חדשה נכנסת לתוקף – טוענים מחדש פעם אחת כדי שכל הקבצים יהיו מאותה גרסה
+  let swReloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (swReloaded || session) return; swReloaded = true; location.reload(); });
+}
 
 /* ───────── הפעלה ───────── */
 applyTheme();

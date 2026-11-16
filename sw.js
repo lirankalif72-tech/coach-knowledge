@@ -1,5 +1,5 @@
 // להעלות את המספר בכל עדכון של האפליקציה, כדי שהמשתמשים יקבלו את הגרסה החדשה
-const CACHE = 'coach-knowledge-v12';
+const CACHE = 'coach-knowledge-v13';
 const FILES = [
   './', './index.html', './styles.css', './app.js',
   './questions.js', './questions2.js', './questions3.js', './questions4.js', './facts.js', './lessons.js', './foods.js', './config.js', './duel.js', './fundata.js', './fun.js', './lib/peerjs.min.js',
@@ -9,7 +9,7 @@ const FILES = [
 try { importScripts('./facts.js'); } catch (e) { self.FACTS = []; }
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))));
   self.skipWaiting();
 });
 
@@ -25,7 +25,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || !e.request.url.startsWith(self.location.origin)) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then(res => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
         return res;
