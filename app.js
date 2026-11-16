@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "6.0.0";
+const APP_VERSION = "6.1.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -374,6 +374,8 @@ function renderHome() {
     <button class="mode" data-go="exam"><span class="em">🎓</span><b>סימולציית מבחן</b><span>30 שאלות · 35 דק׳ · סף 70%</span></button>
     <button class="mode" data-go="mistakes"><span class="em">🔁</span><b>חזרה על טעויות</b><span>${mis ? mis + " שאלות לחיזוק" : "אין טעויות פתוחות"}</span></button>
     <button class="mode" data-go="challenge"><span class="em">🤝</span><b>אתגר חבר</b><span>10 שאלות – מי ינצח?</span></button>
+    <button class="mode" onclick="duelMenu()"><span class="em">⚔️</span><b>דו־קרב</b><span>חבר נגד חבר בזמן אמת</span></button>
+    <button class="mode" onclick="renderLeaderboard()"><span class="em">🏆</span><b>לוח מובילים</b><span>חברים ושיאים</span></button>
   </div>
 
   <div class="card term-card" id="termCard">
@@ -819,6 +821,7 @@ function finish(timeUp = false) {
     const them = +s.opt.theirScore || 0;
     vs = { me: score, them, from: s.opt.from };
     title = score > them ? "ניצחת באתגר! 🏆" : score === them ? "תיקו! 🤝" : "הפעם הם ניצחו 💪";
+    if (typeof recordRival === "function") recordRival(s.opt.from, score > them ? 1 : score === them ? 0 : -1, "אתגר");
   }
   showResult({ title, big: score + "%", p: score, items: s.items, vs, examPassed, examScore: score,
     sub: `${correct} נכונות מתוך ${graded.length}${timeUp ? " · הזמן נגמר ⏰" : ""} · זמן: ${fmtTime(secs)}${s.mode === "exam" ? " · סף מעבר 70%" : ""}`, xp: xpGained, shareText: `השיגו ${score}% ב${s.title}` });
@@ -1211,11 +1214,12 @@ function renderPlayHome() {
   ${wheelCard()}
   <div class="card daily ${d ? "done" : ""}" id="dailyCard"><div class="em">${d ? "✅" : "🏆"}</div>
     <div style="flex:1"><b style="font-size:16px">אתגר יומי</b><div class="muted small">${d ? `הושלם · ${d.score}% · חוזר מחר` : "5 שאלות חדשות · ‎+30 XP בונוס"}</div></div><span class="chev">‹</span></div>
-  <div class="section-title"><h2>⚔️ זירה</h2></div>
+  <div class="duel-hero"><button class="duel-big" id="duelBtn"><span>⚔️</span><div><b>דו־קרב</b><small>חבר נגד חבר · אונליין או על אותו טלפון</small></div></button><button class="lb-big" id="lbBtn"><span>🏆</span><small>מובילים</small></button></div>
+  <div class="section-title"><h2>🎮 זירה</h2></div>
   <div class="grid2">
     <button class="mode" data-go="speed"><span class="em">⚡</span><b>מבחן מהירות</b><span>60 שניות · שיא: ${S.best.speed}</span></button>
     <button class="mode" data-go="survival"><span class="em">❤️</span><b>הישרדות</b><span>3 טעויות ונגמר · שיא: ${S.best.survival}</span></button>
-    <button class="mode" data-go="challenge"><span class="em">🤝</span><b>אתגר חבר</b><span>מי ינצח?</span></button>
+    <button class="mode" data-go="challenge"><span class="em">🤝</span><b>אתגר חבר</b><span>שלח קישור – מי ינצח?</span></button>
     <button class="mode" data-go="quick"><span class="em">🎲</span><b>סיבוב אקראי</b><span>10 שאלות מכל העולמות</span></button>
   </div>
   <div class="section-title"><h2>🗺️ המסע</h2><span class="muted xs">⭐ ${totalStars()}/${maxStars()}</span></div>
@@ -1226,6 +1230,8 @@ function renderPlayHome() {
   $("#dailyCard").onclick = () => d ? toast("✅", "כבר השלמת את האתגר היום") : startMode("daily");
   $("#chestBtn").onclick = openChest;
   $("#wheelCard") && ($("#wheelCard").onclick = wheelSheet);
+  $("#duelBtn").onclick = () => duelMenu();
+  $("#lbBtn").onclick = () => renderLeaderboard();
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => startMode(b.dataset.go));
   app.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const [f, i] = b.dataset.stage.split(":"); stageIntro(f, +i); });
   app.querySelectorAll("[data-boss]").forEach(b => b.onclick = () => bossIntro(b.dataset.boss));

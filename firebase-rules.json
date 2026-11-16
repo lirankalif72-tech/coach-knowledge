@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "lb": {
+      ".read": true,
+      ".indexOn": ["xp"],
+      "$uid": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['n','xp','t']) && newData.child('n').isString() && newData.child('n').val().length <= 24 && newData.child('xp').isNumber() && newData.child('xp').val() >= 0 && newData.child('xp').val() < 5000000"
+      }
+    }
+  }
+}
