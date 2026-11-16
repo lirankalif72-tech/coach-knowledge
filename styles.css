@@ -681,3 +681,25 @@ body.night .play-hero,body.night .hero{background-image:linear-gradient(135deg,r
 .help-term span{display:block;font-weight:800;color:var(--accent)}
 .help-les i{display:block;font-style:normal;font-weight:800;color:var(--accent);margin-top:4px}
 .help-sec.tip{background:color-mix(in srgb,#fbbf24 14%,var(--card2))}
+
+/* ── v8.4 איורים בעזרה ── */
+.vz-fig{margin:6px 0 10px;text-align:center}
+.vz-fig figcaption{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+.vz{width:100%;max-width:360px;height:auto;display:block;margin:auto;background:var(--card);border-radius:12px;padding:6px}
+.vz-body{width:min(150px,40vw);display:block;margin:auto}
+.vz text{font-family:inherit}
+.vz .vz-b{fill:var(--text);font-weight:800}.vz .vz-m{fill:var(--muted)}
+.vz .vz-t1{fill:var(--bad);font-weight:800}.vz .vz-t2{fill:var(--warn);font-weight:800}.vz .vz-t3{fill:var(--accent);font-weight:800}
+.vz .vz-fill{fill:var(--muted)}
+.vz-limb{stroke:var(--text);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.vz-mus{fill:#f59e0b;opacity:.85}
+.vz-w{fill:#64748b;stroke:#64748b;stroke-width:2}
+.vz-ar{stroke:var(--blue);stroke-width:2.5;fill:none;stroke-linecap:round}
+.vz-ax,.vz-gl{stroke:var(--muted);stroke-width:1.5;fill:none;opacity:.7}
+.vz-c1{stroke:var(--bad);stroke-width:3}.vz-c2{stroke:var(--warn);stroke-width:3}.vz-c3{stroke:var(--accent);stroke-width:3}
+.vz-s1{stroke:var(--warn)}.vz-s2{stroke:var(--muted)}.vz-s3{stroke:var(--accent)}
+.vz-pl1,.vz-pl2{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 3}
+.vz-sp{stroke:var(--accent);stroke-width:9;stroke-linecap:round;stroke-dasharray:10 3}
+.vz-b1{fill:var(--accent-soft);stroke:var(--accent)}.vz-b2{fill:var(--blue-soft);stroke:var(--blue)}.vz-b3{fill:var(--warn-soft);stroke:var(--warn)}
+.vz-z1{fill:#60a5fa}.vz-z2{fill:#34d399}.vz-z3{fill:#a3e635}.vz-z4{fill:#fbbf24}.vz-z5{fill:#f87171}
+.vz-grad{fill:url(#vzG)}
