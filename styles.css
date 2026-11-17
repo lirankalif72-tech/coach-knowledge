@@ -929,3 +929,22 @@ html[dir="ltr"] .fact-row.new span::before{content:"New · "}
 .help-sec.hint{background:color-mix(in srgb,var(--accent) 14%,var(--card2));border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
 .help-sec.tip{display:block;border:0;cursor:default;padding:12px 14px}
 .vz-anim{max-width:340px}
+/* v9.0 learn */
+.lh .lh-hero{margin-bottom:12px}
+.dw-card,.path-card{display:block;width:100%;text-align:inherit;cursor:pointer;font:inherit;color:inherit}
+.dw-card{border:2px solid color-mix(in srgb,var(--accent) 55%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card))}
+.dw-top{display:flex;align-items:center;gap:12px}.dw-em{font-size:34px}.dw-top b{font-size:19px}
+.dw-parts{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.dw-parts span{font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--muted)}
+.dw-btn{pointer-events:none}.dw-done{text-align:center;margin-top:8px;color:var(--accent)}
+.lh-mini{margin:4px 0 10px}.lh-mini .mode{min-height:86px;text-align:center;align-items:center;padding:10px 6px}.lh-mini .mode b{font-size:13.5px}.lh-mini .mode span{font-size:11px}
+.more-btn{margin-top:4px}
+.course-w.cur{border:2px solid var(--accent)}.course-w.done{opacity:.85}
+.rs-row{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:14px}.rs-row span{flex:0 0 42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rs-bar{flex:1;height:8px;background:var(--line);border-radius:6px;overflow:hidden}.rs-bar i{display:block;height:100%;border-radius:6px}.rs-row b{min-width:40px;text-align:end}
+.ww{border-top:1px solid var(--line);padding:10px 0}.ww:first-of-type{border-top:0}
+.ww-q{font-weight:700;margin-bottom:6px;font-size:14.5px}.ww-l{font-size:13.5px;margin:3px 0;line-height:1.5}.ww-l.no{color:var(--bad)}.ww-l.ok{color:var(--accent)}
+.ww-conf{margin-top:6px;font-size:13px;background:color-mix(in srgb,var(--warn) 14%,var(--card));border-radius:10px;padding:8px 10px}
+.ls-play .ls-q{font-size:20px;font-weight:800;margin:14px 0;line-height:1.45}
+.ls-opts div{padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin:6px 0;font-size:15px}.ls-opts div.ok{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--card))}.ls-opts b{margin-inline-end:6px}
+.ls-think{text-align:center;font-size:17px;margin:16px 0;color:var(--muted);animation:pulse 1.4s infinite}
+.ls-ans{margin-top:14px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 12%,var(--card));font-weight:700}
