@@ -95,8 +95,15 @@ TERM_RE = null; TERM_INDEX = null;
 /* ───── בניית העזרה ───── */
 const STOP = new Set("מה מהו מהי איזה איזו אילו מתי למה איך כמה של את על עם לא כן או גם הוא היא הם זה זו יש אין כל יותר פחות בדרך כלל נכון מתאמן מתאמנת מדריך".split(" "));
 const toks = s => String(s).replace(/[^֐-׿a-zA-Z0-9 ]/g, " ").split(/\s+/).filter(w => w.length > 2 && !STOP.has(w)).map(w => w.replace(/^[והבלמש](?=[֐-׿]{3})/, ""));
+/* רמז ייעודי לשאלה (hints.js) */
+function hintFor(q) {
+  const h = typeof HINTS !== "undefined" && q && q.id ? HINTS[q.id] : null; if (!h) return "";
+  return (typeof isEn === "function" && isEn()) ? h[1] : h[0];
+}
 function helpFor(q) {
   const right = q.t === "mc" ? q.o[q.a] : "", parts = [];
+  const hint = hintFor(q);
+  if (hint) parts.push(`<div class="help-sec hint" data-notr="1"><b>${typeof isEn === "function" && isEn() ? "🧭 Hint for this question" : "🧭 רמז לשאלה"}</b><div>${esc(hint)}</div></div>`);
   // מושגים מהשאלה
   let terms = termsIn(q.q);
   // מושגים מהתשובות – רק אם יש מושגים בלפחות שתי תשובות (כדי לא לרמוז מי נכונה)
@@ -121,12 +128,12 @@ function helpFor(q) {
     const st = new Set(toks(h + " " + t)); let s = 0; qt.forEach(w => { if (st.has(w)) s++; });
     if (f === q.f) s += 0.5;
     if (right && norm(right).length >= 4 && norm(t).includes(norm(right))) s = -1;
-    if (s >= 1.5) scored.push({ f, h, t, s });
+    if (s >= (hint ? 3 : 1.5) && !(hint && typeof isEn === "function" && isEn())) scored.push({ f, h, t, s }); // כשיש רמז – רק קטע שיעור שקשור באמת
   }));
   scored.sort((a, b) => b.s - a.s);
   const les = scored.slice(0, terms.length ? 1 : 2);
   if (les.length) parts.push(`<div class="help-sec"><b>📘 מהשיעור</b>${les.map(l => `<div class="help-les"><i>${TOPICS[l.f] ? TOPICS[l.f].icon : ""} ${esc(l.h)}</i>${linkTerms(l.t)}</div>`).join("")}</div>`);
-  if (!parts.length && LESSONS[q.f]) parts.push(`<div class="help-sec"><b>📘 רקע על ${esc(topicOf(q.f).name)}</b>${LESSONS[q.f].slice(0, 2).map(([h, t]) => `<div class="help-les"><i>${esc(h)}</i>${linkTerms(t)}</div>`).join("")}</div>`);
+  if (!hint && !parts.length && LESSONS[q.f]) parts.push(`<div class="help-sec"><b>📘 רקע על ${esc(topicOf(q.f).name)}</b>${LESSONS[q.f].slice(0, 2).map(([h, t]) => `<div class="help-les"><i>${esc(h)}</i>${linkTerms(t)}</div>`).join("")}</div>`);
   // טיפ לחשיבה
   const tips = [];
   if (/(^|\s)לא(\s|$)|אסור|אינו|אינה|טעות/.test(q.q)) tips.push("שים לב לניסוח – השאלה מחפשת מה <b>לא</b> נכון או מה הטעות.");
@@ -167,3 +174,20 @@ onAnswer = function (s, it) {
   if (st) st.due = Date.now() + 864e5;           // השאלה תחזור מחר – לוודא שזה נלמד
   if (it.grade === 1 && it.coins) { const back = Math.floor(it.coins / 2); S.coins = Math.max(0, S.coins - back); it.coins -= back; updateHeader(); }
 };
+
+/* "למד עוד על הנושא" מתוך שאלה: קודם מה שקשור לשאלה הזו, ואז השיעור */
+if (typeof lessonSheet === "function") {
+  const _lessonSheetH = lessonSheet;
+  lessonSheet = function (f) {
+    _lessonSheetH(f);
+    const s = typeof session !== "undefined" ? session : null, it = s && s.items ? s.items[s.idx] : null;
+    if (!it || !it.q || it.q.f !== f) return;
+    const q = it.q, hint = hintFor(q), en = typeof isEn === "function" && isEn();
+    const exp = it.done && q.e ? q.e : "";
+    if (!hint && !exp) return;
+    const box = document.createElement("div"); box.className = "help-sec hint lesson-q"; box.dataset.notr = "1";
+    box.innerHTML = `<b>${en ? "📌 About this question" : "📌 על השאלה הזו"}</b>${hint ? `<div>🧭 ${esc(hint)}</div>` : ""}${exp ? `<div style="margin-top:6px">💡 ${linkTerms(exp)}</div>` : ""}`;
+    const bgs = document.querySelectorAll(".modal-bg"), m = bgs.length ? bgs[bgs.length - 1].querySelector(".modal h2") : null;
+    if (m) m.after(box);
+  };
+}

@@ -926,3 +926,6 @@ html[dir="ltr"] .fact-row.new span::before{content:"New · "}
 .pb-gmv{display:flex;align-items:center;gap:6px}
 .pb-gmv button[data-act=gup],.pb-gmv button[data-act=gdn]{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--text);cursor:pointer;font-size:12px}
 .pb-gmv button:disabled{opacity:.3;cursor:default}
+.help-sec.hint{background:color-mix(in srgb,var(--accent) 14%,var(--card2));border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+.help-sec.tip{display:block;border:0;cursor:default;padding:12px 14px}
+.vz-anim{max-width:340px}
