@@ -1,8 +1,8 @@
 // להעלות את המספר בכל עדכון של האפליקציה, כדי שהמשתמשים יקבלו את הגרסה החדשה
-const CACHE = 'coach-knowledge-v36';
+const CACHE = 'coach-knowledge-v37';
 const FILES = [
   './', './index.html', './styles.css', './app.js',
-  './questions.js', './questions2.js', './questions3.js', './questions4.js', './questions5.js', './facts.js', './lessons.js', './foods.js', './config.js', './duel.js', './fundata.js', './fun.js', './extra.js', './more.js', './hints.js', './help.js', './visuals.js', './anim.js', './plan.js', './log.js', './train.js', './questions_en.js', './lang_en.js', './lang.js', './lib/peerjs.min.js',
+  './questions.js', './questions2.js', './questions3.js', './questions4.js', './questions5.js', './questions6.js', './facts.js', './lessons.js', './foods.js', './config.js', './duel.js', './fundata.js', './fun.js', './extra.js', './more.js', './hints.js', './help.js', './visuals.js', './anim.js', './plan.js', './log.js', './train.js', './learn.js', './questions_en.js', './lang_en.js', './lang.js', './lib/peerjs.min.js',
   './privacy.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
 ];

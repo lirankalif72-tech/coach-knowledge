@@ -277,7 +277,7 @@ function examPrepSheet() {
   const cw = courseWeek(), p = courseProg(cw);
   const { bg } = sheet(`<h2>🎓 הכנה למבחן</h2><div class="duel-opts">
     <button class="duel-opt" data-x="final"><span>🎓</span><div><b>מבחן גמר מדומה</b><small>40 שאלות לפי נושאי הקורס · 50 דק׳ · סף 70% · תעודה</small></div></button>
-    <button class="duel-opt" data-x="course"><span>📅</span><div><b>מסלול הקורס – 8 שבועות</b><small>${S.course ? `שבוע ${cw + 1}: ${COURSE[cw].t} · ${Math.min(p.ok, COURSE_GOAL)}/${COURSE_GOAL}` : "תוכנית שבועית לפי נושאי הקורס"}</small></div></button>
+    <button class="duel-opt" data-x="course"><span>📚</span><div><b>מסלול הקורס</b><small><span data-notr="1">${pathProg().done}/${COURSE.length} ${isEn() ? "chapters · lesson and chapter test" : "פרקים · שיעור ומבחן פרק"}</span></small></div></button>
     <button class="duel-opt" data-x="night"><span>🌙</span><div><b>חזרה לפני מבחן</b><small>20 השאלות הכי חשובות בשבילך עכשיו</small></div></button>
     <button class="duel-opt" data-x="notebook"><span>📒</span><div><b>מחברת טעויות</b><small>הנושאים והשאלות שהכי מכשילים אותך</small></div></button>
     <button class="duel-opt" data-x="certs"><span>📜</span><div><b>תעודות תחום</b><small>80% שליטה בתחום = תעודה</small></div></button>
