@@ -67,6 +67,13 @@ function sfx(n) {
     })[n]?.();
   } catch (e) { }
 }
+/* חלון קופץ גדול באמצע המסך (טופ 10, דו־קרב סופי וכו') */
+function arcPop(html, cls) {
+  const d = document.createElement("div"); d.className = "arc-pop " + (cls || ""); d.setAttribute("data-notr", "");
+  d.innerHTML = `<div class="arc-pop-in">${html}</div>`; document.body.appendChild(d);
+  setTimeout(() => d.remove(), 1900);
+}
+function arcShake(el) { if (!el) return; el.classList.remove("arc-shake"); void el.offsetWidth; el.classList.add("arc-shake"); }
 function vib(p) { if (S.settings && S.settings.vib && navigator.vibrate) try { navigator.vibrate(p); } catch (e) { } }
 
 /* מסך מלא: מסתיר את הסרגל העליון, ובדפדפן גם נכנס למסך מלא אמיתי */
@@ -280,6 +287,7 @@ function ryRound() {
   RY.round++; RY.lock = false;
   const q = gqPick(RY.topic ? (x => x.f === RY.topic) : null), opts = gqOptions(q);
   RY.q = q; RY.opts = opts;
+  RY.P.forEach(p => p.lk = 0); $("#ryArena").querySelectorAll(".lk").forEach(e => e.classList.remove("lk"));
   RY.time = RY.daily ? 11 : Math.max(9, 16 - RY.round * 0.6);
   RY.end = performance.now() + RY.time * 1000; RY.lastTick = 99;
   $("#ryRound").textContent = GT("סיבוב ", "Round ") + RY.round;
@@ -309,6 +317,12 @@ function ryTick() {
   bar.style.transform = `scaleX(${Math.min(1, left / RY.time)})`;
   bar.classList.toggle("low", left < 4);
   $("#ryT").textContent = Math.ceil(left);
+  const f = 1 - left / RY.time, alive = RY.P.filter((p, i) => i > 0 && p.alive && !p.lk);
+  const want = Math.floor(ryBots() * Math.min(1, f * 1.7)) - (ryBots() - alive.length);
+  for (let n = 0; n < want && alive.length; n++) {
+    const k = RY.P.indexOf(alive.splice(Math.floor(Math.random() * alive.length), 1)[0]);
+    RY.P[k].lk = 1; $("#ryArena").querySelector(`[data-i="${k}"]`)?.classList.add("lk");
+  }
   if (left < 4 && Math.ceil(left) !== RY.lastTick) { RY.lastTick = Math.ceil(left); sfx("tick"); }
   if (left <= 0) ryAnswer(-1);
 }
@@ -327,8 +341,13 @@ function ryAnswer(i) {
   record(q, ok ? 1 : 0); save();
   card.querySelectorAll(".ry-o").forEach((b, j) => { b.disabled = true; b.classList.add(RY.opts[j][1] === q.a ? "ok" : (j === i ? "no" : "dim")); });
   let { out, alive } = ryElims(), meOut = false, saved = false, revive = false;
-  if (ok) { RY.right++; RY.streak++; RY.best = Math.max(RY.best, RY.streak); sfx("ok"); vib(20); }
+  RY.fastNow = ok && (RY.end - performance.now()) / 1000 > RY.time * 0.55;
+  if (RY.fastNow) RY.bonus += 3;
+  $("#ryArena").querySelectorAll(".lk").forEach(e => e.classList.remove("lk"));
+  const meEl = $("#ryArena").querySelector('[data-i="0"]');
+  if (ok) { RY.right++; RY.streak++; RY.best = Math.max(RY.best, RY.streak); sfx("ok"); vib(20); meEl.classList.add("glow"); setTimeout(() => meEl.classList.remove("glow"), 700); }
   else {
+    arcShake($(".ry")); document.body.classList.add("arc-hurt"); setTimeout(() => document.body.classList.remove("arc-hurt"), 450);
     RY.streak = 0; RY.wrong.push({ q, pick: i >= 0 ? RY.opts[i][0] : null }); sfx("no"); vib([40, 50, 40]);
     if (RY.shield > 0) { RY.shield--; saved = true; }
     else if (out.length >= alive) { revive = true; out = []; }
@@ -352,7 +371,18 @@ function ryAfter(ok, saved, revive, meOut, nOut) {
     : win ? "👑 Victory Royale!"
     : revive ? GT("😅 כולם טעו – הסיבוב נשמר!", "😅 Everyone missed – you're safe!")
     : saved ? GT("🛡️ המגן הציל אותך!", "🛡️ Your shield saved you!")
-    : `✓ ${GT("נכון!", "Correct!")}${RY.streak >= 3 ? ` 🔥×${RY.streak}` : ""}`;
+    : `✓ ${GT("נכון!", "Correct!")}${RY.streak >= 3 ? ` 🔥×${RY.streak}` : ""}${RY.fastNow ? ` <span class="ry-fast">⚡ ${GT("מהיר", "Fast")} +3🪙</span>` : ""}`;
+  $("#ryArena").querySelector('[data-i="0"]').classList.toggle("fire", RY.streak >= 3 && !meOut);
+  const tot = left + (meOut ? 0 : 1);
+  RY.ms = RY.ms || {};
+  if (!meOut && !win) {
+    if (left === 1 && !RY.ms.duel) {
+      RY.ms.duel = 1; const foe = RY.P.find((p, i) => i > 0 && p.alive);
+      setTimeout(() => { arcPop(`<div class="vs"><span class="vs-me">${S.arc.skin}</span><b>VS</b><span>${foe.em}</span></div><div class="pop-t">⚔️ ${GT("דו־קרב סופי!", "Final duel!")}</div><div class="pop-s">${GT("נגד", "vs")} ${esc(foe.n)}</div>`, "duel"); sfx("wave"); vib([30, 30, 30]); }, 250);
+    } else for (const [n, t] of [[3, GT("🥉 טופ 3!", "🥉 Top 3!")], [10, GT("🔥 טופ 10!", "🔥 Top 10!")], [25, GT("💪 חצי מהזירה בחוץ!", "💪 Half the arena is out!")]]) {
+      if (tot <= n && !RY.ms[n]) { [3, 10, 25].forEach(x => { if (x >= n) RY.ms[x] = 1; }); setTimeout(() => { arcPop(`<div class="pop-t">${t}</div><div class="pop-s">${GT("נשארו", "Players left")}: ${tot}</div>`); sfx("coin"); }, 250); break; }
+    }
+  }
   const drop = !meOut && !win && RY.round % 3 === 2;
   const label = meOut ? GT("לתוצאות", "See results") : win ? GT("קח את הניצחון 👑", "Claim your win 👑") : drop ? GT("📦 אספקה!", "📦 Supply drop!") : GT("לסיבוב הבא ▶", "Next round ▶");
   $("#ryPw").outerHTML = `<div class="ry-fb ${ok ? "ok" : "no"}"><div class="ry-fb-h">${head}</div>
@@ -509,7 +539,7 @@ function mdStart(mapI, daily) {
     mapI, map, daily: !!daily, G: null, w: 0, waves: daily ? 6 : 10, hpM: map.hp * (daily ? 1.6 : 1),
     lives: 15, gold: daily ? 100 : 120, charge: 1, phase: "build", queue: [], spT: 0, bub: null, bubT: 15,
     mon: [], tw: [], shots: [], parts: [], floats: [], rings: [], bolts: [], sel: "bar", insp: null,
-    fast: false, paused: false, over: false, time: 0, shake: 0, flash: 0, right: 0, asked: 0, wrong: [], streak: 0, kills: 0, uid: 0
+    fast: 1, puffs: [], coins: [], hurt: 0, comboN: 0, lastKill: -9, clouds: [[1, 3, 0.25], [6, 8, 0.18], [3, 11, 0.21]], paused: false, over: false, time: 0, shake: 0, flash: 0, right: 0, asked: 0, wrong: [], streak: 0, kills: 0, uid: 0
   };
   MD.G = mdGeom(map);
   funScreen(`<div class="arc md" data-notr>
@@ -518,9 +548,10 @@ function mdStart(mapI, daily) {
       <span class="md-pill">❤️ <b id="mdL">15</b></span>
       <span class="md-pill gold">🪙 <b id="mdG">0</b></span>
       <span class="md-pill">🌊 <b id="mdWv">0/${MD.waves}</b></span>
-      <button class="md-fast" id="mdFast">⏩</button>
+      <button class="md-fast" id="mdFast">⏩<b>1x</b></button>
     </div>
     <div class="md-stage" id="mdStage"><canvas id="mdC"></canvas><div class="md-ban" id="mdBan"></div><div class="md-panel" id="mdPanel"></div></div>
+    <div class="md-next" id="mdNext"></div>
     <div class="md-bar">
       <div class="md-towers">${Object.entries(MD_TW).map(([k, T]) => `<button class="md-tw ${own.includes(k) ? "" : "lock"}" data-k="${k}" style="--c:${T.c}"><span>${own.includes(k) ? T.em : "🔒"}</span><i>🪙${T.cost}</i></button>`).join("")}</div>
       <button class="md-go" id="mdGo">▶<small>${GT("גל", "Wave")}</small></button>
@@ -532,7 +563,7 @@ function mdStart(mapI, daily) {
   M.cv = $("#mdC"); M.ctx = M.cv.getContext("2d");
   mdSize();
   $("#fx").onclick = () => { if (!M.over && M.w > 0) { if (!confirm(GT("לצאת מהמשחק? ההתקדמות במפה תאבד.", "Leave the game? Your progress on this map will be lost."))) return; } arcStop(); mdMenu(); };
-  $("#mdFast").onclick = () => { M.fast = !M.fast; $("#mdFast").classList.toggle("on", M.fast); sfx("tap"); };
+  $("#mdFast").onclick = () => { M.fast = M.fast % 3 + 1; $("#mdFast b").textContent = M.fast + "x"; $("#mdFast").classList.toggle("on", M.fast > 1); sfx("tap"); };
   $("#mdGo").onclick = mdStartWave;
   $("#mdBust").onclick = mdBuster;
   app.querySelectorAll(".md-tw").forEach(b => b.onclick = () => {
@@ -615,6 +646,14 @@ function mdHud() {
   $("#mdGo").hidden = wave; $("#mdBust").hidden = !wave;
   $("#mdBust").disabled = !M.charge;
   $("#mdGo").classList.toggle("pulse", !wave && !$("#mdPanel .md-q"));
+  const nx = $("#mdNext");
+  if (nx) {
+    if (wave) nx.innerHTML = `👾 ${GT("נשארו בגל", "Left in wave")}: <b>${M.queue.length + M.mon.length}</b>${M.comboN >= 3 ? ` <span class="md-combo">🔥 x${M.comboN}</span>` : ""}`;
+    else if (M.w < M.waves) {
+      const cnt = {}; MD_WAVES[M.w].forEach(([k, n]) => cnt[k] = (cnt[k] || 0) + n);
+      nx.innerHTML = `${GT("הגל הבא", "Next wave")}: ${Object.entries(cnt).map(([k, n]) => `<span class="md-nx">${MD_MON[k].em}<i>×${n}</i></span>`).join("")}`;
+    } else nx.innerHTML = "";
+  }
 }
 function mdBanner(t) { const b = $("#mdBan"); if (!b) return; b.innerHTML = t; b.classList.remove("on"); void b.offsetWidth; b.classList.add("on"); }
 function mdFloat(x, y, t, c) { MD.floats.push({ x, y, t, c: c || "#fff", life: 1 }); }
@@ -695,12 +734,17 @@ function mdSpawn(k) {
   const T = MD_MON[k], M = MD, hp = Math.round(T.hp * (1 + 0.16 * (M.w - 1)) * M.hpM);
   const [x, y] = mdPos(0);
   M.mon.push({ k, em: T.em, sz: T.sz, hp, max: hp, sp: T.sp, g: T.g, boss: !!T.boss, d: 0, x, y, slowT: 0, slowF: 0, stun: 0, hitT: 0, id: M.uid++ });
+  mdHud();
 }
 function mdHit(m, d) {
   if (m.dead) return;
   const M = MD; m.hp -= d; m.hitT = 0.1;
   if (m.hp <= 0) {
     m.dead = true; M.gold += m.g; M.kills++;
+    M.comboN = M.time - M.lastKill < 1.1 ? M.comboN + 1 : 1; M.lastKill = M.time;
+    if (M.comboN === 5 || M.comboN === 10 || M.comboN === 20) { const b = M.comboN * 2; M.gold += b; mdFloat(m.x, m.y - 0.9, `🔥 COMBO x${M.comboN} +${b}`, "#fb923c"); sfx("coin"); }
+    M.puffs.push({ x: m.x, y: m.y, life: 0.45, s: m.sz });
+    for (let i = 0; i < (m.boss ? 8 : 1); i++) M.coins.push({ x: m.x + (Math.random() - 0.5) * (m.boss ? 1.5 : 0), y: m.y, t: 0, d: 0.7 + Math.random() * 0.3 });
     mdFloat(m.x, m.y - 0.3, "+" + m.g, "#fde047"); mdBurst(m.x, m.y, m.boss ? "#a855f7" : "#fff", m.boss ? 34 : 9);
     if (m.boss) { M.shake = 0.45; vib(80); sfx("boom"); mdBanner(`🐉 ${GT("הבוס הובס!", "Boss busted!")}`); } else sfx("pop");
     mdHud();
@@ -728,7 +772,7 @@ function mdStep(dt) {
     if (m.stun > 0) { m.stun -= dt; sp = 0; }
     m.d += sp * dt; [m.x, m.y] = mdPos(m.d); m.hitT = Math.max(0, m.hitT - dt);
     if (m.d >= M.G.tot) {
-      m.dead = true; M.lives = Math.max(0, M.lives - (m.boss ? 5 : 1)); M.shake = 0.3; sfx("leak"); vib(70);
+      m.dead = true; M.lives = Math.max(0, M.lives - (m.boss ? 5 : 1)); M.shake = 0.3; M.hurt = 0.5; sfx("leak"); vib(70);
       const [ex, ey] = mdExit(); mdFloat(ex, ey - 0.5, m.boss ? "-5 ❤️" : "-1 ❤️", "#fecaca");
       mdHud();
       if (M.lives <= 0) return mdEnd(false);
@@ -765,10 +809,14 @@ function mdStep(dt) {
         M.rings.push({ x: m.x, y: m.y, r: 0.2, R: MD_TW.shake.splash, life: 0.35, c: "#f9a8d4" });
       } else mdHit(m, s.dmg);
       mdBurst(m.x, m.y, s.c, 4); sfx("hit");
-    } else { s.x += dx / dist * v; s.y += dy / dist * v; }
+    } else { s.px = s.x; s.py = s.y; s.x += dx / dist * v; s.y += dy / dist * v; s.rot = (s.rot || 0) + dt * 14; }
   }
   M.shots = M.shots.filter(s => !s.done);
   M.mon = M.mon.filter(m => !m.dead);
+  M.puffs.forEach(p => p.life -= dt); M.puffs = M.puffs.filter(p => p.life > 0);
+  M.coins.forEach(k => k.t += dt / k.d); M.coins = M.coins.filter(k => k.t < 1);
+  M.clouds.forEach(k => { k[0] += dt * k[2]; if (k[0] > MD_C + 2) k[0] = -3; });
+  if (M.time - M.lastKill > 1.1 && M.comboN) { M.comboN = 0; }
   M.parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; p.vy *= 0.92; p.life -= dt; }); M.parts = M.parts.filter(p => p.life > 0);
   M.floats.forEach(f => { f.y -= dt * 0.9; f.life -= dt; }); M.floats = M.floats.filter(f => f.life > 0);
   M.rings.forEach(r => r.life -= dt); M.rings = M.rings.filter(r => r.life > 0);
@@ -793,10 +841,13 @@ function mdDraw() {
   if (M.insp) { c.fillStyle = "rgba(255,255,255,.18)"; c.strokeStyle = "rgba(255,255,255,.8)"; c.lineWidth = 2; c.setLineDash([6, 6]); c.beginPath(); c.arc(P(M.insp.x), P(M.insp.y), P(MD_TW[M.insp.k].rg[M.insp.lv]), 0, 6.28); c.fill(); c.stroke(); c.setLineDash([]); }
   // מגדלים
   for (const t of M.tw) {
-    const T = MD_TW[t.k], s = 1 + t.kick * 0.9 + t.pop * 0.8, x = P(t.x), y = P(t.y);
+    const T = MD_TW[t.k], s = 1 + t.kick * 0.9 + t.pop * 0.8 + Math.sin(T_ * 3 + t.cx + t.cy) * 0.02, x = P(t.x), y = P(t.y);
     c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(x, y + 14, 16, 6, 0, 0, 6.28); c.fill();
+    if (t.lv) { c.globalAlpha = 0.25 + Math.sin(T_ * 4 + t.cx) * 0.1; c.fillStyle = T.c; c.beginPath(); c.arc(x, y, 21 + t.lv * 2, 0, 6.28); c.fill(); c.globalAlpha = 1; }
     c.fillStyle = "#fff"; c.strokeStyle = T.c; c.lineWidth = 4 + t.lv; c.beginPath(); c.arc(x, y, 16 * s, 0, 6.28); c.fill(); c.stroke();
+    c.fillStyle = "rgba(0,0,0,.08)"; c.beginPath(); c.arc(x, y + 5, 13 * s, 0.2, 2.94); c.fill();
     drawEmo(c, T.em, 21 * s, x, y);
+    if (t.lv === 2) drawEmo(c, "👑", 13, x + 11, y - 13);
     for (let i = 0; i <= t.lv; i++) { c.fillStyle = "#fde047"; c.strokeStyle = "#92400e"; c.lineWidth = 1.5; c.beginPath(); c.arc(x - (t.lv * 5) + i * 10, y + 19, 3.5, 0, 6.28); c.fill(); c.stroke(); }
   }
   // טבעות והתזות
@@ -807,7 +858,8 @@ function mdDraw() {
     c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(x, y + m.sz * 0.45, m.sz * 0.42, m.sz * 0.15, 0, 0, 6.28); c.fill();
     if (m.slowT > 0) { c.strokeStyle = "#67e8f9"; c.lineWidth = 3; c.beginPath(); c.arc(x, y + bob, m.sz * 0.55, 0, 6.28); c.stroke(); }
     if (m.hitT > 0) { c.fillStyle = "rgba(255,255,255,.75)"; c.beginPath(); c.arc(x, y + bob, m.sz * 0.5, 0, 6.28); c.fill(); }
-    drawEmo(c, m.em, m.sz, x, y + bob);
+    const sq = m.stun > 0 ? 0 : Math.sin(T_ * 12 + m.id) * 0.07, E = emo(m.em, m.sz), w = E.s * (1 - sq), h = E.s * (1 + sq);
+    c.drawImage(E.c, x - w / 2, y + bob - h / 2 - (h - E.s) / 2, w, h);
     if (m.stun > 0) drawEmo(c, "💫", 14, x, y - m.sz * 0.62 + bob);
     if (m.hp < m.max) {
       const w = m.boss ? 46 : 26, yy = y - m.sz * 0.7;
@@ -816,7 +868,7 @@ function mdDraw() {
     }
   }
   // יריות
-  for (const s of M.shots) { c.fillStyle = s.c; c.strokeStyle = "#fff"; c.lineWidth = 2; c.beginPath(); c.arc(P(s.x), P(s.y), s.k === "shake" ? 6 : 5, 0, 6.28); c.fill(); c.stroke(); }
+  for (const s of M.shots) { if (s.px != null) { c.strokeStyle = s.c; c.globalAlpha = 0.45; c.lineWidth = 5; c.lineCap = "round"; c.beginPath(); c.moveTo(P(s.px * 2 - s.x), P(s.py * 2 - s.y)); c.lineTo(P(s.x), P(s.y)); c.stroke(); c.globalAlpha = 1; } c.fillStyle = s.c; c.strokeStyle = "#fff"; c.lineWidth = 2; c.beginPath(); c.arc(P(s.x), P(s.y), s.k === "shake" ? 6 : 5, 0, 6.28); c.fill(); c.stroke(); }
   for (const b of M.bolts) {
     [["#fde047", 5], ["#fff", 2]].forEach(([col, w]) => {
       c.strokeStyle = col; c.lineWidth = w; c.beginPath();
@@ -837,6 +889,19 @@ function mdDraw() {
   c.textAlign = "center"; c.font = "900 15px system-ui,sans-serif";
   for (const f of M.floats) { c.globalAlpha = Math.min(1, f.life * 1.6); c.lineWidth = 4; c.strokeStyle = "rgba(0,0,0,.6)"; c.strokeText(f.t, P(f.x), P(f.y)); c.fillStyle = f.c; c.fillText(f.t, P(f.x), P(f.y)); }
   c.globalAlpha = 1;
+  for (const p of M.puffs) { const k = 1 - p.life / 0.45; drawEmo(c, "💨", p.s * (0.7 + k * 0.8), P(p.x), P(p.y) - k * 10, 1 - k); }
+  for (const k of M.coins) { const e = k.t * k.t, x = P(k.x) + (MD_W * 0.62 - P(k.x)) * e, y = P(k.y) + (-10 - P(k.y)) * e - Math.sin(k.t * 3.14) * 40; drawEmo(c, "🪙", 14, x, y, 1 - k.t * 0.3); }
+  c.fillStyle = "rgba(255,255,255,.13)";
+  for (const k of M.clouds) { c.beginPath(); c.ellipse(P(k[0]), P(k[1]), 58, 22, 0, 0, 6.28); c.ellipse(P(k[0]) + 34, P(k[1]) - 12, 34, 20, 0, 0, 6.28); c.fill(); }
+  const boss = M.mon.find(m => m.boss);
+  if (boss) {
+    const bw = MD_W - 80, f = Math.max(0, boss.hp / boss.max);
+    c.fillStyle = "rgba(30,27,75,.85)"; c.beginPath(); c.roundRect(30, 8, bw + 20, 22, 11); c.fill();
+    c.fillStyle = "#4c1d95"; c.beginPath(); c.roundRect(52, 13, bw - 6, 12, 6); c.fill();
+    c.fillStyle = "#c084fc"; c.beginPath(); c.roundRect(52, 13, Math.max(6, (bw - 6) * f), 12, 6); c.fill();
+    drawEmo(c, "🐉", 22, 40, 19);
+  }
+  if (M.hurt > 0) { const g = c.createRadialGradient(MD_W / 2, MD_H / 2, MD_H * 0.35, MD_W / 2, MD_H / 2, MD_H * 0.75); g.addColorStop(0, "rgba(239,68,68,0)"); g.addColorStop(1, `rgba(239,68,68,${M.hurt})`); c.fillStyle = g; c.fillRect(0, 0, MD_W, MD_H); }
   if (M.flash > 0) { c.fillStyle = `rgba(255,255,255,${M.flash * 2})`; c.fillRect(-20, -20, MD_W + 40, MD_H + 40); }
   if (M.paused && !document.querySelector(".modal-bg")) { c.fillStyle = "rgba(0,0,0,.25)"; c.fillRect(0, 0, MD_W, MD_H); }
   c.restore();
@@ -844,8 +909,8 @@ function mdDraw() {
 function mdLoop(ts) {
   const M = MD; if (!M || M.over) return;
   let dt = Math.min(0.05, (ts - M.last) / 1000); M.last = ts;
-  M.shake = Math.max(0, M.shake - dt); M.flash = Math.max(0, M.flash - dt);
-  if (!M.paused) { if (M.fast) dt *= 2; mdStep(dt); }
+  M.shake = Math.max(0, M.shake - dt); M.flash = Math.max(0, M.flash - dt); M.hurt = Math.max(0, M.hurt - dt);
+  if (!M.paused) { dt *= M.fast; mdStep(dt); }
   if (MD === M && !M.over) { mdDraw(); M.raf = requestAnimationFrame(mdLoop); }
 }
 
@@ -923,8 +988,9 @@ const arcBind = root => root.querySelectorAll("[data-arc]").forEach(x => x.oncli
 
 const _gamesPageA = gamesPage;
 gamesPage = function () {
-  arcStop(); arcFull(false); ensureArcade();
+  arcStop(); arcFull(false); ensureArcade(); document.body.classList.remove("gm");
   _gamesPageA();
+  app.firstElementChild && app.firstElementChild.classList.add("gp");
   const h = app.querySelector("h2"); if (!h) return;
   h.insertAdjacentHTML("afterend", `<div class="section-title"><h2>🎮 ${GT("ארקייד", "Arcade")}</h2><span class="pill">${GT("חדש", "New")}</span></div>
     ${arcCards(false)}
@@ -934,7 +1000,45 @@ gamesPage = function () {
   arcBind(app);
 };
 const _goA = go;
-go = function (...a) { arcStop(); arcFull(false); return _goA(...a); };
+go = function (...a) { arcStop(); arcFull(false); document.body.classList.remove("gm"); return _goA(...a); };
+/* ═════════ עיצוב משחקי חידון בסגנון ארקייד ═════════ */
+const GM_MODES = ["quick", "speed", "survival", "sudden", "challenge", "terms", "img"];
+function gmBurst(el, ems) {
+  if (!el) return;
+  const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < 12; i++) {
+    const d = document.createElement("span"), a = Math.random() * 6.28, v = 60 + Math.random() * 90;
+    d.className = "gm-pt"; d.textContent = ems[i % ems.length];
+    d.style.cssText = `left:${cx}px;top:${cy}px;--dx:${Math.cos(a) * v}px;--dy:${Math.sin(a) * v - 30}px;--r:${(Math.random() - 0.5) * 300}deg`;
+    document.body.appendChild(d); setTimeout(() => d.remove(), 850);
+  }
+}
+function gmFx(ok, combo) {
+  if (!document.body.classList.contains("gm")) return;
+  setTimeout(() => {
+    if (ok) {
+      gmBurst(app.querySelector(".opt.ok"), ["⭐", "✨", "💪", "🎉"]);
+      if (combo >= 3 && combo % 1 === 0 && [3, 5, 7, 10, 15, 20].includes(combo)) arcPop(`<div class="pop-t">🔥 ×${combo}</div><div class="pop-s">${GT("ברצף!", "in a row!")}</div>`, "small");
+    } else {
+      arcShake(app.firstElementChild); document.body.classList.add("arc-hurt"); setTimeout(() => document.body.classList.remove("arc-hurt"), 450);
+    }
+  }, 40);
+}
+const _renderQuestionG = renderQuestion;
+renderQuestion = function () {
+  _renderQuestionG();
+  document.body.classList.toggle("gm", !!(session && GM_MODES.includes(session.mode)));
+};
+const _onAnswerG = onAnswer;
+onAnswer = function (s, it) { const r = _onAnswerG(s, it); if (GM_MODES.includes(s.mode)) gmFx(it.grade === 1, s.combo); return r; };
+const _answerSpeedG = answerSpeed;
+answerSpeed = function () { const r = _answerSpeedG(); const it = session && session.items[session.idx]; if (it) gmFx(it.grade === 1, 0); return r; };
+["swipeTF", "whoAmI", "guessGame", "storiesPage", "playStory", "millionaire", "spotMistake"].forEach(n => {
+  if (typeof window[n] !== "function") return;
+  const f = window[n];
+  window[n] = function (...a) { const r = f.apply(this, a); document.body.classList.add("gm"); return r; };
+});
+
 const _renderHomeA = renderHome;
 renderHome = function () {
   _renderHomeA();

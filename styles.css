@@ -1150,3 +1150,122 @@ body.arc-full main{padding:calc(env(safe-area-inset-top) + 8px) 10px calc(env(sa
 .md-myth-q{font-size:19px;font-weight:900;line-height:1.35}
 .md-myth-x{display:inline-block;margin:10px 0 6px;color:#dc2626;font-weight:900;font-size:16px;border:3px solid #dc2626;border-radius:10px;padding:2px 12px;transform:rotate(-6deg)}
 .md-myth-f{font-size:14.5px;line-height:1.5;background:var(--accent-soft);border-radius:14px;padding:10px;font-weight:650}
+
+/* ── v9.3 עוד כיף וצבע ── */
+/* רקע ארקייד חי */
+body.arc-full::before,body.gm::before{content:"";position:fixed;inset:-40px;pointer-events:none;z-index:-1;opacity:.5;
+  background-image:radial-gradient(circle,rgba(255,255,255,.22) 0 1.5px,transparent 2.5px),radial-gradient(circle,rgba(255,255,255,.12) 0 1px,transparent 2px);
+  background-size:70px 70px,40px 40px;background-position:0 0,20px 25px;animation:arcDrift 40s linear infinite}
+@keyframes arcDrift{to{transform:translate(70px,70px)}}
+.arc-game{position:relative;overflow:hidden}
+.arc-game::after,.arc-card::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);animation:arcShine 4.5s ease-in-out infinite;pointer-events:none}
+.arc-md::after{animation-delay:1.2s}
+@keyframes arcShine{0%,70%{left:-60%}100%{left:130%}}
+/* חלונות קופצים ואפקטים */
+.arc-pop{position:fixed;inset:0;z-index:80;display:grid;place-items:center;pointer-events:none}
+.arc-pop-in{background:linear-gradient(160deg,#fbbf24,#f97316);color:#fff;border-radius:28px;padding:18px 30px;text-align:center;box-shadow:0 8px 0 rgba(0,0,0,.3),0 0 0 6px rgba(255,255,255,.35);animation:arcPopIn 1.9s ease forwards}
+.arc-pop.duel .arc-pop-in{background:linear-gradient(160deg,#ef4444,#7c3aed)}
+.arc-pop.small .arc-pop-in{padding:10px 22px;background:linear-gradient(160deg,#f97316,#dc2626)}
+.pop-t{font-size:30px;font-weight:900;text-shadow:0 3px 0 rgba(0,0,0,.25);line-height:1.2}
+.pop-s{font-weight:800;opacity:.95}
+.vs{display:flex;align-items:center;gap:14px;justify-content:center;font-size:46px;margin-bottom:4px}
+.vs span{width:70px;height:70px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.vs .vs-me{box-shadow:0 0 0 4px #fde047,0 4px 0 rgba(0,0,0,.25)}
+.vs b{font-size:30px;font-weight:900;color:#fde047;text-shadow:0 3px 0 #7c2d12}
+@keyframes arcPopIn{0%{transform:scale(.3) rotate(-8deg);opacity:0}12%{transform:scale(1.12) rotate(2deg);opacity:1}22%{transform:scale(1) rotate(0)}80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.9) translateY(-30px)}}
+.arc-shake{animation:arcShake .4s}
+@keyframes arcShake{20%{transform:translate(-7px,2px)}40%{transform:translate(7px,-2px)}60%{transform:translate(-4px,1px)}80%{transform:translate(4px,0)}}
+body.arc-hurt::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:70;box-shadow:inset 0 0 90px 24px rgba(239,68,68,.65);animation:arcHurt .45s forwards}
+@keyframes arcHurt{to{opacity:0}}
+.gm-pt{position:fixed;z-index:60;pointer-events:none;font-size:22px;margin:-12px 0 0 -12px;animation:gmPt .8s cubic-bezier(.2,.7,.4,1) forwards}
+@keyframes gmPt{to{transform:translate(var(--dx),var(--dy)) scale(.4) rotate(var(--r));opacity:0}}
+@keyframes gmNo{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+
+/* Royale: נעילת תשובות, פיצוצים, אש */
+.ry-p.lk::after{content:"✓";position:absolute;top:-4px;inset-inline-end:-4px;width:14px;height:14px;border-radius:50%;background:#22c55e;color:#fff;font-size:9px;font-weight:900;display:grid;place-items:center;box-shadow:0 0 0 2px #fff;animation:ryIn .25s}
+.ry-p.dying::before{content:"💥";position:absolute;font-size:28px;animation:ryBoom .5s forwards;z-index:3}
+@keyframes ryBoom{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.9);opacity:0}}
+.ry-p.me.glow{animation:ryGlow .7s}
+@keyframes ryGlow{40%{transform:scale(1.5);box-shadow:0 0 0 4px #4ade80,0 0 26px 10px #4ade80}}
+.ry-p.me.fire{animation:ryFire .8s ease-in-out infinite alternate}
+@keyframes ryFire{from{box-shadow:0 0 0 3px #f97316,0 0 14px 5px #fb923c}to{box-shadow:0 0 0 3px #fde047,0 0 24px 10px #f97316}}
+.ry-fast{display:inline-block;font-size:13px;background:#fef08a;color:#854d0e;border-radius:99px;padding:2px 8px;vertical-align:middle;animation:ryOk .5s}
+.ry-o{position:relative;overflow:hidden}
+.ry-o::after{content:"";position:absolute;inset:0 0 55% 0;background:linear-gradient(rgba(255,255,255,.22),transparent);pointer-events:none;border-radius:16px 16px 0 0}
+
+/* Myth Defense */
+.md-fast{display:flex;align-items:center;justify-content:center;gap:1px;width:54px}
+.md-fast b{font-size:12px;font-weight:900}
+.md-next{margin-top:8px;min-height:26px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;font-size:13px;font-weight:800;opacity:.95}
+.md-nx{background:rgba(255,255,255,.16);border-radius:99px;padding:1px 8px;font-size:16px}
+.md-nx i{font-style:normal;font-size:11px;font-weight:900;margin-inline-start:2px}
+.md-combo{background:#f97316;border-radius:99px;padding:1px 9px;animation:ryOk .4s}
+
+/* עמוד המשחקים – כרטיסים צבעוניים */
+.gp .mode{border:0;color:#fff;box-shadow:0 5px 0 rgba(0,0,0,.25);position:relative;overflow:hidden}
+.gp .mode span{color:rgba(255,255,255,.9)}
+.gp .mode b{text-shadow:0 2px 0 rgba(0,0,0,.2);font-size:15.5px}
+.gp .mode .em{font-size:30px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.2));transition:transform .2s}
+.gp .mode:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.gp .mode:hover .em{transform:scale(1.15) rotate(-6deg)}
+.gp .mode::before{content:"";position:absolute;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12);top:-30px;inset-inline-start:-25px}
+.gp .mode:nth-child(6n+1){background:linear-gradient(150deg,#eab308,#a16207)}
+.gp .mode:nth-child(6n+2){background:linear-gradient(150deg,#0ea5e9,#0369a1)}
+.gp .mode:nth-child(6n+3){background:linear-gradient(150deg,#d946ef,#a21caf)}
+.gp .mode:nth-child(6n+4){background:linear-gradient(150deg,#10b981,#047857)}
+.gp .mode:nth-child(6n+5){background:linear-gradient(150deg,#f43f5e,#be123c)}
+.gp .mode:nth-child(6n+6){background:linear-gradient(150deg,#6366f1,#4338ca)}
+.gp .mode[data-fun=quick]{background:linear-gradient(150deg,#3b82f6,#1d4ed8)}
+.gp .mode[data-fun=speed]{background:linear-gradient(150deg,#f59e0b,#d97706)}
+.gp .mode[data-fun=survival]{background:linear-gradient(150deg,#f43f5e,#be123c)}
+.gp .mode[data-fun=sudden]{background:linear-gradient(150deg,#475569,#0f172a)}
+.gp .mode[data-fun=challenge]{background:linear-gradient(150deg,#14b8a6,#0f766e)}
+.gp .mode[data-fun=duel]{background:linear-gradient(150deg,#8b5cf6,#5b21b6)}
+.gp .mode[data-fun=who]{background:linear-gradient(150deg,#6366f1,#4338ca)}
+.gp .mode[data-fun=swipe]{background:linear-gradient(150deg,#ec4899,#be185d)}
+.gp .mode[data-fun=story]{background:linear-gradient(150deg,#f97316,#c2410c)}
+.gp .mode[data-fun=img]{background:linear-gradient(150deg,#06b6d4,#0e7490)}
+.gp .mode[data-fun=guess]{background:linear-gradient(150deg,#84cc16,#4d7c0f)}
+.gp .mode[data-mm=mil]{background:linear-gradient(150deg,#facc15,#ca8a04)}
+.gp .mode[data-fun=terms]{background:linear-gradient(150deg,#a855f7,#7e22ce)}
+.gp .mode.locked{filter:grayscale(.8)}
+
+/* משחקי חידון בסגנון ארקייד */
+body.gm{--bg:#1e1b4b;--card:#312e81;--card2:#3730a3;--line:#4f46e5;--text:#fff;--muted:#c7d2fe;--accent:#4ade80;--accent-ink:#052e16;--accent-soft:rgba(74,222,128,.2);--blue:#93c5fd;--blue-soft:rgba(147,197,253,.2);--bad:#fb7185;--bad-soft:rgba(251,113,133,.2);
+  color-scheme:dark;background:radial-gradient(120% 70% at 50% 0%,#5b54f0 0%,#3730a3 45%,#1e1b4b 100%) fixed;color:#fff}
+body.gm .topbar{display:none}
+body.gm main{padding-top:calc(env(safe-area-inset-top) + 10px)}
+body.gm .qhead .x{background:rgba(255,255,255,.18);border:0;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.28)}
+body.gm .timer{background:#fbbf24;color:#78350f;border:0;border-radius:99px;font-weight:900;box-shadow:0 3px 0 #b45309}
+body.gm .timer.low{background:#ef4444;color:#fff;box-shadow:0 3px 0 #7f1d1d;animation:mdPulse .6s infinite}
+body.gm .progress{background:rgba(255,255,255,.18);height:12px}
+body.gm .progress>i{background:linear-gradient(90deg,#fde047,#4ade80)}
+body.gm .speed-score{font-weight:900}
+body.gm .tag{background:rgba(255,255,255,.15);color:#fff}
+body.gm .qtext{background:#fff;color:#1e1b4b;border-radius:22px;padding:16px;box-shadow:0 6px 0 rgba(0,0,0,.3);font-size:18.5px;animation:ryCard .35s}
+body.gm #opts>.opt{border:0;color:#fff;font-weight:750;box-shadow:0 5px 0 rgba(0,0,0,.28);border-radius:18px;transition:transform .07s,opacity .2s;position:relative;overflow:hidden}
+body.gm #opts>.opt::after{content:"";position:absolute;inset:0 0 55% 0;background:linear-gradient(rgba(255,255,255,.2),transparent);pointer-events:none}
+body.gm #opts>.opt:nth-child(1){background:#ef4444}
+body.gm #opts>.opt:nth-child(2){background:#3b82f6}
+body.gm #opts>.opt:nth-child(3){background:#f59e0b}
+body.gm #opts>.opt:nth-child(4){background:#10b981}
+body.gm #opts .opt .k{background:rgba(255,255,255,.25);color:#fff}
+body.gm #opts .opt:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.28)}
+body.gm #opts .opt.sel{box-shadow:0 0 0 4px #fde047,0 5px 0 rgba(0,0,0,.28);transform:translateY(-2px)}
+body.gm #opts .opt.ok{box-shadow:0 0 0 4px #4ade80,0 0 24px #4ade80;animation:ryOk .5s;opacity:1}
+body.gm #opts .opt.no{box-shadow:0 0 0 4px #111827;filter:saturate(.5);animation:gmNo .4s;opacity:1}
+body.gm #opts .opt:disabled:not(.ok):not(.no):not(.cut){opacity:.4}
+body.gm .tf .opt{border:0;color:#fff;box-shadow:0 5px 0 rgba(0,0,0,.28);border-radius:18px;font-size:19px}
+body.gm .tf .opt:first-child{background:#22c55e}
+body.gm .tf .opt:last-child{background:#ef4444}
+body.gm .tf .opt.sel{box-shadow:0 0 0 4px #fde047,0 5px 0 rgba(0,0,0,.28)}
+body.gm .tf .opt.ok{box-shadow:0 0 0 4px #fff,0 0 24px #4ade80;animation:ryOk .5s}
+body.gm .tf .opt.no{box-shadow:0 0 0 4px #111827;animation:gmNo .4s}
+body.gm .feedback{--text:#1e1b4b;--muted:#475569;--blue:#4338ca;--accent:#16a34a;--bad:#dc2626;--card2:#f1f5f9;background:#fff!important;color:#1e1b4b;border:0!important;box-shadow:0 5px 0 rgba(0,0,0,.25);border-radius:18px;animation:ryCard .3s}
+body.gm .feedback.good b.t{color:#16a34a;font-size:18px}
+body.gm .feedback.bad b.t{color:#dc2626;font-size:18px}
+body.gm .btn.primary{background:linear-gradient(180deg,#4ade80,#16a34a);color:#fff;border:0;box-shadow:0 5px 0 #14532d;font-weight:900;text-shadow:0 2px 0 rgba(0,0,0,.2);border-radius:18px}
+body.gm .btn.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #14532d}
+body.gm .pu{background:rgba(255,255,255,.14);border:0;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+body.gm .pu b{background:#7c3aed;color:#fff}
+body.gm .bm-btn{color:#c7d2fe}
