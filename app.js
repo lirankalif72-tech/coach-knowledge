@@ -1,7 +1,7 @@
 "use strict";
 /* מאמן ידע – לוגיקת האפליקציה */
 
-const APP_VERSION = "10.0.0";
+const APP_VERSION = "11.0.0";
 const KEY = "ck_state_v3";
 const CONTACT = "lirankalif72@gmail.com";
 const LEVELS = { easy: "קל", medium: "בינוני", hard: "מתקדם", expert: "מומחה" };
@@ -93,12 +93,11 @@ function touchStreak() {
   if (S.streak.last === t) return;
   const gap = S.streak.last ? dayDiff(S.streak.last, t) : 99;
   if (gap === 1) S.streak.n++;
-  else if (gap === 2 && (S.items.shield || 0) > 0) { S.items.shield--; S.streak.n++; setTimeout(() => toast("🛡️", "מגן הרצף הציל את הרצף שלך!"), 600); }
   else S.streak.n = 1;
   S.streak.last = t;
   S.streak.best = Math.max(S.streak.best, S.streak.n);
 }
-const currentStreak = () => { if (!S.streak.last) return 0; const g = dayDiff(S.streak.last, today()); return g <= 1 || (g === 2 && (S.items.shield || 0) > 0) ? S.streak.n : 0; };
+const currentStreak = () => { if (!S.streak.last) return 0; const g = dayDiff(S.streak.last, today()); return g <= 1 ? S.streak.n : 0; };
 const todayCount = () => S.todayN.d === today() ? S.todayN.n : 0;
 function bumpToday() {
   const t = today();
@@ -122,7 +121,7 @@ function record(q, score) {
   st.last = Date.now();
   S.qs[q.id] = st;
   S.answered++;
-  if (score >= 1) { S.correct++; if (typeof missionEvent === "function") missionEvent("correct", { f: q.f }); }
+  if (score >= 1) S.correct++;
   bumpToday();
 }
 const mistakes = () => BANK.filter(q => { const s = S.qs[q.id]; return s && s.w > 0 && s.box <= 2; })
@@ -140,72 +139,7 @@ function groupAcc(keyFn) {
   return g;
 }
 
-/* ───────── הישגים ───────── */
-const ACH = [
-  { id: "first", em: "🎉", t: "צעד ראשון", d: "סיימת מבחן ראשון" },
-  { id: "perfect", em: "💯", t: "מושלם", d: "100% במבחן של 5+ שאלות" },
-  { id: "streak3", em: "🔥", t: "על הגל", d: "רצף של 3 ימים" },
-  { id: "streak7", em: "🏅", t: "שבוע מלא", d: "רצף של 7 ימים" },
-  { id: "streak30", em: "👑", t: "חודש של התמדה", d: "רצף של 30 ימים" },
-  { id: "goal1", em: "🎯", t: "בול במטרה", d: "השלמת מטרה יומית" },
-  { id: "goal7", em: "📈", t: "7 מטרות", d: "השלמת 7 מטרות יומיות" },
-  { id: "q100", em: "📚", t: "100 שאלות", d: "ענית על 100 שאלות" },
-  { id: "q500", em: "🧠", t: "מכונת ידע", d: "ענית על 500 שאלות" },
-  { id: "q1000", em: "🏆", t: "אלוף הידע", d: "ענית על 1,000 שאלות" },
-  { id: "daily5", em: "📅", t: "יומי קבוע", d: "5 אתגרים יומיים" },
-  { id: "speed10", em: "⚡", t: "זריז", d: "10+ במבחן מהירות" },
-  { id: "speed20", em: "🚀", t: "ברק", d: "20+ במבחן מהירות" },
-  { id: "survive10", em: "❤️", t: "שורד", d: "10+ במצב הישרדות" },
-  { id: "survive25", em: "🛡️", t: "בלתי שביר", d: "25+ במצב הישרדות" },
-  { id: "exam", em: "🎓", t: "עברת!", d: "עברת סימולציית מבחן" },
-  { id: "cert", em: "📜", t: "בעל תעודה", d: "הורדת תעודת הצטיינות" },
-  { id: "topics", em: "🗺️", t: "סייר", d: "ענית בכל התחומים" },
-  { id: "master", em: "🥇", t: "מומחה תחום", d: "50% שליטה בתחום" },
-  { id: "flash50", em: "🃏", t: "שולף כרטיסים", d: "50 כרטיסיות" },
-  { id: "facts50", em: "💡", t: "סקרן", d: "קראת 50 עובדות" },
-  { id: "challenge", em: "🤝", t: "מאתגר", d: "שלחת אתגר לחבר" },
-  { id: "boss", em: "👑", t: "קוטל בוסים", d: "הבסת בוס במסע" },
-  { id: "stars30", em: "🌟", t: "אספן כוכבים", d: "30 כוכבים במסע" },
-  { id: "combo10", em: "☄️", t: "בלתי עציר", d: "קומבו של 10" },
-  { id: "rich", em: "💰", t: "עשיר", d: "הרווחת 500 מטבעות" },
-  { id: "chest", em: "🎁", t: "צייד אוצרות", d: "פתחת תיבת אוצר" }
-];
-function unlock(id) {
-  if (S.ach[id]) return;
-  S.ach[id] = today();
-  const a = ACH.find(x => x.id === id);
-  setTimeout(() => toast(a.em, "הישג חדש: " + a.t), 900);
-}
-function checkAchievements(ctx = {}) {
-  if (S.history.length) unlock("first");
-  if (ctx.perfect) unlock("perfect");
-  const st = currentStreak();
-  if (st >= 3) unlock("streak3");
-  if (st >= 7) unlock("streak7");
-  if (st >= 30) unlock("streak30");
-  if (S.goalDays.length >= 1) unlock("goal1");
-  if (S.goalDays.length >= 7) unlock("goal7");
-  if (S.answered >= 100) unlock("q100");
-  if (S.answered >= 500) unlock("q500");
-  if (S.answered >= 1000) unlock("q1000");
-  if (Object.keys(S.daily).length >= 5) unlock("daily5");
-  if (S.best.speed >= 10) unlock("speed10");
-  if (S.best.speed >= 20) unlock("speed20");
-  if (S.best.survival >= 10) unlock("survive10");
-  if (S.best.survival >= 25) unlock("survive25");
-  if (ctx.examPassed) unlock("exam");
-  if (S.certs > 0) unlock("cert");
-  if (TOPIC_KEYS.every(f => BANK.some(q => q.f === f && S.qs[q.id]))) unlock("topics");
-  if (TOPIC_KEYS.some(f => topicStats(f).mastery >= 50)) unlock("master");
-  if (S.flashSeen >= 50) unlock("flash50");
-  if (S.factSeen.length >= 50) unlock("facts50");
-  if (S.challenges > 0) unlock("challenge");
-  if (Object.values(S.jr || {}).some(m => m.boss)) unlock("boss");
-  if (Object.values(S.jr || {}).reduce((a, m) => a + (m.st || []).reduce((x, y) => x + (y || 0), 0), 0) >= 30) unlock("stars30");
-  if ((S.best.combo || 0) >= 10) unlock("combo10");
-  if ((S.coinsTotal || 0) >= 500) unlock("rich");
-  if (S.chests > 0) unlock("chest");
-}
+function checkAchievements() { }
 
 /* ───────── סאונד ורטט ───────── */
 let actx = null;
@@ -230,10 +164,9 @@ function floatReward(text) {
   document.body.append(el); setTimeout(() => el.remove(), 1300);
 }
 function levelUp(L) {
-  const bonus = 25 + L * 5; addCoins(bonus); save();
-  confetti(); beep(true, 6);
-  sheet(`<div class="lvup"><div class="lvup-badge">${L}</div><h2>עלית רמה!</h2><p class="muted">התואר החדש שלך: <b>${levelTitle(L)}</b></p>
-    <div class="lvup-gift" dir="ltr">+${bonus} 🪙</div><button class="btn primary lg" data-close>יאללה, ממשיכים 💪</button></div>`, (e, close) => { if (e.target.closest("[data-close]")) close(); });
+  beep(true, 6);
+  sheet(`<div class="lvup"><div class="lvup-badge">${L}</div><h2>${T("עלית רמה", "Level up")}</h2><p class="muted">${T("התואר החדש שלך", "Your new title")}: <b>${typeof lvlName === "function" ? lvlName(L) : levelTitle(L)}</b></p>
+    <button class="btn primary lg" data-close>${T("המשך", "Continue")}</button></div>`, (e, close) => { if (e.target.closest("[data-close]")) close(); });
 }
 function toast(em, text) {
   const t = document.createElement("div");
@@ -281,16 +214,11 @@ function applyTheme() {
   const t = S.settings.theme;
   const real = t === "auto" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : t;
   document.documentElement.dataset.theme = real;
-  if (typeof applyAccent === "function") applyAccent();
-  document.querySelector('meta[name="theme-color"]').content = real === "light" ? "#f3f5f9" : "#0b0f17";
+    document.querySelector('meta[name="theme-color"]').content = real === "light" ? "#f3f5f9" : "#0b0f17";
 }
 matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", applyTheme);
 function updateHeader() {
   $("#streakChip span").textContent = currentStreak();
-  $("#coinChip span").textContent = S.coins;
-  $("#coinChip").classList.toggle("hidden", S.mode !== "play");
-  $("#modeChip").textContent = S.mode === "play" ? "🎮" : "📚";
-  $("#modeChip").title = S.mode === "play" ? "מצב משחק – הקש למצב לימוד" : "מצב לימוד – הקש למצב משחק";
 }
 function goalRing(size = 58) {
   const n = todayCount(), p = Math.min(100, pct(n, S.goal)), done = n >= S.goal;
@@ -303,8 +231,9 @@ let tab = "home";
 function go(t, sub) {
   stopTimer(); stopFactTimer();
   tab = t; session = null; flash = null; document.body.classList.remove("in-quiz");
-  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
-  ({ home: renderHome, practice: renderPractice, learn: renderLearn, plan: s => renderPlan(s), tools: renderTools, stats: renderStats, settings: renderSettings })[t](sub);
+  const navT = t === "plan" ? "tools" : t;
+  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === navT));
+  ({ home: renderHome, practice: renderPractice, learn: renderLearn, plan: s => renderPlan(s), tools: s => s ? renderTools(s) : toolsHub(), stats: renderStats, settings: renderSettings })[t](sub);
   updateHeader(); window.scrollTo(0, 0);
 }
 document.querySelectorAll(".nav button").forEach(b => b.onclick = () => go(b.dataset.tab));
@@ -323,83 +252,7 @@ let factTimer = null;
 function stopFactTimer() { if (factTimer) { clearInterval(factTimer); factTimer = null; } }
 
 /* ───────── מסך בית ───────── */
-function renderHome() {
-  if (S.mode === "play") return renderPlayHome();
-  const L = levelOf(S.xp), lo = xpFor(L), hi = xpFor(L + 1);
-  const d = S.daily[today()];
-  const mis = mistakes().length;
-  const h = new Date().getHours();
-  const greet = h < 5 ? "לילה טוב" : h < 12 ? "בוקר טוב" : h < 17 ? "צהריים טובים" : h < 21 ? "ערב טוב" : "לילה טוב";
-  const ts = TOPIC_KEYS.map(f => ({ f, ...topicStats(f) }));
-  const tried = ts.filter(t => t.seen >= 3 && t.acc !== null).sort((a, b) => a.acc - b.acc);
-  const untried = ts.filter(t => t.seen === 0);
-  let rec = null;
-  if (tried.length && tried[0].acc < 80) rec = { f: tried[0].f, why: `הדיוק שלך כאן ${tried[0].acc}% – בוא נחזק` };
-  else if (untried.length) rec = { f: untried[0].f, why: "עוד לא תרגלת את התחום הזה" };
-  const termIdx = parseInt(hash("term" + today()), 36) % GLOSSARY.length;
-  const [term, def] = GLOSSARY[termIdx];
-  const fact = nextFact();
-
-  app.innerHTML = `<div class="fade-in">
-  <div class="hero">
-    <div class="muted small">${greet}${S.name ? ", " + esc(S.name) : ""} 👋</div>
-    <div class="level-row" style="margin-top:8px">
-      <div class="level-badge">${L}</div>
-      <div style="flex:1;min-width:0">
-        <b style="font-size:17px">${levelTitle(L)}</b>
-        <div class="muted xs">${S.xp - lo} / ${hi - lo} XP לרמה הבאה</div>
-        <div class="xpbar"><i style="width:${pct(S.xp - lo, hi - lo)}%"></i></div>
-      </div>
-      ${goalRing()}
-    </div>
-  </div>
-
-  <button class="card coach-card" id="coachCard"><span class="em">🧑‍🏫</span><div style="flex:1;text-align:start"><b>האימון האישי שלך</b><div class="muted small">${rec ? esc(rec.why) + " · " + TOPICS[rec.f].icon + " " + TOPICS[rec.f].name : "5 דקות על מה שהכי צריך חיזוק"}</div></div><span class="chev">‹</span></button>
-
-  <div id="todayRow" class="today-row"></div>
-
-  <div class="card fact-card" id="factCard">
-    <div class="row" style="justify-content:space-between"><b>💡 הידעת?</b><span class="tag">${factTag(fact.c)}</span></div>
-    <p id="factText" style="margin:8px 0 10px;font-size:15.5px">${linkTerms(fact.t)}</p>
-    <div class="row"><button class="link-btn small" id="factFav">${S.factFav.includes(fact.i) ? "❤️ אהובה" : "🤍 שמירה"}</button><button class="link-btn small" id="factAsk">❓ לא הבנתי</button><span class="spacer"></span><button class="link-btn small" id="factNext">עוד אחת ←</button></div>
-  </div>
-
-  <div class="section-title"><h2>🎯 תרגול</h2></div>
-  <div class="grid2">
-    <button class="mode" data-go="quick"><span class="em">🎲</span><b>תרגול מהיר</b><span>10 שאלות ברמה שלך</span></button>
-    <button class="mode" data-go="exam"><span class="em">🎓</span><b>סימולציית מבחן</b><span>30 שאלות · 35 דק׳</span></button>
-    <button class="mode" data-go="mistakes"><span class="em">🔁</span><b>חזרה על טעויות</b><span>${mis ? mis + " שאלות לחיזוק" : "אין טעויות פתוחות"}</span></button>
-    <button class="mode" id="flashBtn"><span class="em">🗂️</span><b>כרטיסיות</b><span>ידעתי / לא ידעתי</span></button>
-  </div>
-  <button class="btn block more-btn" id="moreModes">➕ עוד דרכים לתרגל ולשחק</button>
-
-  <div class="section-title"><h2>📚 תחומי לימוד</h2><span class="muted xs">${BANK.length} שאלות</span></div>
-  <div class="card" style="padding:4px 16px">
-    ${ts.map(t => `<div class="topic" data-topic="${t.f}">
-      <div class="em">${TOPICS[t.f].icon}</div>
-      <div class="tx"><b>${TOPICS[t.f].name}</b><span class="muted xs">${t.total} שאלות · שליטה ${t.mastery}%${t.acc !== null ? " · דיוק " + t.acc + "%" : ""}</span>
-      <div class="mini-bar"><i style="width:${t.mastery}%"></i></div></div><span class="chev">‹</span></div>`).join("")}
-  </div>
-  <p class="footer-note">זהו כלי לימודי בלבד. הוא אינו תחליף להכשרה מוסמכת, להנחיות רפואיות או לייעוץ מקצועי.</p>
-  </div>`;
-
-  app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => startMode(b.dataset.go));
-  app.querySelectorAll("[data-topic]").forEach(b => b.onclick = () => topicSheet(b.dataset.topic));
-  $("#coachCard").onclick = () => typeof coachSession === "function" ? coachSession() : startMode("quick");
-  $("#flashBtn").onclick = () => typeof flashSwipe === "function" ? flashSwipe() : startFlash(TOPIC_KEYS);
-  $("#moreModes").onclick = () => typeof moreModesSheet === "function" && moreModesSheet();
-  let cur = fact;
-  const showFact = f => {
-    cur = f; const el = $("#factText"); if (!el) return stopFactTimer();
-    el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
-    el.innerHTML = linkTerms(f.t); $("#factCard .tag").textContent = factTag(f.c);
-    $("#factFav").textContent = S.factFav.includes(f.i) ? "❤️ אהובה" : "🤍 שמירה";
-  };
-  $("#factNext").onclick = () => showFact(nextFact());
-  $("#factFav").onclick = () => { toggleFav(cur.i); showFact(cur); };
-  $("#factAsk").onclick = () => askSheet(cur.t);
-  factTimer = setInterval(() => showFact(nextFact()), SAVER_ROTATE * 1000);
-}
+function renderHome() { stopFactTimer(); if (typeof learnHome === "function") learnHome(); }
 function toggleFav(i) { S.factFav = S.factFav.includes(i) ? S.factFav.filter(x => x !== i) : [...S.factFav, i]; save(); }
 
 function topicSheet(f) {
@@ -421,12 +274,12 @@ function topicSheet(f) {
 
 /* ───────── מסך תרגול ───────── */
 const builder = { topics: new Set(TOPIC_KEYS), fmt: "mixed", level: "all", count: 10 };
-function renderPractice() {
+function renderBuilder() {
   const mis = mistakes().length, allOn = builder.topics.size === TOPIC_KEYS.length;
   app.innerHTML = `<div class="fade-in">
-  <h1>תרגול</h1><p class="muted" style="margin-top:0">בונים מבחן בדיוק לפי מה שצריך.</p>
+  <button class="back-link" id="bBack">‹ ${T("תרגול", "Practice")}</button><h1>${T("מבחן מותאם אישית", "Custom test")}</h1><p class="muted" style="margin-top:0">${T("בוחרים תחומים, סוג שאלות, רמה ומספר שאלות.", "Pick topics, question type, level and length.")}</p>
   <div class="card">
-    <h2>🛠️ מבחן מותאם אישית</h2>
+    
     <label class="lbl">תחומים <button class="link-btn xs" id="allT">${allOn ? "נקה הכול" : "בחר הכול"}</button></label>
     <div class="chips" id="tchips">${TOPIC_KEYS.map(k => `<button class="chip ${builder.topics.has(k) ? "on" : ""}" data-k="${k}">${TOPICS[k].icon} ${TOPICS[k].name}</button>`).join("")}</div>
     <label class="lbl">סוג שאלות</label>
@@ -440,15 +293,8 @@ function renderPractice() {
     <div class="muted xs" id="poolInfo" style="margin:4px 0 12px"></div>
     <button class="btn primary block lg" id="startCustom">התחלת מבחן</button>
   </div>
-  <div class="section-title"><h2>מצבי לימוד</h2></div>
-  <div class="grid2">
-    <button class="mode" data-m="flash"><span class="em">🃏</span><b>כרטיסיות</b><span>הפוך, למד ודרג את עצמך</span></button>
-    <button class="mode" data-m="due"><span class="em">🧠</span><b>חזרה חכמה</b><span>${dueQuestions().length} שאלות לחזרה היום</span></button>
-    <button class="mode" data-m="mistakes"><span class="em">🔁</span><b>חזרה על טעויות</b><span>${mis} שאלות</span></button>
-    <button class="mode" data-m="bookmarks"><span class="em">⭐</span><b>שאלות שמורות</b><span>${S.bm.length} שאלות</span></button>
-    <button class="mode" data-m="survival"><span class="em">❤️</span><b>הישרדות</b><span>3 טעויות ונגמר</span></button>
-    <button class="mode" data-m="terms"><span class="em">📖</span><b>מבחן מונחים</b><span>${GLOSSARY.length} מונחים</span></button>
-  </div></div>`;
+  </div>`;
+  $("#bBack").onclick = () => go("practice");
   const info = () => {
     const n = customPool().length;
     $("#poolInfo").textContent = n ? `${n} שאלות מתאימות במאגר` : "אין שאלות שמתאימות לבחירה – נסה להרחיב";
@@ -460,7 +306,7 @@ function renderPractice() {
     c.classList.toggle("on"); info();
     $("#allT").textContent = builder.topics.size === TOPIC_KEYS.length ? "נקה הכול" : "בחר הכול";
   };
-  $("#allT").onclick = () => { if (builder.topics.size === TOPIC_KEYS.length) builder.topics.clear(); else TOPIC_KEYS.forEach(k => builder.topics.add(k)); renderPractice(); };
+  $("#allT").onclick = () => { if (builder.topics.size === TOPIC_KEYS.length) builder.topics.clear(); else TOPIC_KEYS.forEach(k => builder.topics.add(k)); renderBuilder(); };
   [["#fmt", "fmt"], ["#lvl", "level"], ["#cnt", "count"]].forEach(([sel, key]) => {
     $(sel).onclick = e => {
       const b = e.target.closest("button"); if (!b) return;
@@ -470,12 +316,9 @@ function renderPractice() {
   });
   $("#instant").onchange = e => { S.settings.instant = e.target.checked; save(); };
   $("#startCustom").onclick = () => startMode("custom");
-  app.querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
-    const m = b.dataset.m;
-    if (m === "flash") startFlash(builder.topics.size ? [...builder.topics] : TOPIC_KEYS); else startMode(m);
-  });
   info();
 }
+function renderPractice() { practiceHome(); }
 function customPool() {
   return BANK.filter(q => builder.topics.has(q.f) && (builder.fmt === "mixed" || (builder.fmt === "img" ? !!q.img : q.t === builder.fmt)) && (builder.level === "all" || q.l === builder.level));
 }
@@ -563,8 +406,6 @@ async function startMode(mode, opt = {}) {
     case "bookmarks": qs = shuffle(S.bm.map(id => BY_ID[id]).filter(Boolean)).slice(0, 20); title = "שאלות שמורות"; break;
     case "due": qs = shuffle(dueQuestions()).slice(0, 15); title = "חזרה חכמה"; break;
     case "retry": qs = opt.qs; title = "תרגול חוזר"; break;
-    case "stage": { const st = STAGES[opt.f][opt.i], t = TIERS[st.tier]; qs = shuffle(freshSort(st.pool).slice(0, t.q)); title = `${TOPICS[opt.f].name} · ${t.em} ${t.n} ${st.j + 1}`; break; }
-    case "boss": { const pool = closed.filter(q => q.f === opt.f), hard = pool.filter(q => q.l === "hard" || q.l === "expert"); qs = freshSort(hard.length >= 20 ? hard : pool).slice(0, 20); title = `קרב בוס · ${TOPICS[opt.f].name}`; break; }
   }
   if (!qs.length) {
     const msg = { mistakes: "אין כרגע שאלות לחזרה – כל הכבוד! ענה על עוד שאלות והטעויות יופיעו כאן.", bookmarks: "עוד לא שמרת שאלות. במהלך מבחן אפשר ללחוץ על ☆ כדי לשמור שאלה.", due: "אין שאלות שמחכות לחזרה היום. תרגל עוד, והאפליקציה תתזמן לך חזרות." }[mode] || "לא נמצאו שאלות.";
@@ -572,10 +413,9 @@ async function startMode(mode, opt = {}) {
   }
   stopFactTimer();
   if (!seed && mode !== "daily") markSeen(qs.slice(0, mode === "speed" || mode === "survival" || mode === "sudden" ? 25 : qs.length));
-  const goldIdx = PLAY() && qs.length >= 5 && !["exam", "final", "daily", "challenge", "speed"].includes(mode) && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * (qs.length - 1)) : -1;
-  const maxL = mode === "sudden" ? 1 : mode === "stage" ? stageLives() : 3;
-  session = { mode, title, instant, timeLimit, start: Date.now(), seed, opt, lives: maxL, maxL, combo: 0, maxCombo: 0, coinsEarned: 0, bossHp: mode === "boss" ? BOSS_HP : 0,
-    items: qs.map((q, i) => Object.assign(mkItem(q, rand), i === goldIdx ? { gold: true } : {})), idx: 0, speedOk: 0, speedNo: 0 };
+  const maxL = mode === "sudden" ? 1 : 3;
+  session = { mode, title, instant, timeLimit, start: Date.now(), seed, opt, lives: maxL, maxL, combo: 0, maxCombo: 0, 
+    items: qs.map(q => mkItem(q, rand)), idx: 0, speedOk: 0, speedNo: 0 };
   document.body.classList.add("in-quiz");
   if (timeLimit) timerId = setInterval(tick, 250);
   renderQuestion();
@@ -589,7 +429,7 @@ function tick() {
 }
 
 /* ───────── הצגת שאלה ───────── */
-const PRAISE = ["נכון! 🎯", "מצוין! 💪", "בדיוק! ✨", "יפה מאוד! 👏", "תשובה נכונה! 🔥"];
+const PRAISE = ["נכון", "תשובה נכונה", "מדויק", "נכון מאוד"];
 const pickPraise = () => PRAISE[Math.floor(Math.random() * PRAISE.length)];
 function renderQuestion() {
   const s = session, it = s.items[s.idx], q = it.q;
@@ -626,17 +466,13 @@ function renderQuestion() {
       fb = `<div class="feedback info"><b class="t">📝 תשובה לדוגמה</b>${esc(q.a)}<div class="small muted" style="margin-top:8px">💡 ${linkTerms(q.e)}</div>
         ${it.grade === null ? `<div style="margin-top:12px;font-weight:700">איך ענית ביחס לתשובה לדוגמה?</div>
         <div class="grade"><button class="btn danger" data-g="0">לא ידעתי</button><button class="btn" data-g="0.5">חלקית</button><button class="btn primary" data-g="1">ידעתי</button></div>`
-          : `<div style="margin-top:10px" class="small"><b>דירגת: ${it.grade === 1 ? "ידעתי ✅" : it.grade === 0.5 ? "חלקית 🟡" : "לא ידעתי ❌"}</b></div>`}<div class="row" style="gap:14px">${more}<button class="link-btn xs" id="askQBtn">❓ יש לי שאלה</button></div></div>`;
+          : `<div style="margin-top:10px" class="small"><b>דירגת: ${it.grade === 1 ? "ידעתי ✅" : it.grade === 0.5 ? "חלקית 🟡" : "לא ידעתי ❌"}</b></div>`}<div class="row" style="gap:14px">${more}<button class="link-btn xs" id="askQBtn">יש לי שאלה</button></div></div>`;
     } else {
       const ok = it.grade === 1;
       const right = q.t === "mc" ? q.o[q.a] : (q.a ? "נכון" : "לא נכון");
-      const isBoss = s.mode === "boss";
-      const verdict = ok ? (isBoss ? "💥 פגיעה בבוס!" : pickPraise()) : isSurv ? `לא מדויק – נשארו ${s.lives} ❤️` : isBoss ? `😵 הבוס פגע בך – נשארו ${s.lives} ❤️` : "לא מדויק";
-      const coinTxt = PLAY() && ok && it.coins ? ` <span class="coin-pop">‎+${it.coins} 🪙</span>` : "";
-      const tools = `<div class="row" style="gap:14px;flex-wrap:wrap">${more}<button class="link-btn xs" id="askQBtn">❓ יש לי שאלה</button>${LESSONS[q.f] ? `<button class="link-btn xs" id="lessonQBtn">📘 שיעור על ${esc(topicOf(q.f).name)}</button>` : ""}</div>`;
-      fb = PLAY()
-        ? `<div class="feedback ${ok ? "good" : "bad"}"><b class="t">${verdict}${coinTxt}</b>${ok ? "" : `התשובה הנכונה: <b>${esc(right)}</b>`}<details class="why"><summary>💡 למה?</summary><div>${linkTerms(q.e)}</div>${tools}</details></div>`
-        : `<div class="feedback ${ok ? "good" : "bad"}"><b class="t">${verdict}</b>${ok ? "" : `התשובה הנכונה: <b>${esc(right)}</b><br>`}${linkTerms(q.e)}${tools}</div>`;
+      const verdict = ok ? pickPraise() : isSurv ? `לא נכון – נשארו ${s.lives} ניסיונות` : "לא נכון";
+      const tools = `<div class="row" style="gap:14px;flex-wrap:wrap">${more}<button class="link-btn xs" id="askQBtn">יש לי שאלה</button>${LESSONS[q.f] ? `<button class="link-btn xs" id="lessonQBtn">שיעור על ${esc(topicOf(q.f).name)}</button>` : ""}</div>`;
+      fb = `<div class="feedback ${ok ? "good" : "bad"}"><b class="t">${verdict}</b>${ok ? "" : `התשובה הנכונה: <b>${esc(right)}</b><br>`}${linkTerms(q.e)}${tools}</div>`;
     }
   }
 
@@ -646,35 +482,21 @@ function renderQuestion() {
   else if (isExam) actions = `<button class="btn" id="prev" ${s.idx === 0 ? "disabled" : ""}>→ הקודמת</button>${last ? `<button class="btn primary" id="submit">הגשת המבחן</button>` : `<button class="btn primary" id="nextQ">הבאה ←</button>`}`;
   else if (!it.done) actions = `<button class="btn primary lg" id="check">בדיקת תשובה</button>`;
   else if (q.t === "open" && it.grade === null) actions = "";
-  else if ((isSurv || s.mode === "boss") && s.lives <= 0) actions = `<button class="btn primary lg" id="nextQ">לתוצאות 🏁</button>`;
-  else if (s.mode === "stage" && s.lives <= 0) actions = `<button class="btn primary lg" id="nextQ">💔 נגמרו הלבבות – לתוצאות</button>`;
-  else if (s.mode === "boss" && s.bossHp <= 0) actions = `<button class="btn primary lg" id="nextQ">👑 ניצחון! לתוצאות</button>`;
+  else if (isSurv && s.lives <= 0) actions = `<button class="btn primary lg" id="nextQ">לתוצאות 🏁</button>`;
   else actions = `<button class="btn primary lg" id="nextQ">${last ? "לתוצאות 🏁" : "לשאלה הבאה ←"}</button>`;
 
   let headMid = `<div class="progress"><i style="width:${progress}%"></i></div>`;
   if (isSpeed) headMid = `<div class="speed-score" style="flex:1">✅ ${s.speedOk} · ❌ ${s.speedNo}</div>`;
   if (isSurv) headMid = `<div class="speed-score" style="flex:1">${"❤️".repeat(Math.max(0, s.lives))}${"🤍".repeat((s.maxL || 3) - Math.max(0, s.lives))} <span class="muted small">· ${s.items.filter(x => x.grade === 1).length} נכונות</span></div>`;
-  if (s.mode === "boss") headMid = `<div class="boss-bar"><span class="boss-em ${it.done && it.grade === 1 ? "hit" : ""}">👹</span><div class="hp"><i style="width:${pct(s.bossHp, BOSS_HP)}%"></i></div><span class="xs">${"❤️".repeat(Math.max(0, s.lives))}${"🤍".repeat((s.maxL || 3) - Math.max(0, s.lives))}</span></div>`;
-  if (s.mode === "stage") { const need = TIERS[STAGES[s.opt.f][s.opt.i].tier].q - (s.maxL - 1), ok = s.items.filter(x => x.grade === 1).length;
-    headMid = `<div class="stage-hud"><div class="progress"><i style="width:${progress}%"></i></div><span class="xs" title="תשובות נכונות מתוך הנדרש">🎯 ${ok}/${need}</span><span class="xs">${"❤️".repeat(Math.max(0, s.lives))}${"🖤".repeat((s.maxL || 3) - Math.max(0, s.lives))}</span></div>`; }
-  const mult = comboMult(s.combo);
-  const comboTag = PLAY() && s.combo >= 2 ? `<span class="tag combo ${mult > 1 ? "hot" : ""}">🔥 ${s.combo} ברצף${mult > 1 ? ` · x${mult}` : ""}</span>` : "";
-  const puBar = PLAY() && s.instant && !it.done && q.t !== "open" ? `<div class="pu-bar">
-      ${q.t === "mc" && !it.aud ? `<button class="pu" data-pu="aud" ${(S.items.aud || 0) > 0 ? "" : "disabled"}>📊 קהל <b>${S.items.aud || 0}</b></button>` : ""}
-      ${q.t === "mc" && !it.cut ? `<button class="pu" data-pu="fifty" ${(S.items.fifty || 0) > 0 ? "" : "disabled"}>✂️ 50:50 <b>${S.items.fifty || 0}</b></button>` : ""}
-      ${s.mode !== "daily" && s.mode !== "challenge" ? `<button class="pu" data-pu="skip" ${(S.items.skip || 0) > 0 ? "" : "disabled"}>⏭️ דילוג <b>${S.items.skip || 0}</b></button>` : ""}
-      ${s.timeLimit ? `<button class="pu" data-pu="time" ${(S.items.time || 0) > 0 ? "" : "disabled"}>⏱️ ‎+10 שנ׳ <b>${S.items.time || 0}</b></button>` : ""}
-      <button class="pu shop" data-pu="shop">🛒</button></div>` : "";
-  const headEnd = s.timeLimit ? `<span class="timer" id="timer">${fmtTime(remaining())}</span>` : (isSurv || s.mode === "boss") ? "" : `<span class="muted small" style="flex:none">${s.idx + 1}/${total}</span>`;
+  const headEnd = s.timeLimit ? `<span class="timer" id="timer">${fmtTime(remaining())}</span>` : isSurv ? "" : `<span class="muted small" style="flex:none">${s.idx + 1}/${total}</span>`;
   const tp = topicOf(q.f);
 
   app.innerHTML = `<div class="fade-in">
     <div class="qhead"><button class="x" id="quit" aria-label="יציאה">✕</button>${headMid}${headEnd}</div>
-    <div class="tags"><span class="tag">${tp.icon} ${tp.name}</span><span class="tag lv-${q.l}">${LEVELS[q.l]}</span><span class="tag">${TYPES[q.t]}</span>${it.gold && PLAY() ? `<span class="tag gold">✨ שאלת זהב · x3</span>` : ""}${isExam ? `<span class="tag">שאלה ${s.idx + 1} מתוך ${total}</span>` : ""}${comboTag}</div>
+    <div class="tags"><span class="tag">${tp.icon} ${tp.name}</span><span class="tag lv-${q.l}">${LEVELS[q.l]}</span><span class="tag">${TYPES[q.t]}</span>${isExam ? `<span class="tag">שאלה ${s.idx + 1} מתוך ${total}</span>` : ""}</div>
     <div class="qtext">${esc(q.q)}</div>
     ${figHtml(q)}
     <div id="opts">${opts}</div>
-    ${puBar}
     ${fb}
     <div class="qtools">
       ${BY_ID[q.id] ? `<button class="bm-btn ${bm ? "on" : ""}" id="bm">${bm ? "★ שמורה" : "☆ שמירת שאלה"}</button>` : "<span></span>"}
@@ -696,7 +518,6 @@ function bindQuestion() {
     renderQuestion();
   };
   const ta = $("#openAns"); if (ta) ta.oninput = () => { it.ans = ta.value; };
-  app.querySelectorAll("[data-pu]").forEach(b => b.onclick = () => usePower(b.dataset.pu));
   $("#check") && ($("#check").onclick = check);
   $("#nextQ") && ($("#nextQ").onclick = next);
   $("#prev") && ($("#prev").onclick = () => { s.idx--; renderQuestion(); });
@@ -753,11 +574,8 @@ function next() {
   const s = session;
   if (!s.instant) { if (s.idx < s.items.length - 1) { s.idx++; renderQuestion(); } return; }
   if ((s.mode === "survival" || s.mode === "sudden") && s.lives <= 0) return finishSurvival();
-  if (s.mode === "stage" && s.lives <= 0) return finishStage();
-  if (s.mode === "boss" && (s.lives <= 0 || s.bossHp <= 0)) return finishBoss();
-  if (s.mode === "boss" && s.idx >= s.items.length - 1) return finishBoss();
   if (s.idx < s.items.length - 1) { s.idx++; renderQuestion(); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  else s.mode === "survival" || s.mode === "sudden" ? finishSurvival() : s.mode === "stage" ? finishStage() : finish();
+  else s.mode === "survival" || s.mode === "sudden" ? finishSurvival() : finish();
 }
 async function quit() {
   const s = session;
@@ -776,7 +594,7 @@ function answerSpeed() {
   const s = session, it = s.items[s.idx];
   it.done = true; it.grade = scoreOf(it);
   record(it.q, it.grade);
-  if (it.grade === 1) { s.speedOk++; addXP(5); addCoins(1, true); s.coinsEarned++; } else s.speedNo++;
+  if (it.grade === 1) { s.speedOk++; addXP(5); } else s.speedNo++;
   beep(it.grade === 1);
   app.querySelectorAll(".opt").forEach(b => {
     const isMc = b.dataset.i !== undefined;
@@ -800,7 +618,7 @@ function finishSpeed() {
   if (isBest) S.best.speed = ok;
   touchStreak();
   logHistory({ mode: "speed", title: "מבחן מהירות", score: pct(ok, ok + no), n: ok + no, extra: ok + " נכונות" });
-  missionEvent("speed"); checkAchievements(); save();
+  save();
   if (isBest && ok > 0) confetti();
   showResult({ title: isBest && ok ? "שיא אישי חדש! 🏆" : ok >= 10 ? "מהיר וחד! ⚡" : "סיבוב טוב!", big: ok, bigLabel: "נכונות", p: pct(ok, ok + no),
     sub: `ענית על ${ok + no} שאלות ב־60 שניות · השיא שלך: ${S.best.speed}`, items: s.items.filter(x => x.done), xp: ok * 5, shareText: `ענו ${ok} תשובות נכונות במבחן מהירות` });
@@ -958,308 +776,12 @@ async function makeCertificate(score, what = "על מעבר סימולציית �
 }
 
 
-/* ───────── מצב משחק: מסע, מטבעות, עזרים, קומבו, משימות ───────── */
-const PLAY = () => S.mode === "play";
-const BOSS_HP = 6;
-const comboMult = c => c >= 5 ? 3 : c >= 3 ? 2 : 1;
-function setMode(m, rerender = true) {
-  S.mode = m; save(); updateHeader();
-  toast(m === "play" ? "🎮" : "📚", m === "play" ? "מצב משחק – בהצלחה!" : "מצב לימוד");
-  if (rerender) go(tab === "settings" ? "home" : tab);
-}
-$("#modeChip").onclick = () => setMode(PLAY() ? "learn" : "play");
-$("#coinChip").onclick = () => shopSheet();
-function modeSheet() {
-  sheet(`<div style="text-align:center"><div style="font-size:40px">✨</div><h2>חדש: מצב משחק!</h2><p class="muted small">איך תרצה להשתמש באפליקציה? אפשר להחליף בכל רגע בכפתור למעלה.</p></div>
-    <div class="mode-pick"><button data-k="play"><span>🎮</span><b>משחק</b><small>מסע עם שלבים ובוסים, מטבעות, עזרים ומשימות יומיות</small></button><button data-k="learn"><span>📚</span><b>לימוד</b><small>כמו שהיה – שיעורים, תרגול ומבחנים</small></button></div>`,
-    (e, close) => { const b = e.target.closest("[data-k]"); if (!b) return; close(); S.mode = b.dataset.k; save(); go("home"); });
-}
-function addCoins(n, quiet) {
-  n = Math.round(n); if (!n) return;
-  S.coins += n; if (n > 0) S.coinsTotal = (S.coinsTotal || 0) + n;
-  const chip = $("#coinChip span"); if (chip) chip.textContent = S.coins;
-  if (!quiet && PLAY()) {
-    const c = $("#coinChip"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
-  }
-}
+/* ───────── תגמול על תשובה ───────── */
+const PLAY = () => false;
+function addCoins() { }
 function onAnswer(s, it) {
-  if (it.grade === 1) {
-    s.combo++; s.maxCombo = Math.max(s.maxCombo, s.combo);
-    S.best.combo = Math.max(S.best.combo || 0, s.combo);
-    const m = comboMult(s.combo) * (it.gold ? 3 : 1);
-    addXP(10 * m);
-    it.coins = 2 * m;
-    setTimeout(() => floatReward(`+${it.coins} 🪙${it.gold ? " ✨" : ""}`), 60);
-    if (it.gold) setTimeout(() => { toast("✨", "שאלת זהב! פרס x3"); confetti(); }, 200); s.coinsEarned += it.coins; addCoins(it.coins);
-    if (s.combo >= 3) missionEvent("combo", { n: s.combo });
-    if (s.combo === 3 || s.combo === 5 || s.combo === 10) setTimeout(() => toast("🔥", s.combo === 3 ? "קומבו! נקודות כפולות" : s.combo === 5 ? "קומבו x3 – אתה בוער!" : "10 ברצף – בלתי עציר!"), 150);
-    if (s.mode === "boss") s.bossHp--;
-  } else {
-    s.combo = 0;
-    if (s.mode === "survival" || s.mode === "sudden" || s.mode === "boss" || s.mode === "stage") s.lives--;
-  }
-}
-function usePower(k) {
-  const s = session; if (!s) return;
-  const it = s.items[s.idx], q = it.q;
-  if (k === "shop") return shopSheet();
-  if (!(S.items[k] > 0)) return toast("🛒", "נגמר – אפשר לקנות בחנות");
-  if (k === "fifty" && q.t === "mc" && !it.cut) {
-    const wrong = it.order.map((oi, di) => ({ oi, di })).filter(x => x.oi !== q.a);
-    it.cut = shuffle(wrong).slice(0, 2).map(x => x.di);
-    if (it.cut.includes(it.ans)) it.ans = null;
-  } else if (k === "aud" && q.t === "mc" && !it.aud) {
-    const acc = { easy: .78, medium: .62, hard: .48, expert: .4 }[q.l] || .6, ok = Math.round((acc + (Math.random() - .5) * .16) * 100);
-    let rest = 100 - ok; const w = it.order.map(oi => oi === q.a ? 0 : Math.random() + .2), tw = w.reduce((a, b) => a + b, 0);
-    it.aud = it.order.map((oi, di) => oi === q.a ? ok : Math.round(rest * w[di] / tw));
-    const diff = 100 - it.aud.reduce((a, b) => a + b, 0); it.aud[it.order.indexOf(q.a)] += diff;
-  } else if (k === "skip") {
-    const used = new Set(s.items.map(x => x.q.id));
-    let pool = BANK.filter(x => x.t !== "open" && x.f === q.f && !used.has(x.id));
-    if (!pool.length) pool = BANK.filter(x => x.t !== "open" && !used.has(x.id));
-    if (!pool.length) return;
-    const nq = freshSort(pool, true)[0]; markSeen([nq]);
-    s.items[s.idx] = Object.assign(mkItem(nq), it.gold ? { gold: true } : {});
-  } else if (k === "time" && s.timeLimit) { s.start += 10000; }
-  else return;
-  S.items[k]--; save(); beep(true);
-  renderQuestion();
-}
-
-/* חנות */
-const ITEMS = {
-  fifty: { em: "✂️", n: "50:50", d: "מוחק שתי תשובות שגויות", price: 30 },
-  skip: { em: "⏭️", n: "דילוג", d: "מחליף את השאלה בשאלה אחרת", price: 40 },
-  time: { em: "⏱️", n: "‎+10 שניות", d: "בסיבובים עם שעון", price: 25 },
-  shield: { em: "🛡️", n: "מגן רצף", d: "שומר על הרצף ביום שפספסת", price: 60 },
-  aud: { em: "📊", n: "שאלת הקהל", d: "מראה מה רוב השחקנים היו עונים", price: 35 }
-};
-const THEMES = {
-  green: { n: "ירוק", d: "#34d399", l: "#10b981", price: 0 }, blue: { n: "כחול", d: "#60a5fa", l: "#2563eb", price: 120 },
-  purple: { n: "סגול", d: "#a78bfa", l: "#7c3aed", price: 120 }, orange: { n: "כתום", d: "#fb923c", l: "#ea580c", price: 120 },
-  pink: { n: "ורוד", d: "#f472b6", l: "#db2777", price: 150 }, gold: { n: "זהב", d: "#facc15", l: "#ca8a04", price: 250 }
-};
-function applyAccent() {
-  const st = document.documentElement.style, t = THEMES[S.accent];
-  if (!t || S.accent === "green") { ["--accent", "--accent-soft", "--accent-ink"].forEach(v => st.removeProperty(v)); return; }
-  const light = document.documentElement.dataset.theme === "light", c = light ? t.l : t.d;
-  st.setProperty("--accent", c); st.setProperty("--accent-soft", `color-mix(in srgb, ${c} 14%, transparent)`); st.setProperty("--accent-ink", light ? "#ffffff" : "#0b1020");
-}
-function shopSheet() {
-  const draw = () => `<div style="max-height:76vh;overflow:auto"><h2>🛒 החנות</h2><div class="coin-big">🪙 ${S.coins}</div>
-    <div class="muted xs" style="font-weight:700;margin:12px 0 4px">עזרים</div>
-    ${Object.entries(ITEMS).map(([k, it]) => `<div class="shop-row"><span class="em">${it.em}</span><div style="flex:1"><b>${it.n}</b> <span class="muted xs">· יש לך ${S.items[k] || 0}</span><div class="muted xs">${it.d}</div></div><button class="btn sm ${S.coins >= it.price ? "primary" : ""}" data-buy="${k}" ${S.coins < it.price ? "disabled" : ""}>🪙 ${it.price}</button></div>`).join("")}
-    <div class="muted xs" style="font-weight:700;margin:14px 0 6px">צבע האפליקציה</div>
-    <div class="theme-grid">${Object.entries(THEMES).map(([k, t]) => `<button class="theme-dot ${S.accent === k ? "on" : ""}" data-th="${k}" style="--c:${t.d}"><i></i><span>${t.n}</span><small>${S.owned.includes(k) ? (S.accent === k ? "בשימוש" : "בחירה") : "🪙 " + t.price}</small></button>`).join("")}</div>
-    <p class="muted xs" style="margin-top:12px">מרוויחים מטבעות מתשובות נכונות (קומבו מכפיל!), כוכבים במסע, בוסים ומשימות יומיות.</p></div>
-    <div class="row"><button class="btn primary" data-a="x">סגירה</button></div>`;
-  let refresh = () => { };
-  const { bg } = sheet(draw(), (e, close) => {
-    if (e.target.dataset.a === "x") return close();
-    const b = e.target.closest("[data-buy]");
-    if (b) { const k = b.dataset.buy, it = ITEMS[k]; if (S.coins >= it.price) { addCoins(-it.price, true); S.items[k] = (S.items[k] || 0) + 1; save(); beep(true); toast(it.em, "קנית " + it.n); refresh(); } return; }
-    const t = e.target.closest("[data-th]");
-    if (t) {
-      const k = t.dataset.th;
-      if (!S.owned.includes(k)) { if (S.coins < THEMES[k].price) return toast("🪙", "אין מספיק מטבעות"); addCoins(-THEMES[k].price, true); S.owned.push(k); toast("🎨", "צבע חדש!"); }
-      S.accent = k; save(); applyAccent(); refresh();
-    }
-  });
-  refresh = () => { bg.querySelector(".modal").innerHTML = draw(); updateHeader(); if (session) renderQuestion(); };
-}
-
-/* משימות יומיות ותיבת אוצר */
-const MISSION_T = [
-  r => { const n = [10, 15, 20][Math.floor(r() * 3)]; return { t: "correct", n, label: `ענה נכון על ${n} שאלות` }; },
-  r => { const f = TOPIC_KEYS[Math.floor(r() * TOPIC_KEYS.length)]; return { t: "topic", f, n: 5, label: `5 תשובות נכונות ב${TOPICS[f].name}` }; },
-  r => { const n = [5, 7][Math.floor(r() * 2)]; return { t: "combo", n, label: `הגע לקומבו של ${n} 🔥` }; },
-  r => { const n = 1 + Math.floor(r() * 2); return { t: "stage", n, label: n === 1 ? "השלם שלב במסע" : `השלם ${n} שלבים במסע` }; },
-  () => ({ t: "stars3", n: 1, label: "קבל 3 כוכבים בשלב ⭐⭐⭐" }),
-  () => ({ t: "speed", n: 1, label: "שחק סיבוב מבחן מהירות ⚡" })
-];
-function missions() {
-  const d = today();
-  if (!S.missions || S.missions.d !== d) {
-    const r = rng(parseInt(hash("m" + d), 36));
-    const idx = shuffle(MISSION_T.map((_, i) => i), r).slice(0, 3);
-    S.missions = { d, list: idx.map(i => ({ ...MISSION_T[i](r), p: 0, done: false })), claimed: false };
-    save();
-  }
-  return S.missions;
-}
-function missionEvent(type, data = {}) {
-  const m = missions(); let changed = false;
-  m.list.forEach(x => {
-    if (x.done) return;
-    let inc = 0;
-    if (type === "correct" && (x.t === "correct" || (x.t === "topic" && data.f === x.f))) inc = 1;
-    if (type === "combo" && x.t === "combo" && data.n > x.p) { x.p = Math.min(x.n, data.n); changed = true; }
-    if (type === "stage" && (x.t === "stage" || (x.t === "stars3" && data.stars === 3))) inc = 1;
-    if (type === "speed" && x.t === "speed") inc = 1;
-    if (inc) { x.p = Math.min(x.n, x.p + inc); changed = true; }
-    if (x.p >= x.n) { x.done = true; addCoins(15); setTimeout(() => toast("✅", "משימה הושלמה! ‎+15 🪙"), 700); }
-  });
-  if (changed) save();
-}
-/* גלגל המזל היומי */
-const WHEEL = [
-  { l: "20 🪙", c: 20, w: 22 }, { l: "✂️ 50:50", it: "fifty", w: 14 }, { l: "50 🪙", c: 50, w: 14 }, { l: "⏭️ דילוג", it: "skip", w: 12 },
-  { l: "+60 XP", xp: 60, w: 14 }, { l: "⏱️ זמן", it: "time", w: 10 }, { l: "🛡️ מגן", it: "shield", w: 8 }, { l: "💎 150", c: 150, w: 6 }
-];
-const wheelReady = () => S.wheel !== today();
-function wheelCard() {
-  const r = wheelReady();
-  return `<div class="card wheel-card ${r ? "ready" : ""}" id="wheelCard"><div class="em">🎡</div>
-    <div style="flex:1"><b style="font-size:16px">גלגל המזל</b><div class="muted small">${r ? "סיבוב חינם מחכה לך היום!" : "סובבת היום · חוזר מחר"}</div></div>${r ? `<span class="tag gold">סובב!</span>` : `<span class="chev">‹</span>`}</div>`;
-}
-function wheelSheet() {
-  const n = WHEEL.length, seg = 360 / n, cols = ["#34d399", "#60a5fa", "#fbbf24", "#a78bfa", "#f87171", "#22d3ee", "#fb923c", "#f472b6"];
-  const pt = a => [100 + 92 * Math.cos((a - 90) * Math.PI / 180), 100 + 92 * Math.sin((a - 90) * Math.PI / 180)];
-  const slices = WHEEL.map((w, i) => {
-    const [x1, y1] = pt(i * seg), [x2, y2] = pt((i + 1) * seg), [tx, ty] = [100 + 60 * Math.cos(((i + .5) * seg - 90) * Math.PI / 180), 100 + 60 * Math.sin(((i + .5) * seg - 90) * Math.PI / 180)];
-    return `<path d="M100 100 L${x1.toFixed(1)} ${y1.toFixed(1)} A92 92 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${cols[i]}"/>
-      <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" transform="rotate(${(i + .5) * seg + ((i + .5) * seg > 90 && (i + .5) * seg < 270 ? 180 : 0)} ${tx.toFixed(1)} ${ty.toFixed(1)})" text-anchor="middle" dominant-baseline="middle" class="wl">${w.l}</text>`;
-  }).join("");
-  const r = wheelReady();
-  const { bg, close } = sheet(`<h2 style="text-align:center">🎡 גלגל המזל</h2>
-    <div class="wheel-wrap"><div class="wheel-ptr">▼</div><svg viewBox="0 0 200 200" class="wheel" id="wheel"><circle cx="100" cy="100" r="96" fill="#111827"/>${slices}<circle cx="100" cy="100" r="14" fill="#fff"/></svg></div>
-    <p class="muted small" style="text-align:center" id="wheelMsg">${r ? "סיבוב אחד חינם בכל יום. בהצלחה!" : "כבר סובבת היום – נתראה מחר 😉"}</p>
-    <div class="row"><button class="btn" data-close>סגירה</button><button class="btn primary" id="spinBtn" ${r ? "" : "disabled"}>סובב! 🎯</button></div>`,
-    (e, close) => { if (e.target.closest("[data-close]")) { close(); if (tab === "home" && !session) go("home"); } });
-  bg.querySelector("#spinBtn").onclick = () => {
-    if (!wheelReady()) return;
-    const tot = WHEEL.reduce((a, w) => a + w.w, 0); let x = Math.random() * tot, k = 0;
-    while (x >= WHEEL[k].w) { x -= WHEEL[k].w; k++; }
-    S.wheel = today(); save();
-    bg.querySelector("#spinBtn").disabled = true;
-    const wh = bg.querySelector("#wheel"), deg = 360 * 6 + (360 - (k + .5) * seg) + (Math.random() - .5) * seg * .6;
-    let tk = 0; const tic = setInterval(() => beep(true, (tk++ % 4)), 180);
-    wh.style.transform = `rotate(${deg}deg)`;
-    setTimeout(() => {
-      clearInterval(tic);
-      const w = WHEEL[k];
-      if (w.c) addCoins(w.c); if (w.xp) addXP(w.xp); if (w.it) S.items[w.it] = (S.items[w.it] || 0) + 1;
-      save(); confetti(); beep(true, 8);
-      bg.querySelector("#wheelMsg").innerHTML = `<b style="font-size:18px">זכית: ${w.l}!</b>`;
-    }, 4200);
-  };
-}
-function missionsCard() {
-  const m = missions(), all = m.list.every(x => x.done);
-  return `<div class="card missions"><div class="row" style="justify-content:space-between"><b>🎯 משימות היום</b><span class="muted xs">${m.list.filter(x => x.done).length}/3 · ‎+15 🪙 למשימה</span></div>
-    ${m.list.map(x => `<div class="mission ${x.done ? "done" : ""}"><span>${x.done ? "✅" : "⬜"}</span><div style="flex:1;min-width:0"><div class="small">${esc(x.label)}</div><div class="mini-bar"><i style="width:${pct(x.p, x.n)}%"></i></div></div><span class="muted xs">${x.p}/${x.n}</span></div>`).join("")}
-    <button class="btn block chest-btn ${all && !m.claimed ? "primary glow" : ""}" id="chestBtn" ${all && !m.claimed ? "" : "disabled"}>${m.claimed ? "🎁 התיבה נפתחה – משימות חדשות מחר" : all ? "🎁 פתח את תיבת האוצר!" : "🔒 השלם 3 משימות כדי לפתוח תיבת אוצר"}</button></div>`;
-}
-function openChest() {
-  const m = missions(); if (m.claimed || !m.list.every(x => x.done)) return;
-  m.claimed = true; S.chests = (S.chests || 0) + 1;
-  const coins = 40 + Math.floor(Math.random() * 61);
-  const keys = Object.keys(ITEMS), itemK = keys[Math.floor(Math.random() * keys.length)], gotItem = Math.random() < 0.75;
-  addCoins(coins, true); if (gotItem) S.items[itemK] = (S.items[itemK] || 0) + 1; addXP(30); checkAchievements(); save();
-  sheet(`<div style="text-align:center;padding:10px 0"><div class="chest shake">🎁</div><div class="chest-prizes hidden"><h2>תיבת האוצר נפתחה!</h2><div class="prize">🪙 ‎+${coins} מטבעות</div>${gotItem ? `<div class="prize">${ITEMS[itemK].em} ${ITEMS[itemK].n}</div>` : ""}<div class="prize">⭐ ‎+30 XP</div></div></div>
-    <div class="row"><button class="btn primary" data-a="x">יש! 🎉</button></div>`, (e, close) => { if (e.target.dataset.a) { close(); go("home"); } });
-  setTimeout(() => { const c = document.querySelector(".chest"); if (!c) return; c.classList.remove("shake"); c.textContent = "✨"; document.querySelector(".chest-prizes").classList.remove("hidden"); confetti(); beep(true); }, 1200);
-}
-
-/* מסע: עולמות, שלבים ובוסים */
-const stageLives = () => 3 + ((S.up && S.up.heart) ? 1 : 0);
-const TIERS = [
-  { k: "easy", n: "מתחיל", em: "🟢", lv: ["easy"], st: 2, q: 6 },
-  { k: "mid", n: "מתקדם", em: "🟡", lv: ["medium"], st: 3, q: 8 },
-  { k: "pro", n: "מומחה", em: "🔴", lv: ["hard", "expert"], st: 2, q: 10 }
-];
-/* בכל שלב: 3 לבבות. טעות שלישית = נפסלת. כדי לעבור צריך לפחות (מספר השאלות − 2) תשובות נכונות */
-const STAGES = Object.fromEntries(TOPIC_KEYS.map(f => {
-  const st = [];
-  TIERS.forEach((t, ti) => { const pool = BANK.filter(q => q.f === f && q.t !== "open" && t.lv.includes(q.l)); for (let j = 0; j < t.st; j++) st.push({ tier: ti, j, pool }); });
-  return [f, st];
-}));
-const mapOf = f => { S.jr = S.jr || {}; return (S.jr[f] = S.jr[f] || { st: [], boss: false, tiers: [] }); };
-const tierDone = (f, ti) => STAGES[f].every((x, i) => x.tier !== ti || (mapOf(f).st[i] || 0) > 0);
-const worldUnlocked = w => w < 2 || tierDone(TOPIC_KEYS[w - 1], 0);
-const stageUnlocked = (f, i) => i === 0 || (mapOf(f).st[i - 1] || 0) > 0;
-const bossUnlocked = f => STAGES[f].every((_, i) => (mapOf(f).st[i] || 0) > 0);
-const worldStars = f => mapOf(f).st.reduce((a, b) => a + (b || 0), 0);
-const totalStars = () => TOPIC_KEYS.reduce((a, f) => a + worldStars(f), 0);
-const maxStars = () => TOPIC_KEYS.reduce((a, f) => a + STAGES[f].length * 3, 0);
-function nextStage() {
-  for (let w = 0; w < TOPIC_KEYS.length; w++) {
-    const f = TOPIC_KEYS[w]; if (!worldUnlocked(w)) continue;
-    const i = STAGES[f].findIndex((_, k) => !(mapOf(f).st[k] > 0));
-    if (i >= 0) return { f, i };
-    if (!mapOf(f).boss) return { f, boss: true };
-  }
-  let best = null;
-  TOPIC_KEYS.forEach((f, w) => { if (!worldUnlocked(w)) return; STAGES[f].forEach((_, i) => { const s = mapOf(f).st[i] || 0; if (s < 3 && (!best || s < best.s)) best = { f, i, s }; }); });
-  return best || { f: TOPIC_KEYS[0], i: 0 };
-}
-const startNext = nx => nx.boss ? bossIntro(nx.f) : stageIntro(nx.f, nx.i);
-function stageIntro(f, i) {
-  const st = STAGES[f][i], t = TIERS[st.tier], best = mapOf(f).st[i] || 0;
-  const { bg, close } = sheet(`<div class="intro"><div class="intro-em">${TOPICS[f].icon}</div>
-    <div class="muted small">${TOPICS[f].name}</div><h2>${t.em} דרגת ${t.n} · שלב ${st.j + 1}</h2>
-    <div class="rules">
-      <div><span>📝</span><b>${t.q} שאלות</b></div>
-      <div><span>🎯</span><b>צריך לפחות ${t.q - stageLives() + 1} נכונות כדי לעבור</b></div>
-      <div><span>❤️</span><b>${stageLives()} לבבות – כשנגמרים, נפסלים</b></div>
-      <div><span>⭐</span><b>${t.q}/${t.q} = שלושה כוכבים</b></div>
-    </div>
-    ${best ? `<div class="muted small">השיא שלך: ${"★".repeat(best)}${"☆".repeat(3 - best)}</div>` : ""}
-    <div class="row" style="margin-top:14px"><button class="btn" data-x>ביטול</button><button class="btn primary" data-go>יאללה! ▶</button></div></div>`,
-    (e, close) => { if (e.target.closest("[data-x]")) close(); if (e.target.closest("[data-go]")) { close(); startMode("stage", { f, i }); } });
-}
-function bossIntro(f) {
-  sheet(`<div class="intro"><div class="intro-em">👹</div><div class="muted small">${TOPICS[f].name}</div><h2>קרב הבוס</h2>
-    <div class="rules"><div><span>💥</span><b>${BOSS_HP} תשובות נכונות מביסות אותו</b></div><div><span>❤️</span><b>3 לבבות בלבד</b></div><div><span>🔴</span><b>שאלות ברמה הכי קשה</b></div><div><span>👑</span><b>ניצחון = העולם הושלם</b></div></div>
-    <div class="row" style="margin-top:14px"><button class="btn" data-x>ביטול</button><button class="btn primary" data-go>להילחם! ⚔️</button></div></div>`,
-    (e, close) => { if (e.target.closest("[data-x]")) close(); if (e.target.closest("[data-go]")) { close(); startMode("boss", { f }); } });
-}
-function worldHtml(f, w, ex = true) {
-  const un = worldUnlocked(w), st = STAGES[f], m = mapOf(f), nx = nextStage();
-  let nodes = "";
-  st.forEach((x, i) => {
-    const t = TIERS[x.tier];
-    if (x.j === 0) {
-      const tOpen = x.tier === 0 || tierDone(f, x.tier - 1);
-      nodes += `<div class="tier-h t${x.tier} ${tOpen ? "" : "locked"}">${tOpen ? t.em : "🔒"} <b>${t.n}</b><span>${tOpen ? `${t.q} שאלות · צריך ${t.q - stageLives() + 1} נכונות` : `נפתח אחרי שתסיים את דרגת ה${TIERS[x.tier - 1].n}`}</span>${tierDone(f, x.tier) ? `<em>🏅</em>` : ""}</div>`;
-    }
-    const s = m.st[i] || 0, open = un && stageUnlocked(f, i), cur = nx.f === f && nx.i === i && !nx.boss;
-    nodes += `<button class="node t${x.tier} ${s ? "done" : ""} ${open ? "" : "locked"} ${cur ? "cur" : ""} off${i % 4}" data-stage="${f}:${i}" ${open ? "" : "disabled"}><span>${open ? x.j + 1 : "🔒"}</span><i>${s ? "★".repeat(s) + "☆".repeat(3 - s) : cur ? "התחל" : ""}</i></button>`;
-  });
-  const bu = un && bossUnlocked(f);
-  const prev = TOPIC_KEYS[w - 1];
-  return `<div class="world ${un ? "" : "locked"} ${ex ? "open" : "closed"}"><div class="world-h" data-wt="${f}"><span class="em">${TOPICS[f].icon}</span><div style="flex:1"><b>${TOPICS[f].name}</b>
-    <div class="muted xs">${un ? `⭐ ${worldStars(f)}/${st.length * 3}${m.boss ? " · 👑 הבוס הובס" : ""}${ex ? "" : `<div class="mini-bar" style="margin-top:4px"><i style="width:${pct(worldStars(f), st.length * 3)}%"></i></div>`}` : `🔒 נפתח אחרי שתסיים את דרגת המתחיל ב${TOPICS[prev].name}`}</div></div></div>
-    ${un && ex ? `<div class="path">${nodes}<div class="tier-h boss-h ${bu ? "" : "locked"}">${bu ? "👹" : "🔒"} <b>בוס העולם</b><span>${bu ? "מוכן לקרב!" : "נפתח אחרי כל השלבים"}</span></div><button class="node boss ${m.boss ? "done" : ""} ${bu ? "" : "locked"} ${nx.f === f && nx.boss ? "cur" : ""}" data-boss="${f}" ${bu ? "" : "disabled"}><span>${m.boss ? "👑" : "👹"}</span><i>${m.boss ? "הובס" : bu ? "בוס!" : ""}</i></button></div>` : ""}</div>`;
-}
-function renderPlayHome() {
-  const L = levelOf(S.xp), lo = xpFor(L), hi = xpFor(L + 1), nx = nextStage();
-  const nxLabel = nx.boss ? `👹 קרב בוס · ${TOPICS[nx.f].name}` : `${TOPICS[nx.f].icon} ${TOPICS[nx.f].name} · שלב ${nx.i + 1}`;
-  const openW = TOPIC_KEYS.filter((f, w) => worldUnlocked(w)), lockedW = TOPIC_KEYS.filter((f, w) => !worldUnlocked(w));
-  app.innerHTML = `<div class="fade-in">
-  <div class="hero play-hero"><div class="level-row">
-    <div class="level-badge">${L}</div>
-    <div style="flex:1;min-width:0"><b style="font-size:17px">${S.name ? esc(S.name) + " · " : ""}${levelTitle(L)}</b><div class="muted xs">${S.xp - lo}/${hi - lo} XP · ⭐ ${totalStars()} כוכבים</div><div class="xpbar"><i style="width:${pct(S.xp - lo, hi - lo)}%"></i></div></div>
-    ${goalRing()}</div></div>
-  <div id="funTop"></div>
-  <button class="play-btn" id="playNow"><span class="pb-ic">▶</span><div><b>שחק עכשיו</b><span>${nxLabel}</span></div></button>
-  <div id="todayRow" class="today-row"></div>
-  <div class="tiles3">
-    <button class="tile t-duel" id="tDuel"><span>⚔️</span><b>דו־קרב</b><small>נגד חבר</small></button>
-    <button class="tile t-games" id="tGames"><span>🎪</span><b>משחקים</b><small>מצבים מיוחדים</small></button>
-    <button class="tile t-coll" id="tColl"><span>🎁</span><b>אוספים</b><small>ליגה, קלפים ועוד</small></button>
-  </div>
-  <div class="section-title"><h2>🗺️ המסע</h2><span class="muted xs">⭐ ${totalStars()}/${maxStars()}</span></div>
-  ${openW.map(f => worldHtml(f, TOPIC_KEYS.indexOf(f), f === (S.openW || nx.f))).join("")}
-  ${lockedW.length ? `<div class="card locked-worlds"><b>🔒 עוד ${lockedW.length} עולמות</b><div class="muted xs">${lockedW.map(f => TOPICS[f].icon + " " + TOPICS[f].name).join(" · ")}</div><div class="muted xs" style="margin-top:4px">כל עולם נפתח אחרי שמסיימים את דרגת המתחיל בעולם שלפניו.</div></div>` : ""}
-  </div>`;
-  $("#playNow").onclick = () => startNext(nx);
-  $("#tDuel").onclick = () => duelMenu();
-  $("#tGames").onclick = () => typeof gamesPage === "function" && gamesPage();
-  $("#tColl").onclick = () => typeof collectionsPage === "function" && collectionsPage();
-  app.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => { const [f, i] = b.dataset.stage.split(":"); stageIntro(f, +i); });
-  app.querySelectorAll("[data-boss]").forEach(b => b.onclick = () => bossIntro(b.dataset.boss));
-  app.querySelectorAll("[data-wt]").forEach(h => h.onclick = () => { const f = h.dataset.wt; S.openW = (S.openW || nx.f) === f ? "__none" : f; renderHome(); const el = document.querySelector(`[data-wt="${f}"]`); el && el.scrollIntoView({ block: "start", behavior: "smooth" }); });
+  if (it.grade === 1) { s.combo++; s.maxCombo = Math.max(s.maxCombo, s.combo); S.best.combo = Math.max(S.best.combo || 0, s.combo); addXP(10); }
+  else { s.combo = 0; if (s.mode === "survival" || s.mode === "sudden") s.lives--; }
 }
 function reviewList(items) {
   return items.filter(it => it.done).map((it, i) => {
@@ -1268,74 +790,6 @@ function reviewList(items) {
     return `<div class="review-item"><div class="q"><span class="pill ${ok ? "ok" : "no"}">${ok ? "נכון" : "שגוי"}</span>${esc(q.q)}</div><div class="small">התשובה: <b>${esc(right)}</b></div><div class="small muted">💡 ${linkTerms(q.e)}</div></div>`;
   }).join("");
 }
-function finishStage() {
-  const s = session, f = s.opt.f, i = s.opt.i, st = STAGES[f][i], t = TIERS[st.tier];
-  const graded = s.items.filter(x => x.grade !== null), correct = graded.filter(x => x.grade === 1).length, wrong = graded.length - correct;
-  const failed = s.lives <= 0, need = t.q - (s.maxL - 1);
-  const stars = failed ? 0 : wrong === 0 ? 3 : wrong === 1 ? 2 : 1;
-  const m = mapOf(f), prev = m.st[i] || 0, wNow = TOPIC_KEYS.indexOf(f);
-  const nextWorldWas = TOPIC_KEYS[wNow + 1] ? worldUnlocked(wNow + 1) : true, tierWas = tierDone(f, st.tier);
-  let bonus = 0, banners = [];
-  if (stars > prev) { bonus = (stars - prev) * 10 + (prev === 0 ? 10 : 0); m.st[i] = stars; addCoins(bonus, true); }
-  if (!tierWas && tierDone(f, st.tier)) {
-    const tb = 40 * (st.tier + 1); bonus += tb; addCoins(tb, true); addXP(30 * (st.tier + 1));
-    banners.push(`🏅 סיימת את דרגת ה${t.n}! ‎+${tb} 🪙${TIERS[st.tier + 1] ? ` · נפתחה דרגת ${TIERS[st.tier + 1].em} ${TIERS[st.tier + 1].n}` : " · הבוס מחכה לך 👹"}`);
-  }
-  if (!nextWorldWas && worldUnlocked(wNow + 1)) banners.push(`🌍 עולם חדש נפתח: ${TOPICS[TOPIC_KEYS[wNow + 1]].icon} ${TOPICS[TOPIC_KEYS[wNow + 1]].name}`);
-  if (stars) { missionEvent("stage", { stars }); addXP(15 * stars * (st.tier + 1)); }
-  touchStreak(); logHistory({ mode: "stage", title: s.title, score: pct(correct, t.q), n: graded.length });
-  checkAchievements({ perfect: stars === 3 }); save();
-  if (stars === 3 || banners.length) confetti();
-  const nx = stars ? (STAGES[f][i + 1] ? { f, i: i + 1 } : (bossUnlocked(f) && !m.boss ? { f, boss: true } : nextStage())) : null;
-  const coins = s.coinsEarned + bonus, items = s.items, maxC = s.maxCombo, title = s.title;
-  session = null; document.body.classList.remove("in-quiz");
-  const head = failed ? "נפסלת הפעם 💔" : stars === 3 ? "מושלם! 🌟" : stars === 2 ? "כמעט מושלם!" : "עברת את השלב!";
-  const sub = failed ? `${correct} נכונות · ${s.maxL} טעויות. כדי לעבור צריך ${need} נכונות מתוך ${t.q} – אתה יכול! 💪` : `${correct}/${t.q} נכונות${stars < 3 ? ` · ${t.q}/${t.q} = שלושה כוכבים` : ""}`;
-  app.innerHTML = `<div class="fade-in"><div class="card stage-res" style="text-align:center">
-    <div class="muted small">${esc(title)}</div>
-    <div class="stars-big">${[0, 1, 2].map(k => `<span class="${k < stars ? "on" : ""}" style="animation-delay:${0.2 + k * 0.25}s">★</span>`).join("")}</div>
-    <h1>${head}</h1>
-    <p class="muted" style="margin:4px 0 14px">${sub}</p>
-    ${banners.map(b => `<div class="banner-win">${b}</div>`).join("")}
-    <div class="grid3"><div class="statbox"><b dir="ltr">+${coins}</b><span>🪙 מטבעות</span></div><div class="statbox"><b>🔥 ${maxC}</b><span>קומבו מרבי</span></div><div class="statbox"><b>⭐ ${totalStars()}</b><span>כוכבים במסע</span></div></div>
-    <div class="col" style="margin-top:16px">
-      ${nx ? `<button class="btn primary lg block" id="nextSt">${nx.boss ? "👹 לקרב הבוס!" : "▶ לשלב הבא"}</button>` : `<button class="btn primary lg block" id="againSt2">🔁 נסה שוב</button>`}
-      <div class="row">${nx ? `<button class="btn" id="againSt" style="flex:1">🔁 ${stars < 3 ? "שפר כוכבים" : "שחק שוב"}</button>` : `<button class="btn" id="learnSt" style="flex:1">📘 שיעור בנושא</button>`}<button class="btn" id="toMap" style="flex:1">🗺️ למפה</button></div>
-    </div></div>
-    <details class="why card" ${failed ? "open" : ""}><summary>סקירת תשובות</summary>${reviewList(items)}</details></div>`;
-  window.scrollTo(0, 0); updateHeader();
-  $("#nextSt") && ($("#nextSt").onclick = () => startNext(nx));
-  $("#againSt") && ($("#againSt").onclick = () => startMode("stage", { f, i }));
-  $("#againSt2") && ($("#againSt2").onclick = () => startMode("stage", { f, i }));
-  $("#learnSt") && ($("#learnSt").onclick = () => { setMode("learn", false); go("learn"); });
-  $("#toMap").onclick = () => go("home");
-}
-function finishBoss() {
-  const s = session, win = s.bossHp <= 0, f = s.opt.f, m = mapOf(f);
-  let bonus = 0;
-  if (win) { bonus = m.boss ? 20 : 60; m.boss = true; addCoins(bonus, true); addXP(50); confetti(); }
-  touchStreak(); logHistory({ mode: "boss", title: s.title, score: win ? 100 : 0, n: s.items.filter(x => x.done).length, extra: win ? "ניצחון 👑" : "הפסד" });
-  checkAchievements(); save();
-  const w = TOPIC_KEYS.indexOf(f), nextW = TOPIC_KEYS[w + 1];
-  const coins = s.coinsEarned + bonus, items = s.items, maxC = s.maxCombo, hits = BOSS_HP - Math.max(0, s.bossHp);
-  session = null; document.body.classList.remove("in-quiz");
-  app.innerHTML = `<div class="fade-in"><div class="card stage-res" style="text-align:center">
-    <div style="font-size:70px" class="${win ? "pop" : ""}">${win ? "👑" : "💀"}</div>
-    <h1>${win ? "הבסת את הבוס!" : "הבוס ניצח הפעם"}</h1>
-    <p class="muted" style="margin:4px 0 14px">${win ? `${TOPICS[f].name} – העולם הושלם!` : `פגעת בו ${hits} מתוך ${BOSS_HP} פעמים. תתאמן בשלבים ותחזור חזק יותר 💪`}</p>
-    <div class="grid3"><div class="statbox"><b dir="ltr">+${coins}</b><span>🪙 מטבעות</span></div><div class="statbox"><b>🔥 ${maxC}</b><span>קומבו מרבי</span></div><div class="statbox"><b>💥 ${hits}/${BOSS_HP}</b><span>פגיעות</span></div></div>
-    <div class="col" style="margin-top:16px">
-      ${win && nextW && worldUnlocked(w + 1) ? `<button class="btn primary lg block" id="nextW">${TOPICS[nextW].icon} לעולם הבא: ${TOPICS[nextW].name}</button>` : ""}
-      ${!win ? `<button class="btn primary lg block" id="againB">👹 עוד ניסיון</button>` : ""}
-      <button class="btn block" id="toMap">🗺️ למפה</button>
-    </div></div>
-    <details class="why card"><summary>סקירת תשובות</summary>${reviewList(items)}</details></div>`;
-  window.scrollTo(0, 0); updateHeader();
-  $("#nextW") && ($("#nextW").onclick = () => startNext(nextStage()));
-  $("#againB") && ($("#againB").onclick = () => startMode("boss", { f }));
-  $("#toMap").onclick = () => go("home");
-}
-
 /* ───────── כרטיסיות ───────── */
 let flash = null;
 function startFlash(topics) {
@@ -1502,14 +956,11 @@ function renderLearn(sub) {
 let factFilter = "all";
 function renderFactsList(body) {
   const list = FACTS.map((f, i) => ({ ...f, i })).filter(f => factFilter === "all" || (factFilter === "fav" ? S.factFav.includes(f.i) : f.c === factFilter));
-  body.innerHTML = `<div class="card fact-card" style="text-align:center">
-      <div style="font-size:30px">🖥️</div><b>מצב שומר מסך</b><p class="muted small" style="margin:4px 0 10px">עובדה חדשה כל 2 דקות, במסך מלא. נפתח גם לבד כשהאפליקציה פתוחה ולא נוגעים בה.</p>
-      <button class="btn primary block" id="saverNow">הפעלה עכשיו</button></div>
+  body.innerHTML = `
     <div class="tip" id="factsAsk" style="margin-top:12px"><span style="font-size:20px">❓</span><div><b>נתקלת במילה לא מוכרת?</b><div class="small muted">מילים מסומנות בקו לחיצות. אפשר גם לכתוב שאלה חופשית.</div></div></div>
     <div class="row" style="justify-content:space-between;margin:14px 2px 6px"><div class="chips" id="ff">${[["all", "הכול"], ["fit", "💪 כושר"], ["psy", "🧠 פסיכולוגיה"], ["fav", "❤️ אהובות"]].map(([k, v]) => `<button class="chip ${factFilter === k ? "on" : ""}" data-k="${k}">${v}</button>`).join("")}</div></div>
     <div class="muted xs" style="margin:0 2px 6px">קראת ${S.factSeen.length} מתוך ${FACTS.length} עובדות</div>
     <div class="card" style="padding:4px 16px">${list.length ? list.map(f => `<div class="term fact-row ${S.factSeen.includes(f.i) ? "" : "new"}"><span>${linkTerms(f.t)}</span><button class="fav-btn" data-fav="${f.i}" aria-label="אהובה">${S.factFav.includes(f.i) ? "❤️" : "🤍"}</button></div>`).join("") : `<div class="empty"><span class="em">🤍</span>עוד לא סימנת עובדות אהובות</div>`}</div>`;
-  $("#saverNow").onclick = openSaver;
   $("#factsAsk").onclick = () => askSheet();
   $("#ff").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; factFilter = b.dataset.k; renderFactsList(body); };
   body.querySelectorAll("[data-fav]").forEach(b => b.onclick = () => { const i = +b.dataset.fav; toggleFav(i); if (!S.factSeen.includes(i)) S.factSeen.push(i); save(); b.textContent = S.factFav.includes(i) ? "❤️" : "🤍"; });
@@ -1905,12 +1356,9 @@ function renderStats() {
     <div class="statbox"><b>${S.answered}</b><span>שאלות נענו</span></div>
     <div class="statbox"><b>${S.answered ? acc + "%" : "—"}</b><span>דיוק כללי</span></div>
     <div class="statbox"><b>${avg !== null ? avg + "%" : "—"}</b><span>ממוצע מבחנים</span></div>
-    <div class="statbox"><b>🔥 ${currentStreak()}</b><span>רצף נוכחי</span></div>
-    <div class="statbox"><b>⚡ ${S.best.speed}</b><span>שיא מהירות</span></div>
-    <div class="statbox"><b>❤️ ${S.best.survival}</b><span>שיא הישרדות</span></div>
-    <div class="statbox"><b>⭐ ${totalStars()}</b><span>כוכבים במסע</span></div>
-    <div class="statbox"><b>👑 ${Object.values(S.jr || {}).filter(m => m.boss).length}</b><span>בוסים שהובסו</span></div>
-    <div class="statbox"><b>☄️ ${S.best.combo || 0}</b><span>קומבו שיא</span></div>
+        <div class="statbox"><b>${currentStreak()}</b><span>ימים ברצף</span></div>
+    <div class="statbox"><b>${seen}</b><span>שאלות שונות</span></div>
+    <div class="statbox"><b>${levelOf(S.xp)}</b><span>רמה</span></div>
   </div>
   <div class="card"><h2>השבוע שלך</h2>
     <div class="muted xs">ירוק = תרגלת · ✓ = השלמת את המטרה היומית (${S.goal} שאלות)</div>
@@ -1919,8 +1367,6 @@ function renderStats() {
   <div class="card"><h2>🔍 דוח חולשות</h2>${weaknessReport()}</div>
   <div class="card"><h2>שליטה לפי תחום</h2><div class="muted xs">שליטה עולה כשעונים נכון שוב ושוב לאורך זמן · ראית ${seen} מתוך ${BANK.length} שאלות</div>
     ${TOPIC_KEYS.map(f => { const t = topicStats(f); return `<div class="bar-row"><div class="top"><span>${TOPICS[f].icon} ${TOPICS[f].name}</span><span class="muted">${t.mastery}%${t.acc !== null ? ` · דיוק ${t.acc}%` : ""}</span></div><div class="track"><i style="width:${t.mastery}%;background:${t.acc === null ? "var(--line)" : t.acc >= 75 ? "var(--accent)" : t.acc >= 55 ? "var(--warn)" : "var(--bad)"}"></i></div></div>`; }).join("")}</div>
-  <div class="card"><h2>הישגים <span class="muted small">${Object.keys(S.ach).length}/${ACH.length}</span></h2>
-    <div class="ach-grid">${ACH.map(a => `<div class="ach ${S.ach[a.id] ? "on" : ""}"><div class="em">${a.em}</div><b>${a.t}</b><span>${a.d}</span></div>`).join("")}</div></div>
   <div class="card"><h2>מבחנים אחרונים</h2>
     ${S.history.length ? S.history.slice(0, 15).map(h => `<div class="hist-row"><span>${esc(h.title || "מבחן")} <span class="muted xs">· ${esc(h.date)}${h.n ? " · " + h.n + " שאלות" : ""}</span></span><b>${h.extra ? esc(h.extra) : typeof h.score === "number" ? h.score + "%" : "—"}</b></div>`).join("")
       : `<div class="empty"><span class="em">📝</span>עדיין אין תוצאות. המבחן הראשון מחכה לך!</div>`}</div></div>`;
@@ -1931,18 +1377,13 @@ function renderStats() {
 const REM_OPTS = [[30, "30 דק׳"], [60, "שעה"], [120, "שעתיים"], [180, "3 שעות"], [360, "6 שעות"], [1440, "פעם ביום"]];
 function renderSettings() {
   document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
-  const st = S.settings, rem = st.rem, sv = st.saver;
+  const st = S.settings, rem = st.rem;
   const perm = "Notification" in window ? Notification.permission : "unsupported";
   app.innerHTML = `<div class="fade-in"><h1>הגדרות</h1>
   <div class="card">
-    <h2>🎮 מצב האפליקציה</h2>
-    <div class="mode-pick" id="setMode"><button data-k="play" class="${S.mode === "play" ? "on" : ""}"><span>🎮</span><b>משחק</b><small>מסע, בוסים, מטבעות ומשימות</small></button><button data-k="learn" class="${S.mode !== "play" ? "on" : ""}"><span>📚</span><b>לימוד</b><small>שיעורים, תרגול ומבחנים</small></button></div>
-    <button class="btn block" id="setShop" style="margin-top:10px">🛒 החנות · 🪙 ${S.coins}</button>
-  </div>
-  <div class="card">
     <h2>👤 פרופיל</h2>
     <label class="lbl" style="margin-top:4px">השם שלך</label>
-    <input class="search" id="nameIn" value="${esc(S.name)}" placeholder="יופיע בברכה, באתגרים ובתעודה" maxlength="40">
+    <input class="search" id="nameIn" value="${esc(S.name)}" placeholder="יופיע בברכה ובתעודה" maxlength="40">
     <label class="lbl">מטרה יומית (שאלות)</label>
     <div class="seg" id="goal">${[10, 20, 30, 50].map(n => `<button data-k="${n}" class="${S.goal === n ? "on" : ""}">${n}</button>`).join("")}</div>
   </div>
@@ -1961,15 +1402,6 @@ function renderSettings() {
       <button class="btn block" id="remTest">שליחת התראת ניסיון</button>
       <p class="muted xs" style="margin:10px 0 0">${isNative() ? "✅ התזכורות מתוזמנות במכשיר ויגיעו גם כשהאפליקציה סגורה." : "בגרסת האינטרנט התזכורות מגיעות בזמן כשהאפליקציה פתוחה או ברקע. כשהיא סגורה לגמרי – הטלפון שולח אותן לכל היותר בערך פעם ביום. בגרסת האנדרואיד המלאה הן יגיעו בדיוק בזמן."}</p>
     </div>
-  </div>
-
-  <div class="card">
-    <h2>🖥️ שומר מסך</h2>
-    <div class="switch-row"><div><b class="small">שומר מסך עם עובדות</b><div class="muted xs">כשהאפליקציה פתוחה ולא נוגעים בה – עובדה חדשה כל 2 דקות</div></div><label class="switch"><input type="checkbox" id="svOn" ${sv.on ? "checked" : ""}><i></i></label></div>
-    <label class="lbl">להפעיל אחרי</label>
-    <div class="seg" id="svIdle">${[[30, "30 שנ׳"], [60, "דקה"], [120, "2 דק׳"], [300, "5 דק׳"]].map(([k, v]) => `<button data-k="${k}" class="${sv.idle === k ? "on" : ""}">${v}</button>`).join("")}</div>
-    <div class="switch-row"><div><b class="small">להשאיר את המסך דולק</b><div class="muted xs">בזמן ששומר המסך פועל</div></div><label class="switch"><input type="checkbox" id="svWake" ${sv.wake ? "checked" : ""}><i></i></label></div>
-    <button class="btn block" id="svTry">הפעלה עכשיו</button>
   </div>
 
   <div class="card">
@@ -2015,8 +1447,6 @@ function renderSettings() {
 
   const segBind = (sel, fn) => $(sel).onclick = e => { const b = e.target.closest("button"); if (!b) return; $(sel).querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); fn(b.dataset.k); save(); };
   $("#nameIn").onchange = e => { S.name = e.target.value.trim(); save(); };
-  $("#setMode").onclick = e => { const b = e.target.closest("button"); if (!b) return; setMode(b.dataset.k, false); renderSettings(); };
-  $("#setShop").onclick = shopSheet;
   segBind("#goal", k => { S.goal = +k; });
   $("#remOn").onchange = async e => {
     if (e.target.checked) {
@@ -2032,10 +1462,6 @@ function renderSettings() {
   $("#qTo").onchange = e => { rem.quietTo = e.target.value; save(); syncReminders(); };
   $("#remFact").onchange = e => { rem.fact = e.target.checked; save(); syncReminders(); };
   $("#remTest").onclick = async () => { if (await enableNotifications()) showReminder(true); };
-  $("#svOn").onchange = e => { sv.on = e.target.checked; save(); resetIdle(); };
-  segBind("#svIdle", k => { sv.idle = +k; resetIdle(); });
-  $("#svWake").onchange = e => { sv.wake = e.target.checked; save(); };
-  $("#svTry").onclick = openSaver;
   segBind("#theme", k => { st.theme = k; applyTheme(); });
   app.querySelectorAll("#diffSeg button").forEach(b => b.onclick = () => { st.diff = b.dataset.k; save(); toast("🎯", "רמת הקושי עודכנה"); renderSettings(); });
   app.querySelectorAll("[data-s]").forEach(i => i.onchange = () => { st[i.dataset.s] = i.checked; save(); if (i.dataset.s === "sound" && i.checked) beep(true); });
@@ -2162,52 +1588,12 @@ async function syncReminders() {
 setInterval(checkReminder, 60000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkReminder(); });
 
-/* ───────── שומר מסך ───────── */
-let idleTimer = null, saverEl = null, saverInt = null, wakeLock = null;
-function resetIdle() {
-  clearTimeout(idleTimer);
-  const sv = S.settings.saver;
-  if (!sv.on || saverEl) return;
-  idleTimer = setTimeout(() => { if (!session && !flash && !document.querySelector(".modal-bg") && document.visibilityState === "visible") openSaver(); else resetIdle(); }, sv.idle * 1000);
-}
-["pointerdown", "keydown", "scroll", "touchstart", "wheel"].forEach(ev => window.addEventListener(ev, resetIdle, { passive: true }));
-async function openSaver() {
-  if (saverEl) return;
-  clearTimeout(idleTimer);
-  saverEl = document.createElement("div"); saverEl.className = "saver";
-  saverEl.innerHTML = `<div class="saver-top"><span id="svClock"></span><span>מאמן ידע ✦</span></div>
-    <div class="saver-mid"><span class="tag" id="svTag"></span><div class="saver-fact" id="svFact"></div>
-      <div class="row" style="justify-content:center"><button class="saver-fav" id="svFav">🤍</button><button class="saver-fav" id="svAsk">❓ לא הבנתי</button></div></div>
-    <div class="saver-bot"><div class="saver-bar"><i id="svBar"></i></div><span>הקש בכל מקום כדי לחזור</span></div>`;
-  document.body.append(saverEl);
-  let cur;
-  const clock = () => { const el = $("#svClock"); if (el) el.textContent = new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); };
-  const show = () => {
-    cur = nextFact(); const el = $("#svFact"); if (!el) return;
-    el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
-    el.innerHTML = linkTerms(cur.t); $("#svTag").textContent = factTag(cur.c); $("#svFav").textContent = S.factFav.includes(cur.i) ? "❤️" : "🤍";
-    const bar = $("#svBar"); bar.style.transition = "none"; bar.style.width = "0%"; void bar.offsetWidth; bar.style.transition = `width ${SAVER_ROTATE}s linear`; bar.style.width = "100%";
-    clock(); checkAchievements(); save();
-  };
-  show();
-  saverInt = setInterval(() => { show(); }, SAVER_ROTATE * 1000);
-  const clockInt = setInterval(clock, 20000);
-  saverEl.addEventListener("click", e => {
-    if (e.target.id === "svFav") { toggleFav(cur.i); $("#svFav").textContent = S.factFav.includes(cur.i) ? "❤️" : "🤍"; return; }
-    if (e.target.id === "svAsk") { askSheet(cur.t); return; }
-    clearInterval(saverInt); clearInterval(clockInt); saverEl.remove(); saverEl = null;
-    try { wakeLock && wakeLock.release(); } catch (err) { } wakeLock = null;
-    resetIdle();
-  });
-  if (S.settings.saver.wake && navigator.wakeLock) { try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { } }
-}
-
 /* ───────── מסך פתיחה ───────── */
 function onboarding(after) {
   const slides = [
     { em: "💪", t: "ברוכים הבאים למאמן ידע", d: `${BANK.length} שאלות ב־${TOPIC_KEYS.length} תחומים – מאנטומיה ועד פסיכולוגיה של אימון. הכול עובד גם בלי אינטרנט.` },
-    { em: "🧠", t: "לומדים חכם, לא קשה", d: "אתגר יומי, חזרה על טעויות בזמן הנכון, כרטיסיות, שיעורים קצרים ומחשבונים למדריך." },
-    { em: "🔥", t: "שומרים על רצף", d: "מטרה יומית, רמות, הישגים, ואתגרים מול חברים. כמה דקות ביום – וזה מצטבר." }
+    { em: "🧠", t: "לומדים חכם, לא קשה", d: "אימון יומי חכם, חזרה על טעויות בזמן הנכון, שיעורים קצרים ומבחנים מדומים." },
+    { em: "🔥", t: "שומרים על רצף", d: "מטרה יומית, רמות ומעקב שליטה בכל נושא. כמה דקות ביום – וזה מצטבר." }
   ];
   let i = 0;
   const el = document.createElement("div"); el.className = "onb";
@@ -2217,14 +1603,10 @@ function onboarding(after) {
       <button class="link-btn small onb-skip" data-a="skip">${last ? "" : "דילוג"}</button>
       ${last ? `<div class="onb-em">👋</div><h1>בוא נכיר</h1><p class="muted">אפשר לשנות הכול אחר כך בהגדרות.</p>
         <label class="lbl">איך קוראים לך?</label><input class="search" id="onbName" placeholder="השם שלך (לא חובה)" maxlength="40" value="${esc(S.name)}">
-        <label class="lbl">איך תרצה להשתמש באפליקציה?</label>
-        <div class="mode-pick" id="onbMode"><button data-k="play" class="${(S.mode || "play") === "play" ? "on" : ""}"><span>🎮</span><b>משחק</b><small>מסע, שלבים, בוסים ומטבעות</small></button><button data-k="learn" class="${S.mode === "learn" ? "on" : ""}"><span>📚</span><b>לימוד</b><small>שיעורים, תרגול ומבחנים</small></button></div>
         <label class="lbl">כמה שאלות ביום?</label><div class="seg" id="onbGoal">${[10, 20, 30, 50].map(n => `<button data-k="${n}" class="${S.goal === n ? "on" : ""}">${n}</button>`).join("")}</div>`
         : `<div class="onb-em">${slides[i].em}</div><h1>${slides[i].t}</h1><p class="muted" style="font-size:16px">${slides[i].d}</p>`}
       <div class="onb-dots">${[0, 1, 2, 3].map(k => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div>
-      <button class="btn primary block lg" data-a="next">${last ? "יאללה, מתחילים! 🚀" : "הבא ←"}</button></div>`;
-    const mp = el.querySelector("#onbMode");
-    if (mp) mp.onclick = e => { const b = e.target.closest("button"); if (!b) return; S.mode = b.dataset.k; mp.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); };
+      <button class="btn primary block lg" data-a="next">${last ? "מתחילים" : "הבא ←"}</button></div>`;
     const g = el.querySelector("#onbGoal");
     if (g) g.onclick = e => { const b = e.target.closest("button"); if (!b) return; S.goal = +b.dataset.k; g.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); };
   };
@@ -2232,7 +1614,6 @@ function onboarding(after) {
     const a = e.target.dataset.a; if (!a) return;
     if (a === "next" && i < slides.length) { i++; draw(); return; }
     const n = el.querySelector("#onbName"); if (n) S.name = n.value.trim();
-    if (!S.mode) S.mode = "play";
     S.onboarded = true; save(); el.remove(); go("home");
     if (typeof after === "function") after();
     if (a === "next" && i === slides.length) setTimeout(() => toast("🎯", `המטרה היומית שלך: ${S.goal} שאלות`), 300);
@@ -2280,6 +1661,5 @@ function handleParams() {
   }
 }
 if (!S.onboarded) onboarding(handleParams);
-else if (!S.mode) { modeSheet(); handleParams(); }
 else handleParams();
-checkReminder(); resetIdle();
+checkReminder();

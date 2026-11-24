@@ -148,7 +148,7 @@ function helpSheet() {
   const s = session; if (!s) return;
   const it = s.items[s.idx], q = it.q, first = !it.helped;
   it.helped = true;
-  sheet(`<div style="max-height:72vh;overflow:auto"><h2>💡 עזרה</h2><p class="muted xs">לא התשובה – אלא מה שצריך לדעת כדי לפתור לבד.${PLAY() && first ? " (תשובה נכונה אחרי עזרה = חצי מטבעות)" : ""}</p>${helpFor(q)}</div>
+  sheet(`<div style="max-height:72vh;overflow:auto"><h2>💡 עזרה</h2><p class="muted xs">לא התשובה – אלא מה שצריך לדעת כדי לפתור לבד.</p>${helpFor(q)}</div>
     <div class="row"><button class="btn primary" data-a="x">הבנתי – חוזר לשאלה 💪</button></div>`, (e, close) => { if (e.target.dataset.a) close(); });
   const b = $("#helpBtn"); if (b) b.classList.add("used");
   S.helpsUsed = (S.helpsUsed || 0) + 1; save();
@@ -163,7 +163,7 @@ renderQuestion = function () {
   const it = s.items[s.idx], q = it.q;
   if (!s.instant || it.done || q.t === "open" || HELP_OFF.includes(s.mode)) return;
   const opts = $("#opts"); if (!opts) return;
-  opts.insertAdjacentHTML("beforebegin", `<button class="help-btn ${it.helped ? "used" : ""}" id="helpBtn">💡 ${it.helped ? "פתח שוב את העזרה" : "לא בטוח? עזרה – למד על הנושא"}</button>`);
+  opts.insertAdjacentHTML("beforebegin", `<button class="help-btn ${it.helped ? "used" : ""}" id="helpBtn">${it.helped ? "פתח שוב את העזרה" : "לא בטוח? עזרה בנושא"}</button>`);
   $("#helpBtn").onclick = helpSheet;
 };
 const _onAnswerH = onAnswer;
@@ -172,7 +172,6 @@ onAnswer = function (s, it) {
   if (!it.helped) return;
   const st = S.qs[it.q.id];
   if (st) st.due = Date.now() + 864e5;           // השאלה תחזור מחר – לוודא שזה נלמד
-  if (it.grade === 1 && it.coins) { const back = Math.floor(it.coins / 2); S.coins = Math.max(0, S.coins - back); it.coins -= back; updateHeader(); }
 };
 
 /* "למד עוד על הנושא" מתוך שאלה: קודם מה שקשור לשאלה הזו, ואז השיעור */

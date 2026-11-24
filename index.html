@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f17">
-<meta name="description" content="מאמן ידע – תרגול ומבחנים למדריכי כושר: כמעט 300 שאלות באנטומיה, פיזיולוגיה, טכניקה, תכנון אימונים, TRX, תזונה, בטיחות ופסיכולוגיה של אימון.">
+<meta name="description" content="מאמן ידע – תרגול ומבחנים למדריכי כושר: מאות שאלות באנטומיה, פיזיולוגיה, טכניקה, תכנון אימונים, TRX, תזונה, בטיחות ופסיכולוגיה של אימון.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=10.0.0">
+<link rel="stylesheet" href="styles.css?v=11.0.0">
 <title>מאמן ידע | מבחני כושר</title>
 <script>
 // קביעת ערכת צבעים לפני הטעינה כדי למנוע הבהוב
@@ -20,10 +20,8 @@ try{const s=JSON.parse(localStorage.getItem("ck_state_v3")||"{}");const t=(s.set
   <div class="topbar-in">
     <div class="brand"><img class="brand-dot" src="icons/icon-192.png" alt="">מאמן <b>ידע</b></div>
     <div class="spacer"></div>
-    <span class="chip-stat" id="streakChip" title="רצף ימים">🔥 <span>0</span></span>
-    <button class="chip-stat hidden" id="coinChip" title="מטבעות – החנות">🪙 <span>0</span></button>
-    <button class="icon-btn mode-chip" id="modeChip" aria-label="החלפת מצב">🎮</button>
-    <button class="icon-btn" id="settingsBtn" aria-label="הגדרות">⚙️</button>
+    <span class="chip-stat" id="streakChip" title="ימים ברצף"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c4 0 7-2.7 7-7 0-3.5-2.5-6.5-4.5-8.5 0 2.5-1.5 4-3 4.5C11.5 8 10 5 8.5 2.5 8 6 5 9 5 14.5 5 19 8 22 12 22z"/></svg> <span>0</span></span>
+    <button class="icon-btn" id="settingsBtn" aria-label="הגדרות"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
 </header>
 
@@ -31,43 +29,36 @@ try{const s=JSON.parse(localStorage.getItem("ck_state_v3")||"{}");const t=(s.set
 
 <nav class="nav" aria-label="ניווט ראשי">
   <div class="nav-in">
-    <button data-tab="home" class="on"><span class="ni">🏠</span>בית</button>
-    <button data-tab="practice"><span class="ni">🎯</span>תרגול</button>
-    <button data-tab="learn"><span class="ni">📘</span>למידה</button>
-    <button data-tab="plan"><span class="ni">🏋️</span>תוכנית אימון</button>
-    <button data-tab="tools"><span class="ni">🍽️</span>אוכל וכלים</button>
-    <button data-tab="stats"><span class="ni">📊</span>התקדמות</button>
+    <button data-tab="home" class="on"><span class="ni"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg></span>בית</button>
+    <button data-tab="practice"><span class="ni"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></span>תרגול</button>
+    <button data-tab="learn"><span class="ni"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5V4.5"/><path d="M8 7h8"/></svg></span>למידה</button>
+    <button data-tab="tools"><span class="ni"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></span>כלים</button>
+    <button data-tab="stats"><span class="ni"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>התקדמות</button>
   </div>
 </nav>
 
-<script src="questions.js?v=10.0.0"></script>
-<script src="questions2.js?v=10.0.0"></script>
-<script src="questions3.js?v=10.0.0"></script>
-<script src="questions4.js?v=10.0.0"></script>
-<script src="questions5.js?v=10.0.0"></script>
-<script src="questions6.js?v=10.0.0"></script>
-<script src="facts.js?v=10.0.0"></script>
-<script src="lessons.js?v=10.0.0"></script>
-<script src="foods.js?v=10.0.0"></script>
-<script src="app.js?v=10.0.0"></script>
-<script src="config.js?v=10.0.0"></script>
-<script src="lib/peerjs.min.js?v=10.0.0"></script>
-<script src="duel.js?v=10.0.0"></script>
-<script src="fundata.js?v=10.0.0"></script>
-<script src="fun.js?v=10.0.0"></script>
-<script src="extra.js?v=10.0.0"></script>
-<script src="more.js?v=10.0.0"></script>
-<script src="hints.js?v=10.0.0"></script>
-<script src="help.js?v=10.0.0"></script>
-<script src="visuals.js?v=10.0.0"></script>
-<script src="anim.js?v=10.0.0"></script>
-<script src="plan.js?v=10.0.0"></script>
-<script src="log.js?v=10.0.0"></script>
-<script src="train.js?v=10.0.0"></script>
-<script src="learn.js?v=10.0.0"></script>
-<script src="game.js?v=10.0.0"></script>
-<script src="questions_en.js?v=10.0.0"></script>
-<script src="lang_en.js?v=10.0.0"></script>
-<script src="lang.js?v=10.0.0"></script>
+<script src="questions.js?v=11.0.0"></script>
+<script src="questions2.js?v=11.0.0"></script>
+<script src="questions3.js?v=11.0.0"></script>
+<script src="questions4.js?v=11.0.0"></script>
+<script src="questions5.js?v=11.0.0"></script>
+<script src="questions6.js?v=11.0.0"></script>
+<script src="facts.js?v=11.0.0"></script>
+<script src="lessons.js?v=11.0.0"></script>
+<script src="foods.js?v=11.0.0"></script>
+<script src="app.js?v=11.0.0"></script>
+<script src="core.js?v=11.0.0"></script>
+<script src="hints.js?v=11.0.0"></script>
+<script src="help.js?v=11.0.0"></script>
+<script src="visuals.js?v=11.0.0"></script>
+<script src="anim.js?v=11.0.0"></script>
+<script src="plan.js?v=11.0.0"></script>
+<script src="log.js?v=11.0.0"></script>
+<script src="train.js?v=11.0.0"></script>
+<script src="learn.js?v=11.0.0"></script>
+<script src="game.js?v=11.0.0"></script>
+<script src="questions_en.js?v=11.0.0"></script>
+<script src="lang_en.js?v=11.0.0"></script>
+<script src="lang.js?v=11.0.0"></script>
 </body>
 </html>

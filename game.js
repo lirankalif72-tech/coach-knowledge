@@ -91,7 +91,7 @@ function gShake(el) { if (!el) return; el.classList.remove("g-shake"); void el.o
 function gScreen(title, right, body, cls = "") {
   funScreen(`<div class="g ${cls} fade-in" data-notr><div class="g-head"><button class="g-back" id="gBack" aria-label="${GT("חזרה", "Back")}">${ic("back", 22)}</button><b class="g-title">${title}</b><div class="g-right">${right || ""}</div></div>${body}</div>`);
   document.body.classList.add("gm");
-  $("#gBack").onclick = () => gamesPage();
+  $("#gBack").onclick = () => go("practice");
 }
 function gStop() { if (RK) { clearInterval(RK.t); clearTimeout(RK.auto); RK.over = true; RK = null; } }
 
@@ -320,9 +320,9 @@ function wdFinish(win) {
     const y = today(new Date(Date.now() - 864e5));
     if (win) { st.wins++; st.streak = st.last === y ? st.streak + 1 : 1; st.max = Math.max(st.max, st.streak); st.dist[tries - 1]++; } else st.streak = 0;
     st.last = today();
-    addCoins(win ? 15 + (6 - tries) * 5 : 3, true); addXP(win ? 30 + (6 - tries) * 5 : 10);
+    addXP(win ? 30 + (6 - tries) * 5 : 10);
     touchStreak(); logHistory({ mode: "word", title: GT("מילה יומית", "Daily word"), score: win ? 100 : 0, n: tries }); save();
-  } else if (win) { addCoins(5, true); save(); }
+  } else if (win) { addXP(5); save(); }
   if (win) {
     sfx("win"); vib(30);
     app.querySelectorAll(`.wd-line[data-r="${tries - 1}"] .wd-t`).forEach((t, i) => { t.style.animationDelay = i * 0.08 + "s"; t.classList.add("bounce"); });
@@ -456,9 +456,9 @@ function cnFinish() {
   if (!CN.practice) {
     const G = S.g.cn, y = today(new Date(Date.now() - 864e5));
     G.played++; if (st.win) { G.wins++; G.streak = G.last === y ? G.streak + 1 : 1; } else G.streak = 0; G.last = today();
-    addCoins(st.win ? 15 + st.mistakes * 5 : 3, true); addXP(st.win ? 30 + st.mistakes * 5 : 10);
+    addXP(st.win ? 30 + st.mistakes * 5 : 10);
     touchStreak(); logHistory({ mode: "conn", title: GT("קבוצות", "Connections"), score: st.win ? 100 : 0, n: 4 - st.mistakes }); save();
-  } else if (st.win) { addCoins(5, true); save(); }
+  } else if (st.win) { addXP(5); save(); }
   sfx(st.win ? "win" : "lose");
   cnEnd(true);
 }
@@ -600,8 +600,8 @@ function rkEnd(forfeit) {
   if (res === 1) delta = Math.max(6, delta); if (res === 0) delta = Math.min(-6, delta);
   const old = R.r; R.r = Math.max(0, R.r + delta); R.best = Math.max(R.best, R.r);
   if (res === 1) { R.w++; R.streak++; } else if (res === 0) { R.l++; R.streak = 0; } else R.dr = (R.dr || 0) + 1;
-  const coins = (res === 1 ? 25 : res === 0.5 ? 10 : 5) + K.right * 2;
-  addCoins(coins, true); addXP(20 + K.right * 8 + (res === 1 ? 25 : 0));
+  const xpGain = 20 + K.right * 8 + (res === 1 ? 25 : 0);
+  addXP(xpGain);
   touchStreak(); logHistory({ mode: "ranked", title: GT("קרב מדורג", "Ranked"), score: pct(K.right, RK_N), n: RK_N }); save();
   sfx(res === 1 ? "win" : "lose");
   const dOld = rkDiv(old), dNew = rkDiv(R.r), avg = K.times.length ? (K.times.reduce((a, b) => a + b, 0) / K.times.length).toFixed(1) : "–";
@@ -612,7 +612,7 @@ function rkEnd(forfeit) {
     <div class="rk-final" dir="ltr"><b>${K.me}</b><span>–</span><b>${K.op}</b></div>
     <div class="rk-delta"><span dir="ltr" id="rkR">${old}</span><em class="${delta >= 0 ? "up" : "down"}" dir="ltr">${delta >= 0 ? "+" : ""}${delta}</em></div>
     ${dNew !== dOld ? `<div class="rk-promo" style="--c:${dNew.c}">${rkBadge(R.r, 22)} ${R.r > old ? GT("עלית ל", "Promoted to ") : GT("ירדת ל", "Dropped to ")}${GT(dNew.he, dNew.en)}</div>` : ""}
-    <div class="g-stats"><div><b>${K.right}/${RK_N}</b><span>${GT("נכונות", "Correct")}</span></div><div><b dir="ltr">${avg}s</b><span>${GT("זמן ממוצע", "Avg time")}</span></div><div><b dir="ltr">+${coins}</b><span>${GT("מטבעות", "Coins")}</span></div></div>
+    <div class="g-stats"><div><b>${K.right}/${RK_N}</b><span>${GT("נכונות", "Correct")}</span></div><div><b dir="ltr">${avg}s</b><span>${GT("זמן ממוצע", "Avg time")}</span></div><div><b dir="ltr">+${xpGain}</b><span>XP</span></div></div>
     <button class="g-btn primary big" id="rkAgain">${GT("קרב נוסף", "Play again")}</button>
     ${K.wrong.length ? `<button class="g-btn" id="rkRev">${GT("חזרה על הטעויות", "Review mistakes")} (${K.wrong.length})</button>` : ""}
     <button class="g-btn ghost" id="rkHome">${GT("לדף הדירוג", "Ranked home")}</button></div>`, "rk");
@@ -691,42 +691,20 @@ function hlGuess(dir) {
 function hlOver() {
   const B = S.g.hl, rec = HL.streak > B[HL.m];
   if (rec) B[HL.m] = HL.streak;
-  const coins = Math.floor(HL.streak / 2);
-  if (coins) addCoins(coins, true); addXP(5 + HL.streak * 4);
+  addXP(5 + HL.streak * 4);
   if (HL.streak >= 3) touchStreak();
   logHistory({ mode: "hl", title: GT("יותר או פחות", "Higher or lower"), score: 100, n: HL.streak }); save();
   if (rec && HL.streak > 0) sfx("win");
   $("#hlW").querySelector(".hl-btns")?.remove();
   $("#hlEnd").innerHTML = `<div class="g-card in hl-end"><div class="g-kicker">${rec && HL.streak ? GT("שיא חדש", "New best") : GT("הרצף נגמר", "Streak over")}</div>
-    <h1 class="rk-out">${HL.streak}</h1><div class="g-note">${GT("שיא", "Best")}: ${B[HL.m]}${coins ? ` · +${coins} ${GT("מטבעות", "coins")}` : ""}</div>
+    <h1 class="rk-out">${HL.streak}</h1><div class="g-note">${GT("שיא", "Best")}: ${B[HL.m]}</div>
     <button class="g-btn primary big" id="hlAgain">${GT("שוב", "Play again")}</button><button class="g-btn ghost" id="hlMenu">${GT("החלפת מדד", "Change metric")}</button></div>`;
   $("#hlAgain").onclick = () => hlStart(HL.m); $("#hlMenu").onclick = hlGame;
 }
 
-/* ═════════ עיצוב משחקי החידון הקיימים ═════════ */
-const GM_MODES = ["quick", "speed", "survival", "sudden", "challenge", "terms", "img"];
-function gmFx(ok) {
-  if (!document.body.classList.contains("gm")) return;
-  setTimeout(() => {
-    if (ok) { const o = app.querySelector(".opt.ok"); o && o.classList.add("glow"); }
-    else gShake(app.querySelector(".opt.no") || app.querySelector("#opts"));
-  }, 30);
-}
-const _renderQuestionG = renderQuestion;
-renderQuestion = function () { _renderQuestionG(); document.body.classList.toggle("gm", !!(session && GM_MODES.includes(session.mode))); };
-const _onAnswerG = onAnswer;
-onAnswer = function (s, it) { const r = _onAnswerG(s, it); if (GM_MODES.includes(s.mode)) gmFx(it.grade === 1); return r; };
-const _answerSpeedG = answerSpeed;
-answerSpeed = function () { const r = _answerSpeedG(); const it = session && session.items[session.idx]; if (it) gmFx(it.grade === 1); return r; };
-["swipeTF", "whoAmI", "guessGame", "storiesPage", "playStory", "millionaire", "spotMistake"].forEach(n => {
-  if (typeof window[n] !== "function") return;
-  const f = window[n];
-  window[n] = function (...a) { const r = f.apply(this, a); document.body.classList.add("gm"); return r; };
-});
-
-/* ═════════ עמוד המשחקים ובית ═════════ */
-const TILE_IC = { quick: "dice", speed: "zap", survival: "heart", sudden: "alert", challenge: "users", duel: "swords", who: "search", swipe: "swipe", story: "film", img: "image", guess: "target", terms: "book", mil: "coins", spot: "camera", body: "body", prep: "cap", fa: "plus", drills: "mic", demos: "video" };
+/* ═════════ חיבור למסכים (הכרטיסים עצמם מצוירים ב־learn.js) ═════════ */
 function gStatus() {
+  ensureG();
   const L = EN_() ? "en" : "he", w = S.g.wd[L], c = S.g.cn, R = S.g.rk, d = rkDiv(R.r);
   return {
     wd: w.d === today() && w.done ? (w.win ? GT("✓ נפתר היום", "✓ Solved today") : GT("נסה שוב מחר", "Try again tomorrow")) : GT("מילה חדשה היום", "New word today"),
@@ -742,35 +720,7 @@ const G_GAMES = () => [
   ["rk", "trophy", GT("קרב מדורג", "Ranked"), GT("1 על 1 · דירוג ודרגות", "1v1 · rating and divisions"), rankedGame],
   ["hl", "updown", GT("יותר או פחות", "Higher or lower"), GT("קלוריות וחלבון במזון", "Calories and protein in food"), hlGame],
 ];
-const _gamesPageA = gamesPage;
-gamesPage = function () {
-  gStop(); ensureG(); WD = null; document.body.classList.remove("gm");
-  _gamesPageA();
-  const root = app.firstElementChild; if (!root) return;
-  root.classList.add("gp");
-  root.querySelectorAll(".mode").forEach(b => {
-    const k = b.dataset.fun || b.dataset.mm || b.dataset.xx, em = b.querySelector(".em");
-    if (em && TILE_IC[k] && !b.classList.contains("locked")) em.innerHTML = ic(TILE_IC[k], 20);
-    else if (em && b.classList.contains("locked")) em.innerHTML = ic("alert", 20);
-  });
-  const h = root.querySelector("h2"); if (!h) return;
-  const st = gStatus();
-  h.insertAdjacentHTML("afterend", `<div class="section-title"><h2>${GT("משחקים חדשים", "New games")}</h2></div>
-    <div class="g-feat" data-notr>${G_GAMES().map(([k, i, t, s]) => `<button class="g-fc" data-g="${k}"><span class="g-fi">${ic(i, 22)}</span><b>${t}</b><small>${s}</small><em class="${(k === "wd" && st.wdNew) || (k === "cn" && st.cnNew) ? "new" : ""}">${st[k]}</em></button>`).join("")}</div>`);
-  root.querySelectorAll(".g-fc").forEach(b => b.onclick = () => G_GAMES().find(g => g[0] === b.dataset.g)[4]());
-};
+function gamesPage() { go("practice"); }
 const _goA = go;
 go = function (...a) { gStop(); WD = null; document.body.classList.remove("gm"); return _goA(...a); };
-const _renderHomeA = renderHome;
-renderHome = function () {
-  _renderHomeA();
-  if (app.querySelector(".g-home")) return;
-  const st = gStatus();
-  const html = `<div class="g-home" data-notr>
-    <button class="g-hc" data-g="wd"><span class="g-fi">${ic("word", 20)}</span><div><b>${GT("המילה היומית", "Daily word")}</b><small>${st.wd}</small></div>${st.wdNew ? "<i></i>" : ""}</button>
-    <button class="g-hc" data-g="rk"><span class="g-fi">${rkBadge(S.g.rk.r, 22)}</span><div><b>${GT("קרב מדורג", "Ranked")}</b><small>${st.rk}</small></div></button></div>`;
-  const a = $("#lhMore"), b = app.querySelector(".tiles3");
-  if (a) a.insertAdjacentHTML("beforebegin", html); else if (b) b.insertAdjacentHTML("afterend", html); else return;
-  app.querySelectorAll(".g-hc").forEach(x => x.onclick = () => (x.dataset.g === "wd" ? wordGame : rankedGame)());
-};
-if (typeof tab !== "undefined" && tab === "home" && !session && !document.querySelector(".modal-bg")) { try { renderHome(); } catch (e) { } }
+if (typeof tab !== "undefined" && (tab === "home" || tab === "practice") && !session && !document.querySelector(".modal-bg")) { try { go(tab); } catch (e) { } }

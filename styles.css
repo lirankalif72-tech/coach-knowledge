@@ -1175,3 +1175,72 @@ body.gm .tag{background:var(--card2);color:var(--muted)}
 body.gm .pu{background:var(--card);border-color:var(--line)}
 body.gm .timer{background:var(--card);border-color:var(--line)}
 .g [hidden]{display:none!important}
+
+/* ── v11 עיצוב נקי ורציני ── */
+.nav-in{grid-template-columns:repeat(5,1fr)}
+.nav button{font-size:11px;gap:4px}
+.nav button .ni{filter:none;opacity:.7;display:grid;place-items:center;height:24px}
+.nav button.on{color:var(--accent)}
+.nav button.on .ni{opacity:1;transform:none}
+.chip-stat svg{color:var(--warn)}
+.icon-btn svg{color:var(--muted)}
+.ui-ic{display:block;flex:none}
+h1{font-size:24px;font-weight:750}
+.section-title h2{font-size:13px;font-weight:700;color:var(--muted);text-transform:none;letter-spacing:.2px}
+.section-title{margin:20px 4px 2px}
+.back-link{background:none;border:0;color:var(--muted);font-size:14px;font-weight:600;padding:4px 0;cursor:pointer;display:block}
+.back-link:hover{color:var(--text)}
+
+/* רשימה אחידה */
+.card.list{padding:4px 0;overflow:hidden}
+.lrow{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:13px 16px;text-align:start;color:var(--text);cursor:pointer;font:inherit;transition:background .15s}
+.card.list .lrow:first-child{border-top:0}
+.lrow:hover{background:color-mix(in srgb,var(--text) 4%,transparent)}
+.lrow:active{background:color-mix(in srgb,var(--text) 7%,transparent)}
+.lr-ic{width:38px;height:38px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.lr-ic.em{font-size:19px;background:var(--card2)}
+.lr-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.lr-tx b{font-size:15px;font-weight:650;line-height:1.3}
+.lr-tx small{font-size:12.5px;color:var(--muted);line-height:1.35}
+.lr-ch{color:var(--muted);opacity:.6;flex:none}
+[dir="ltr"] .lr-ch svg,html[dir="ltr"] .lr-ch svg{transform:scaleX(-1)}
+html[dir="ltr"] .back-link{direction:ltr}
+
+/* בית */
+.lh-greet{color:var(--muted);font-size:14px;margin:6px 4px 0}
+.lh-lvl{padding:16px}
+.lh-lvl-top{display:flex;align-items:center;gap:14px}
+.lh-lvl .level-badge{width:46px;height:46px;border-radius:14px;font-size:19px}
+.lh-lvl-tx{flex:1;min-width:0}
+.lh-lvl-tx b{font-size:16px;font-weight:700}
+.lh-lvl-tx .xpbar{margin:7px 0 3px}
+.lh-lvl-tx small{color:var(--muted);font-size:12px}
+.lh-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.lh-stats div{display:flex;flex-direction:column;align-items:center;gap:1px}
+.lh-stats div+div{border-inline-start:1px solid var(--line)}
+.lh-stats b{font-size:17px;font-weight:750;font-variant-numeric:tabular-nums}
+.lh-stats span{font-size:11.5px;color:var(--muted)}
+.dw-card{border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:linear-gradient(170deg,color-mix(in srgb,var(--accent) 9%,var(--card)) 0%,var(--card) 70%);padding:18px}
+.dw-k{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.3px}
+.dw-t{display:block;font-size:20px;font-weight:750;margin:2px 0 4px;letter-spacing:-.3px}
+.dw-parts{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 14px}
+.dw-parts span{font-size:12px;color:var(--muted);background:var(--card2);border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+.dw-btn{margin:0}
+.dw-done{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:9px;color:var(--accent)}
+.term-card{padding:16px}
+.tc-k{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.term-card b{font-size:17px}
+.term-card p{margin:4px 0 0;font-size:14.5px;color:color-mix(in srgb,var(--text) 82%,var(--muted));line-height:1.6}
+.lh .g-home{margin:4px 0 0}
+.lh .footer-note{margin-top:18px}
+
+/* אתגרים בתוך האפליקציה הרגילה */
+.g-fc .g-fi,.g-hc .g-fi{color:var(--accent)}
+.g-fc em{font-style:normal}
+
+/* מפת גוף */
+.bm-l{margin-top:8px}.bm-l div{font-size:14.5px}
+
+/* שאלה – פחות רעש */
+.feedback .t{font-weight:750}
+.toast .em{font-size:16px}
