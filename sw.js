@@ -1,8 +1,8 @@
 // להעלות את המספר בכל עדכון של האפליקציה, כדי שהמשתמשים יקבלו את הגרסה החדשה
-const CACHE = 'coach-knowledge-v42';
+const CACHE = 'coach-knowledge-v45';
 const FILES = [
   './', './index.html', './styles.css', './app.js',
-  './questions.js', './questions2.js', './questions3.js', './questions4.js', './questions5.js', './questions6.js', './facts.js', './lessons.js', './foods.js', './core.js', './hints.js', './help.js', './visuals.js', './anim.js', './plan.js', './log.js', './train.js', './learn.js', './game.js', './questions_en.js', './lang_en.js', './lang.js',
+  './questions.js', './questions2.js', './questions3.js', './questions4.js', './questions5.js', './questions6.js', './questions7.js', './facts.js', './lessons.js', './lessons2.js', './lessons2_en.js', './foods.js', './core.js', './hints.js', './help.js', './visuals.js', './anim.js', './plan.js', './log.js', './train.js', './learn.js', './game.js', './v12.js', './exlib_data.js', './v12b.js', './lab_data.js', './v12c.js', './questions_en.js', './quality_en.js', './quality.js', './lang_en.js', './lang.js',
   './privacy.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
 ];
