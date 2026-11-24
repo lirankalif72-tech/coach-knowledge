@@ -1,1051 +1,776 @@
-/* ═════════ v9.2 – ארקייד חדש: Fit Royale + Myth Defense ═════════
-   שני משחקים בסגנון קרטוני צבעוני, במסך מלא, עם צלילים, דמויות לקנייה,
-   אתגר יומי וחזרה על הטעויות בסוף כל משחק. */
+/* ═════════ v10 – משחקים בעיצוב כהה ונקי ═════════
+   מילה יומית · קבוצות · קרב מדורג 1 על 1 · יותר או פחות
+   + עיצוב אחיד ובוגר לכל משחקי החידון ולעמוד המשחקים. */
 
-/* ───── עזרים משותפים ───── */
+/* ───── עזרים ───── */
 const GT = (he, en) => (typeof isEn === "function" && isEn()) ? en : he;
-const AR_SKINS = [
-  { em: "🙂", p: 0 }, { em: "🦊", p: 80 }, { em: "🐼", p: 120 }, { em: "🐯", p: 150 }, { em: "🐸", p: 180 },
-  { em: "🤖", p: 220 }, { em: "🦄", p: 280 }, { em: "🐲", p: 350 }, { em: "🦁", p: 450 }, { em: "👑", p: 600 }
-];
-function ensureArcade() {
+const EN_ = () => typeof isEn === "function" && isEn();
+function ensureG() {
   if (S.tc) delete S.tc;
   if (S.best && "blast" in S.best) delete S.best.blast;
-  const A = S.arc = S.arc || {};
-  A.skin = A.skin || "🙂";
-  A.owned = A.owned || ["🙂"];
-  A.towers = A.towers || ["bar", "shake"];
-  A.roy = A.roy || { p: 0, w: 0, best: 0, t10: 0 };
-  A.md = A.md || { stars: [0, 0, 0], wins: 0 };
-  A.daily = A.daily || { d: "", done: false };
-  A.seen = A.seen || [];
+  if (S.arc) delete S.arc;
+  const G = S.g = S.g || {};
+  G.wd = G.wd || {};
+  ["he", "en"].forEach(l => G.wd[l] = G.wd[l] || { d: "", guesses: [], done: false, win: false, played: 0, wins: 0, streak: 0, max: 0, dist: [0, 0, 0, 0, 0, 0], last: "" });
+  G.cn = G.cn || { d: "", st: null, played: 0, wins: 0, streak: 0, last: "" };
+  G.rk = G.rk || { r: 1000, best: 1000, w: 0, l: 0, dr: 0, streak: 0 };
+  G.hl = G.hl || { cal: 0, pro: 0 };
 }
-ensureArcade();
+ensureG();
+const dayNo = (d = new Date()) => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+function sShuffle(arr, seed) { const r = rng(seed), a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function untilTomorrow() { const n = new Date(), t = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1); const m = Math.round((t - n) / 60000); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`; }
 
-/* צלילים קצרים שנבנים בזמן אמת – בלי קבצים */
+/* אייקונים בקו דק */
+const IC = {
+  back: '<path d="M15 18l-6-6 6-6"/>',
+  word: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 16l4-9 4 9M9.5 13h5"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+  updown: '<path d="M7 20V4M3 8l4-4 4 4M17 4v16M13 16l4 4 4-4"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+  shuffle: '<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>',
+  bksp: '<path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM18 9l-6 6M12 9l6 6"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
+  zap: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+  heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/>',
+  alert: '<path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  swords: '<path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5L18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>',
+  swipe: '<path d="M5 12h14M15 6l6 6-6 6M9 6l-6 6 6 6"/>',
+  film: '<rect x="2" y="2" width="20" height="20" rx="2.5"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/>',
+  coins: '<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18M7 6h1v4"/>',
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  body: '<circle cx="12" cy="5" r="2"/><path d="M12 7v7M8 10h8M9 21l3-7 3 7"/>',
+  cap: '<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>',
+  plus: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/>',
+  mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/>',
+  video: '<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4z"/>',
+  dice: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/><circle cx="8.5" cy="15.5" r="1"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+  x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  up: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  down: '<path d="M12 5v14M19 12l-7 7-7-7"/>',
+};
+const ic = (k, s = 20) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k] || ""}</svg>`;
+
+/* צלילים עדינים */
 const SFX_T = {};
 function sfx(n) {
   if (!S.settings || !S.settings.sound) return;
-  const now = performance.now(), gap = { shoot: 90, zap: 90, hit: 60, pop: 45, elim: 50, tick: 200 }[n] || 20;
-  if (SFX_T[n] && now - SFX_T[n] < gap) return;
-  SFX_T[n] = now;
+  const now = performance.now(); if (SFX_T[n] && now - SFX_T[n] < 40) return; SFX_T[n] = now;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === "suspended") actx.resume();
     const t0 = actx.currentTime;
-    const tone = (f1, f2, d, type = "sine", v = 0.1, at = 0) => {
+    const tone = (f, d, v = 0.05, at = 0, type = "sine") => {
       const o = actx.createOscillator(), g = actx.createGain(), t = t0 + at;
-      o.type = type; o.frequency.setValueAtTime(f1, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + d + 0.03);
-    };
-    const noise = (d, v, f) => {
-      const len = Math.floor(actx.sampleRate * d), b = actx.createBuffer(1, len, actx.sampleRate), ch = b.getChannelData(0);
-      for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
-      const s = actx.createBufferSource(), fl = actx.createBiquadFilter(), g = actx.createGain();
-      s.buffer = b; fl.type = "lowpass"; fl.frequency.value = f; g.gain.value = v;
-      s.connect(fl).connect(g).connect(actx.destination); s.start(t0);
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + d + 0.02);
     };
     ({
-      tap: () => tone(880, 0, 0.05, "sine", 0.06),
-      shoot: () => tone(520, 260, 0.08, "square", 0.025),
-      zap: () => tone(1400, 300, 0.1, "sawtooth", 0.03),
-      hit: () => tone(180, 90, 0.06, "triangle", 0.06),
-      pop: () => tone(380, 900, 0.1, "sine", 0.07),
-      coin: () => { tone(990, 0, 0.07, "square", 0.035); tone(1320, 0, 0.12, "square", 0.035, 0.07); },
-      ok: () => { tone(660, 0, 0.09, "sine", 0.1); tone(990, 0, 0.14, "sine", 0.1, 0.08); },
-      no: () => tone(260, 170, 0.2, "triangle", 0.12),
-      tick: () => tone(1500, 0, 0.03, "square", 0.03),
-      boom: () => { noise(0.45, 0.3, 700); tone(120, 40, 0.4, "sine", 0.15); },
-      elim: () => tone(500, 120, 0.16, "sawtooth", 0.03),
-      win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0, 0.2, "triangle", 0.1, i * 0.11)),
-      lose: () => [392, 330, 262].forEach((f, i) => tone(f, 0, 0.24, "triangle", 0.1, i * 0.16)),
-      build: () => tone(300, 640, 0.1, "square", 0.045),
-      leak: () => tone(220, 90, 0.25, "sawtooth", 0.06),
-      wave: () => [440, 554, 659].forEach((f, i) => tone(f, 0, 0.12, "square", 0.04, i * 0.08)),
-      crate: () => { noise(0.15, 0.12, 2000); tone(600, 1200, 0.15, "sine", 0.06, 0.05); },
+      tap: () => tone(1200, 0.03, 0.02),
+      ok: () => { tone(660, 0.12, 0.05); tone(990, 0.16, 0.04, 0.07); },
+      no: () => tone(196, 0.18, 0.05, 0, "triangle"),
+      flip: () => tone(520, 0.05, 0.025),
+      tick: () => tone(1400, 0.025, 0.02),
+      win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 0.045, i * 0.09)),
+      lose: () => [330, 262].forEach((f, i) => tone(f, 0.25, 0.045, i * 0.14, "triangle")),
     })[n]?.();
   } catch (e) { }
 }
-/* חלון קופץ גדול באמצע המסך (טופ 10, דו־קרב סופי וכו') */
-function arcPop(html, cls) {
-  const d = document.createElement("div"); d.className = "arc-pop " + (cls || ""); d.setAttribute("data-notr", "");
-  d.innerHTML = `<div class="arc-pop-in">${html}</div>`; document.body.appendChild(d);
-  setTimeout(() => d.remove(), 1900);
-}
-function arcShake(el) { if (!el) return; el.classList.remove("arc-shake"); void el.offsetWidth; el.classList.add("arc-shake"); }
 function vib(p) { if (S.settings && S.settings.vib && navigator.vibrate) try { navigator.vibrate(p); } catch (e) { } }
+function gShake(el) { if (!el) return; el.classList.remove("g-shake"); void el.offsetWidth; el.classList.add("g-shake"); }
 
-/* מסך מלא: מסתיר את הסרגל העליון, ובדפדפן גם נכנס למסך מלא אמיתי */
-function arcFull(on) {
-  document.body.classList.toggle("arc-full", on);
-  try {
-    const app_ = matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches;
-    if (on && !app_ && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => { });
-    if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => { });
-  } catch (e) { }
+/* מסך משחק: כהה, בלי הסרגל העליון */
+function gScreen(title, right, body, cls = "") {
+  funScreen(`<div class="g ${cls} fade-in" data-notr><div class="g-head"><button class="g-back" id="gBack" aria-label="${GT("חזרה", "Back")}">${ic("back", 22)}</button><b class="g-title">${title}</b><div class="g-right">${right || ""}</div></div>${body}</div>`);
+  document.body.classList.add("gm");
+  $("#gBack").onclick = () => gamesPage();
 }
-function arcStop() {
-  if (RY) { clearInterval(RY.t); clearTimeout(RY.auto); RY.over = true; RY = null; }
-  if (MD) { cancelAnimationFrame(MD.raf); MD.over = true; MD = null; }
-}
+function gStop() { if (RK) { clearInterval(RK.t); clearTimeout(RK.auto); RK.over = true; RK = null; } }
 
-/* שאלות */
+/* שאלות מהמאגר */
 let GQ_RECENT = [];
 const gqOkType = q => (q.t === "mc" || q.t === "tf") && !q.img;
-function gqPick(filter) {
-  const ok = q => gqOkType(q) && !GQ_RECENT.includes(q.id) && (!filter || filter(q));
-  let pool = [];
-  if (!filter && Math.random() < 0.25) pool = mistakes().filter(ok);
+function gqPick() {
+  const ok = q => gqOkType(q) && !GQ_RECENT.includes(q.id);
+  let pool = Math.random() < 0.25 ? mistakes().filter(ok) : [];
   if (!pool.length) pool = freshSort(BANK.filter(ok), true).slice(0, 25);
-  if (!pool.length) pool = BANK.filter(q => gqOkType(q) && (!filter || filter(q)));
   if (!pool.length) pool = BANK.filter(gqOkType);
   const q = pool[Math.floor(Math.random() * Math.min(pool.length, 8))];
   GQ_RECENT.push(q.id); GQ_RECENT = GQ_RECENT.slice(-40);
   return q;
 }
-function gqOptions(q) {
-  return q.t === "tf" ? [[GT("נכון", "True"), true], [GT("לא נכון", "False"), false]] : shuffle(q.o.map((o, i) => [o, i]));
-}
-function gqRight(q) { return q.t === "tf" ? (q.a ? GT("נכון", "True") : GT("לא נכון", "False")) : q.o[q.a]; }
-const gqBtns = opts => `<div class="ry-opts ${opts.length === 2 ? "two" : ""}">${opts.map(([t], i) => `<button class="ry-o c${i}" data-i="${i}"><span>${"▲◆●■"[i]}</span><b>${esc(t)}</b></button>`).join("")}</div>`;
+const gqOptions = q => q.t === "tf" ? [[GT("נכון", "True"), true], [GT("לא נכון", "False"), false]] : shuffle(q.o.map((o, i) => [o, i]));
+const gqIs = (o, q) => q.t === "tf" ? o[1] === !!q.a : o[1] === q.a;
+const gqRight = q => q.t === "tf" ? (q.a ? GT("נכון", "True") : GT("לא נכון", "False")) : q.o[q.a];
 
-/* שאלה בחלון קופץ. cb(ok, q, pickText) */
-function gqAsk(title, cb, given) {
-  const q = given || gqPick(), opts = gqOptions(q);
-  const h = sheet(`<div class="gq" data-notr><div class="gq-title">${title}</div><div class="ry-q">${esc(q.q)}</div>${gqBtns(opts)}<div id="gqFb"></div></div>`, (e, close) => {
-    const b = e.target.closest(".ry-o");
-    if (!b || h.bg.dataset.done) return;
-    h.bg.dataset.done = 1;
-    const i = +b.dataset.i, ok = opts[i][1] === q.a;
-    record(q, ok ? 1 : 0); save(); sfx(ok ? "ok" : "no"); vib(ok ? 20 : [40, 50, 40]);
-    h.bg.querySelectorAll(".ry-o").forEach((x, j) => { x.disabled = true; x.classList.add(opts[j][1] === q.a ? "ok" : "dim"); });
-    if (!ok) b.classList.replace("dim", "no");
-    $("#gqFb").innerHTML = `<div class="ry-fb ${ok ? "ok" : "no"}"><div class="ry-fb-h">${ok ? GT("✓ נכון!", "✓ Correct!") : GT("✗ התשובה: ", "✗ Answer: ") + esc(gqRight(q))}</div>
-      <div class="ry-e">💡 ${esc(q.e)}</div><button class="arc-btn go" id="gqGo">${GT("המשך", "Continue")}</button></div>`;
-    $("#gqGo").onclick = () => { close(); cb(ok, q, opts[i][0]); };
-  });
-  h.bg.addEventListener("click", e => { if (e.target === h.bg) e.stopImmediatePropagation(); }, true);
+/* חזרה על טעויות */
+function gReview(list, back) {
+  gScreen(GT("חזרה על הטעויות", "Review mistakes"), "", `${list.map(({ q, pick }) => `<div class="g-rev"><div class="g-rev-q">${esc(q.q)}</div>
+      <div class="g-rev-no">${ic("x", 15)} ${pick != null ? esc(pick) : GT("לא ענית בזמן", "No answer in time")}</div>
+      <div class="g-rev-ok">${ic("check", 15)} ${esc(gqRight(q))}</div><div class="g-rev-e">${esc(q.e)}</div></div>`).join("")}
+    <button class="g-btn" id="rvBack">${GT("חזרה", "Back")}</button>`);
+  $("#gBack").onclick = $("#rvBack").onclick = back;
 }
 
-/* אתגר יומי – מתחלף בין שני המשחקים */
-const dailyKind = () => dayOfYear() % 2 ? "md" : "roy";
-const dailyDone = () => S.arc.daily.d === today() && S.arc.daily.done;
-function dailyWin() { if (dailyDone()) return 0; S.arc.daily = { d: today(), done: true }; addCoins(100, true); return 100; }
-function dailyStart() {
-  if (dailyDone()) { toast("✅", GT("כבר השלמת את האתגר היום – נתראה מחר", "You already finished today's challenge – see you tomorrow")); return; }
-  dailyKind() === "roy" ? royaleStart(true) : mdStart(dayOfYear() % 3, true);
-}
-function dailyDesc() {
-  if (dailyKind() === "roy") { const t = TOPICS[topicOfDay()]; return GT(`רויאל רק על ${t.name} ${t.icon} · סיים בטופ 10`, `Royale on ${t.name} ${t.icon} only · finish top 10`); }
-  return GT("6 גלים קשים במיוחד · שרוד את כולם", "6 extra-hard waves · survive them all");
-}
-
-/* מסך תוצאות משותף */
-function arcResult(o) {
-  funScreen(`<div class="arc arc-res fade-in" data-notr><div class="arc-res-card ${o.gold ? "gold" : ""}">
-    <div class="arc-res-em">${o.em}</div>
-    ${o.big ? `<div class="arc-res-big" dir="ltr">${o.big}</div>` : ""}
-    <h1>${o.title}</h1>
-    ${o.banner ? `<div class="arc-banner">${o.banner}</div>` : ""}
-    <div class="arc-stats">${o.stats.map(([b, s]) => `<div><b dir="ltr">${b}</b><span>${s}</span></div>`).join("")}</div>
-    ${o.wrong.length ? `<button class="arc-btn warn" id="arRev">📝 ${GT("חזרה על הטעויות", "Review my mistakes")} (${o.wrong.length})</button>` : `<div class="arc-perfect">✨ ${GT("בלי אף טעות!", "Not a single mistake!")}</div>`}
-    <button class="arc-btn go" id="arAgain">🔁 ${GT("עוד משחק", "Play again")}</button>
-    <button class="arc-btn" id="arHub">🎮 ${GT("לארקייד", "Arcade")}</button>
-  </div></div>`);
-  arcFull(true);
-  const me = () => arcResult(o);
-  $("#arAgain").onclick = o.again; $("#arHub").onclick = arcadeHub;
-  const r = $("#arRev"); if (r) r.onclick = () => arcReview(o.wrong, me);
-}
-
-/* חזרה על טעויות מהמשחק + תיקון */
-function arcReview(list, back) {
-  funScreen(`<div class="arc fade-in" data-notr>
-    <div class="arc-top"><button class="arc-x" id="fx">✕</button><b class="arc-title">📝 ${GT("הטעויות שלך", "Your mistakes")}</b></div>
-    ${list.map(({ q, pick }) => `<div class="arc-rev"><div class="arc-rev-q">${esc(q.q)}</div>
-      <div class="arc-rev-no">${pick != null ? "✗ " + esc(pick) : "⏱️ " + GT("נגמר הזמן", "Time ran out")}</div>
-      <div class="arc-rev-ok">✓ ${esc(gqRight(q))}</div><div class="arc-rev-e">💡 ${esc(q.e)}</div></div>`).join("")}
-    <button class="arc-btn go" id="rvTry">🔁 ${GT("נסה אותן שוב", "Try them again")}</button>
-    <button class="arc-btn" id="rvBack">${GT("חזרה", "Back")}</button></div>`);
-  arcFull(true);
-  $("#fx").onclick = $("#rvBack").onclick = back;
-  $("#rvTry").onclick = () => {
-    let i = 0, ok = 0;
-    const next = () => {
-      if (i >= list.length) {
-        if (ok) { addCoins(ok * 3, true); save(); }
-        toast("🎯", GT(`תיקנת ${ok} מתוך ${list.length}`, `You fixed ${ok} of ${list.length}`) + (ok ? ` · +${ok * 3} 🪙` : ""));
-        return back();
-      }
-      gqAsk(`🔁 ${GT("תיקון", "Retry")} ${i + 1}/${list.length}`, r => { if (r) ok++; i++; next(); }, list[i].q);
-    };
-    next();
-  };
-}
-
-/* ═════════ מסך הארקייד ═════════ */
-function arcadeHub() {
-  ensureArcade(); arcStop();
-  const A = S.arc, dd = dailyDone(), stars = A.md.stars.reduce((a, b) => a + b, 0);
-  funScreen(`<div class="arc arc-hub fade-in" data-notr>
-    <div class="arc-top"><button class="arc-x" id="fx">✕</button><b class="arc-title">🎮 ${GT("ארקייד", "Arcade")}</b><span class="arc-coins">🪙 <b>${S.coins}</b></span></div>
-    <button class="arc-me" id="hbShop"><span class="arc-av">${A.skin}</span><div><b>${esc(S.name || GT("השחקן שלך", "Your player"))}</b><small>${GT("דמויות ומגדלים חדשים בחנות", "New characters and towers in the shop")}</small></div><span class="arc-shopbtn">🛒</span></button>
-    <button class="arc-daily ${dd ? "done" : ""}" id="hbDaily"><span class="arc-daily-em">📅</span><div><b>${GT("אתגר יומי", "Daily challenge")}: ${dailyKind() === "roy" ? "Fit Royale" : "Myth Defense"}</b><small>${dd ? GT("הושלם היום – אתגר חדש מחר", "Done today – a new one tomorrow") : dailyDesc()}</small></div><i>${dd ? "✅" : "+100 🪙"}</i></button>
-    <button class="arc-game arc-roy" id="hbRoy"><div class="arc-game-art">👑<span>👥 50</span></div><div class="arc-game-tx"><b>Fit Royale</b><small>${GT("50 שחקנים, שאלה בכל סיבוב. טעית – בחוץ. האחרון שנשאר מנצח!", "50 players, one question per round. Miss it – you're out. Last one standing wins!")}</small><i>🏆 ${A.roy.w} ${GT("ניצחונות", "wins")} · ${GT("שיא", "Best")} ${A.roy.best ? "#" + A.roy.best : "–"}</i></div></button>
-    <button class="arc-game arc-md" id="hbMD"><div class="arc-game-art">🏰<span>👾👻</span></div><div class="arc-game-tx"><b>Myth Defense</b><small>${GT("מיתוסים על כושר תוקפים את חדר הכושר. בונים מגדלים, ותשובות נכונות נותנות זהב.", "Fitness myths attack the gym. Build towers – right answers give gold.")}</small><i>⭐ ${stars}/9</i></div></button>
-  </div>`);
-  arcFull(true);
-  $("#fx").onclick = () => { arcFull(false); go("home"); };
-  $("#hbShop").onclick = () => arcShop(arcadeHub);
-  $("#hbDaily").onclick = dailyStart; $("#hbRoy").onclick = () => royaleStart(false); $("#hbMD").onclick = mdMenu;
-}
-
-/* ═════════ חנות: דמויות ומגדלים ═════════ */
-function arcShop(back) {
-  const A = S.arc;
-  const draw = () => {
-    funScreen(`<div class="arc fade-in" data-notr>
-      <div class="arc-top"><button class="arc-x" id="fx">✕</button><b class="arc-title">🛒 ${GT("חנות הארקייד", "Arcade shop")}</b><span class="arc-coins">🪙 <b>${S.coins}</b></span></div>
-      <div class="arc-h">${GT("הדמות שלך", "Your character")}</div>
-      <p class="arc-sub">${GT("מופיעה ברויאל ושומרת על חדר הכושר במשחק המגדלים", "Shows up in Royale and guards the gym in Myth Defense")}</p>
-      <div class="arc-skins">${AR_SKINS.map(s => { const own = A.owned.includes(s.em), on = A.skin === s.em;
-        return `<button class="arc-skin ${on ? "on" : ""} ${own ? "own" : ""}" data-s="${s.em}"><span>${s.em}</span><i>${on ? "✓" : own ? GT("בחר", "Use") : "🪙" + s.p}</i></button>`; }).join("")}</div>
-      <div class="arc-h">${GT("מגדלים", "Towers")}</div>
-      ${Object.entries(MD_TW).map(([k, T]) => { const own = A.towers.includes(k);
-        return `<div class="arc-trow"><span class="arc-tem" style="--c:${T.c}">${T.em}</span><div><b>${GT(T.he, T.en)}</b><small>${GT(T.dhe, T.den)}</small></div>${own ? `<i class="arc-own">✅</i>` : `<button class="arc-buy ${S.coins >= T.lock ? "" : "poor"}" data-t="${k}">🪙 ${T.lock}</button>`}</div>`; }).join("")}
-      <p class="arc-sub">${GT("מטבעות מרוויחים בכל המשחקים באפליקציה.", "You earn coins in every game in the app.")}</p>
-    </div>`);
-    arcFull(true);
-    $("#fx").onclick = back;
-    app.querySelectorAll("[data-s]").forEach(b => b.onclick = () => {
-      const s = AR_SKINS.find(x => x.em === b.dataset.s);
-      if (!A.owned.includes(s.em)) {
-        if (S.coins < s.p) { sfx("no"); return toast("🪙", GT("אין מספיק מטבעות", "Not enough coins")); }
-        addCoins(-s.p, true); A.owned.push(s.em); sfx("coin"); confetti();
-      } else sfx("tap");
-      A.skin = s.em; save(); draw();
-    });
-    app.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
-      const k = b.dataset.t, T = MD_TW[k];
-      if (S.coins < T.lock) { sfx("no"); return toast("🪙", GT("אין מספיק מטבעות", "Not enough coins")); }
-      addCoins(-T.lock, true); A.towers.push(k); save(); sfx("coin"); confetti(); toast(T.em, GT("מגדל חדש נפתח!", "New tower unlocked!")); draw();
-    });
-  };
-  draw();
-}
-
-/* ═════════ 1. Fit Royale ═════════ */
-const RY_N = 50;
-const RY_BOT_EM = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐤", "🦆", "🦉", "🐺", "🐴", "🦄", "🐝", "🐢", "🐙", "🦀", "🐬", "🐳", "🦈", "🐊", "🦓", "🦒", "🐘", "🦔", "🦦", "🦩", "🦜", "🐞", "🦋"];
-const RY_COL = ["#f87171", "#fb923c", "#fbbf24", "#a3e635", "#34d399", "#22d3ee", "#60a5fa", "#a78bfa", "#f472b6"];
-const RY_NAMES = {
-  he: ["נועה", "איתי", "מאיה", "יונתן", "תמר", "עומר", "שירה", "דניאל", "יעל", "אורי", "רוני", "אליה", "נועם", "הילה", "גיא", "ליה", "עידו", "טל", "אביב", "מיכל", "בן", "שני", "רועי", "עדי", "אלון", "קרן", "ניר", "דנה", "יובל", "מור", "אסף", "ליאור", "ענבל", "שחר", "רז", "עמית", "הדר", "ירדן", "אופיר", "סהר", "אייל", "גלי", "דור", "נגה", "יהב", "תום", "עלמה", "איתן", "רוני ש."],
-  en: ["Ava", "Leo", "Mia", "Noah", "Zoe", "Max", "Lily", "Sam", "Ella", "Jake", "Ruby", "Finn", "Ivy", "Owen", "Nina", "Kai", "Luna", "Eli", "Maya", "Theo", "Aria", "Ben", "Cleo", "Dan", "Gwen", "Hugo", "Iris", "Jay", "Kira", "Liam", "Omar", "Pia", "Quinn", "Rex", "Sara", "Tom", "Uma", "Vic", "Will", "Yara", "Zack", "Amy", "Bo", "Cal", "Dex", "Eve", "Fay", "Gus", "Hana"]
+/* ═════════ 1. מילה יומית ═════════ */
+const WD_LIST = {
+  he: [
+    ["פלאנק", "תרגיל ליבה סטטי: מחזיקים את הגוף בקו ישר על האמות או על כפות הידיים."],
+    ["מתיחה", "הארכה מבוקרת של שריר כדי לשפר או לשמור על טווח התנועה."],
+    ["חלבון", "מקרו־נוטריינט שמספק חומצות אמינו לבנייה ולתיקון של רקמות, כולל שריר."],
+    ["שחייה", "פעילות אירובית במים שמעמיסה מעט על המפרקים."],
+    ["אימון", "מפגש פעילות מתוכנן שמטרתו לשפר יכולת גופנית."],
+    ["מנוחה", "הזמן שבו הגוף מתאושש ומסתגל לעומס האימון."],
+    ["תזונה", "מה שאוכלים ושותים, והדרך שבה זה מספק לגוף אנרגיה וחומרי בניין."],
+    ["קרדיו", "אימון אירובי שמעלה את הדופק לאורך זמן, כמו ריצה, אופניים או חתירה."],
+    ["נשימה", "הכנסת חמצן והוצאת פחמן דו־חמצני. באימון כוח נוהגים לנשוף בשלב המאמץ."],
+    ["חימום", "פעילות קלה לפני אימון שמעלה דופק וטמפרטורת שריר ומכינה את הגוף."],
+    ["איזון", "היכולת לשמור על מרכז הכובד מעל בסיס התמיכה."],
+    ["יציבה", "האופן שבו הגוף מוחזק בעמידה ובישיבה."],
+    ["עצמות", "השלד. אימון כוח ופעילות עם נשיאת משקל עוזרים לחזק אותן."],
+    ["גידים", "רקמה שמחברת שריר לעצם."],
+    ["רצועה", "רקמה שמחברת עצם לעצם ומייצבת את המפרק."],
+    ["פציעה", "נזק לרקמה. כאב חד במהלך אימון הוא סימן לעצור."],
+    ["שיקום", "התהליך של חזרה לתפקוד מלא אחרי פציעה."],
+    ["מכשיר", "ציוד אימון במכון שמכוון את מסלול התנועה."],
+    ["מדריך", "איש מקצוע שמתכנן את האימון ומלווה אותו."],
+    ["מתאמן", "מי שמתאמן תחת הדרכה."],
+    ["חזרות", "מספר הפעמים שמבצעים תנועה ברצף בסט אחד."],
+    ["סדרות", "קבוצות של חזרות עם מנוחה ביניהן (סטים)."],
+    ["קפיצה", "תנועה נפיצה, הבסיס לאימון פליאומטרי."],
+    ["הליכה", "פעילות אירובית בעצימות נמוכה שמתאימה כמעט לכל אחד."],
+    ["חגורה", "חגורת הרמה שעוזרת לייצב את הליבה בהרמות כבדות."],
+    ["גומיה", "גומיית התנגדות – ההתנגדות גדלה ככל שמותחים אותה."],
+    ["ריאות", "איברי הנשימה, שבהם החמצן עובר לדם."],
+    ["סיבים", "סיבי שריר: איטיים (סוג I) לסיבולת, מהירים (סוג II) לכוח ולנפיצות."],
+    ["עצבים", "מעבירים אותות מהמוח לשרירים ומפעילים אותם."],
+    ["כפיפה", "תנועה שמקטינה את הזווית במפרק, כמו כפיפת מרפק."],
+    ["יישור", "תנועה שמגדילה את הזווית במפרק (אקסטנציה)."],
+    ["הרחקה", "תנועה של איבר הרחק מקו האמצע של הגוף (אבדוקציה)."],
+    ["קירוב", "תנועה של איבר לכיוון קו האמצע של הגוף (אדוקציה)."],
+    ["לחיצה", "תנועת דחיפה, כמו לחיצת חזה או לחיצת כתפיים."],
+    ["חתירה", "תרגיל משיכה אופקי לשרירי הגב."],
+    ["תגובה", "זמן תגובה: הזמן מהגירוי ועד תחילת התנועה."],
+    ["תיאום", "שילוב יעיל של תנועות של כמה חלקי גוף."],
+    ["תנועה", "הבסיס לכל אימון. מתארים אותה לפי מישורים וצירים."],
+    ["קרסול", "המפרק שמחבר בין השוק לכף הרגל."],
+    ["צוואר", "החלק העליון של עמוד השדרה – החוליות הצוואריות."],
+    ["סיבוב", "תנועה סביב ציר האורך של איבר או של הגוף (רוטציה)."],
+    ["תנוחה", "מיקום הגוף בזמן תרגיל. תנוחה נכונה מגינה מפציעה."],
+    ["דיאטה", "תפריט אכילה. בשפת היום־יום – לרוב הגבלה קלורית."],
+    ["מינרל", "רכיב תזונתי אנאורגני, כמו סידן, ברזל ומגנזיום."],
+    ["ספורט", "פעילות גופנית מאורגנת, לרוב תחרותית."],
+    ["מרתון", "ריצה למרחק 42.195 ק״מ."],
+    ["חיזוק", "אימון שמגביר את הכוח והסיבולת של השרירים."],
+  ],
+  en: [
+    ["SQUAT", "A lower-body exercise: bend the hips and knees, then stand back up."],
+    ["PLANK", "A static core hold with the body in a straight line on the forearms or hands."],
+    ["LUNGE", "A single-leg step forward or back, lowering the back knee toward the floor."],
+    ["PRESS", "A pushing movement, like a bench press or an overhead press."],
+    ["BENCH", "Short for bench press – a horizontal push for the chest, shoulders and triceps."],
+    ["CURLS", "Elbow-flexion exercises that train the biceps."],
+    ["DELTS", "The deltoids – the rounded muscles that cap the shoulder."],
+    ["GLUTE", "The gluteal muscles of the hip – the largest is the gluteus maximus."],
+    ["QUADS", "The quadriceps – four muscles at the front of the thigh that extend the knee."],
+    ["FIBER", "Plant carbohydrate that isn't fully digested; it supports gut health and fullness."],
+    ["LIPID", "The scientific name for fats."],
+    ["SUGAR", "A simple carbohydrate, such as glucose or sucrose."],
+    ["WATER", "About 60% of body weight; even mild dehydration can hurt performance."],
+    ["HEART", "The muscle that pumps blood; cardio training makes it more efficient."],
+    ["LUNGS", "The organs where oxygen passes into the blood."],
+    ["JOINT", "The place where two bones meet and movement happens."],
+    ["BONES", "The skeleton. Strength training and weight-bearing activity help strengthen them."],
+    ["PULSE", "Heart rate you can feel at the wrist or neck, in beats per minute."],
+    ["POWER", "Force times speed – producing force quickly."],
+    ["SPEED", "How fast you cover a distance or complete a movement."],
+    ["CHEST", "The pectoral muscles, trained with presses, push-ups and flyes."],
+    ["TORSO", "The trunk of the body, without the head and limbs."],
+    ["SPINE", "The vertebral column: cervical, thoracic, lumbar, sacral and coccyx."],
+    ["ANKLE", "The joint that connects the lower leg to the foot."],
+    ["KNEES", "Hinge-like joints between the thigh and the lower leg."],
+    ["WRIST", "The joint between the forearm and the hand."],
+    ["ELBOW", "The hinge joint between the upper arm and the forearm."],
+    ["NERVE", "Carries signals from the brain to the muscles."],
+    ["STEPS", "A simple daily activity measure; walking more adds up."],
+    ["DANCE", "Rhythmic movement that can be a great aerobic workout."],
+    ["CYCLE", "Riding a bike – low-impact cardio."],
+    ["CARBS", "Carbohydrates – the body's main fuel for high-intensity exercise."],
+    ["MACRO", "Macronutrient: protein, carbohydrate or fat."],
+    ["SWEAT", "How the body cools down – not a measure of fat burned."],
+    ["TRAIN", "To exercise in a planned way to improve fitness."],
+    ["COACH", "A professional who plans and guides training."],
+    ["CLEAN", "An Olympic lift that brings the bar from the floor to the shoulders."],
+    ["HINGE", "A movement pattern that bends at the hips with a neutral spine, as in a deadlift."],
+    ["PIVOT", "A joint type that allows rotation, like the top of the neck."],
+    ["TIBIA", "The shin bone – the larger of the two lower-leg bones."],
+    ["FEMUR", "The thigh bone – the longest bone in the body."],
+  ]
 };
-const RY_ITEM = { shield: "🛡️", fifty: "✂️", plus: "⏱️", coins: "🪙" };
-const ryItemName = k => ({ shield: GT("מגן", "Shield"), fifty: "50/50", plus: GT("+5 שניות", "+5 seconds"), coins: "+15 🪙" })[k];
-let RY = null;
-const ryBots = () => RY.P.filter((p, i) => i > 0 && p.alive).length;
-
-function royaleStart(daily) {
-  ensureArcade(); arcStop();
-  const names = shuffle(RY_NAMES[GT("he", "en")]), em = shuffle(RY_BOT_EM);
-  const P = [{ me: 1, n: GT("אתה", "You"), em: S.arc.skin, c: "#fde047", alive: true }];
-  for (let i = 1; i < RY_N; i++) P.push({ n: names[(i - 1) % names.length], em: em[(i - 1) % em.length], c: RY_COL[i % RY_COL.length], alive: true });
-  RY = { P, daily: !!daily, topic: daily ? topicOfDay() : null, round: 0, shield: 1, fifty: 1, plus: 0, right: 0, streak: 0, best: 0, wrong: [], bonus: 0, over: false };
-  funScreen(`<div class="arc ry" data-notr>
-    <div class="arc-top"><button class="arc-x" id="fx">✕</button>
-      <div class="ry-alive"><b id="ryAlive">${RY_N}</b><small>${GT("שחקנים", "players")}</small></div>
-      ${daily ? `<span class="ry-tag">📅 ${TOPICS[RY.topic].icon}</span>` : ""}
-      <div class="ry-round" id="ryRound">${GT("מתחילים...", "Starting...")}</div></div>
-    <div class="ry-arena" id="ryArena"><div class="ry-storm" id="ryStorm"></div>
-      ${P.map((p, i) => `<span class="ry-p ${p.me ? "me" : ""}" data-i="${i}" style="--c:${p.c};animation-delay:${(i * 0.018).toFixed(3)}s">${p.em}</span>`).join("")}</div>
-    <div class="ry-feed" id="ryFeed">${GT("👥 50 שחקנים נכנסו לזירה!", "👥 50 players entered the arena!")}</div>
-    <div class="ry-card ry-wait" id="ryCard"><div class="ry-count" id="ryCount">3</div></div>
-  </div>`);
-  arcFull(true);
-  $("#fx").onclick = () => { if (RY && RY.round && !RY.over) { if (!confirm(GT("לצאת מהמשחק? תפסיד את הסיבוב.", "Leave the match? You'll lose this run."))) return; } arcStop(); arcadeHub(); };
-  sfx("wave");
-  let n = 3; const me = RY;
-  const cd = setInterval(() => {
-    if (RY !== me) return clearInterval(cd);
-    n--; sfx("tick");
-    if (n > 0) { $("#ryCount").textContent = n; $("#ryCount").style.animation = "none"; void $("#ryCount").offsetWidth; $("#ryCount").style.animation = ""; }
-    else { clearInterval(cd); ryRound(); }
-  }, 700);
+const WD_KEYS = {
+  he: [["ק", "ר", "א", "ט", "ו", "פ"], ["ש", "ד", "ג", "כ", "ע", "י", "ח", "ל"], ["ז", "ס", "ב", "ה", "נ", "מ", "צ", "ת"]],
+  en: [["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"], ["A", "S", "D", "F", "G", "H", "J", "K", "L"], ["Z", "X", "C", "V", "B", "N", "M"]]
+};
+const FIN = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" }, TOFIN = { "כ": "ך", "מ": "ם", "נ": "ן", "פ": "ף", "צ": "ץ" };
+const wdNorm = w => [...w.toUpperCase()].map(c => FIN[c] || c);
+const wdShow = (c, i) => (i === 4 && TOFIN[c]) || c;
+let WD = null;
+function wdScore(guess, ans) {
+  const res = Array(5).fill("x"), left = {};
+  ans.forEach((c, i) => { if (guess[i] === c) res[i] = "g"; else left[c] = (left[c] || 0) + 1; });
+  guess.forEach((c, i) => { if (res[i] !== "g" && left[c]) { res[i] = "y"; left[c]--; } });
+  return res;
 }
-
-function ryStorm() {
-  const r = (ryBots() + 1) / RY_N;
-  $("#ryStorm").style.setProperty("--s", (40 + 110 * r).toFixed(0) + "%");
-  $("#ryAlive").textContent = ryBots() + (RY.P[0].alive ? 1 : 0);
-}
-
-function ryRound() {
-  if (!RY || RY.over) return;
-  RY.round++; RY.lock = false;
-  const q = gqPick(RY.topic ? (x => x.f === RY.topic) : null), opts = gqOptions(q);
-  RY.q = q; RY.opts = opts;
-  RY.P.forEach(p => p.lk = 0); $("#ryArena").querySelectorAll(".lk").forEach(e => e.classList.remove("lk"));
-  RY.time = RY.daily ? 11 : Math.max(9, 16 - RY.round * 0.6);
-  RY.end = performance.now() + RY.time * 1000; RY.lastTick = 99;
-  $("#ryRound").textContent = GT("סיבוב ", "Round ") + RY.round;
-  ryStorm();
-  const card = $("#ryCard"); card.className = "ry-card"; void card.offsetWidth;
-  card.innerHTML = `<div class="ry-timer" dir="ltr"><i id="ryBar"></i><b id="ryT">${Math.ceil(RY.time)}</b></div>
-    <div class="ry-q">${esc(q.q)}</div>${gqBtns(opts)}
-    <div class="ry-pw" id="ryPw">
-      <button class="ry-pb" id="ryFifty" ${RY.fifty && q.t === "mc" ? "" : "disabled"}>✂️ 50/50 <i>${RY.fifty}</i></button>
-      <button class="ry-pb" id="ryPlus" ${RY.plus ? "" : "disabled"}>⏱️ +5 <i>${RY.plus}</i></button>
-      <span class="ry-sh ${RY.shield ? "on" : ""}">🛡️ <i>${RY.shield}</i></span></div>`;
-  card.querySelectorAll(".ry-o").forEach(b => b.onclick = () => ryAnswer(+b.dataset.i));
-  $("#ryFifty").onclick = () => {
-    if (!RY.fifty || RY.lock) return;
-    RY.fifty--; sfx("tap");
-    const wrongIdx = shuffle(opts.map((o, i) => i).filter(i => opts[i][1] !== q.a)).slice(0, 2);
-    wrongIdx.forEach(i => card.querySelector(`.ry-o[data-i="${i}"]`).classList.add("gone"));
-    $("#ryFifty").disabled = true;
-  };
-  $("#ryPlus").onclick = () => { if (!RY.plus || RY.lock) return; RY.plus--; RY.end += 5000; sfx("tap"); $("#ryPlus").disabled = !RY.plus; $("#ryPlus i").textContent = RY.plus; };
-  clearInterval(RY.t); RY.t = setInterval(ryTick, 100); ryTick();
-}
-function ryTick() {
-  if (!RY || RY.lock) return;
-  const left = Math.max(0, (RY.end - performance.now()) / 1000), bar = $("#ryBar");
-  if (!bar) return;
-  bar.style.transform = `scaleX(${Math.min(1, left / RY.time)})`;
-  bar.classList.toggle("low", left < 4);
-  $("#ryT").textContent = Math.ceil(left);
-  const f = 1 - left / RY.time, alive = RY.P.filter((p, i) => i > 0 && p.alive && !p.lk);
-  const want = Math.floor(ryBots() * Math.min(1, f * 1.7)) - (ryBots() - alive.length);
-  for (let n = 0; n < want && alive.length; n++) {
-    const k = RY.P.indexOf(alive.splice(Math.floor(Math.random() * alive.length), 1)[0]);
-    RY.P[k].lk = 1; $("#ryArena").querySelector(`[data-i="${k}"]`)?.classList.add("lk");
-  }
-  if (left < 4 && Math.ceil(left) !== RY.lastTick) { RY.lastTick = Math.ceil(left); sfx("tick"); }
-  if (left <= 0) ryAnswer(-1);
-}
-function ryElims() {
-  const alive = RY.P.map((p, i) => i).filter(i => i > 0 && RY.P[i].alive);
-  let p = Math.max(0.42, 0.8 - 0.035 * (RY.round - 1)) - (RY.daily ? 0.03 : 0);
-  if (RY.round >= 12) p = 0.4;
-  let out = alive.filter(() => Math.random() > p);
-  if (!out.length && alive.length > 1) out = [alive[Math.floor(Math.random() * alive.length)]];
-  return { out, alive: alive.length };
-}
-function ryAnswer(i) {
-  if (!RY || RY.lock) return;
-  RY.lock = true; clearInterval(RY.t);
-  const q = RY.q, ok = i >= 0 && RY.opts[i][1] === q.a, card = $("#ryCard");
-  record(q, ok ? 1 : 0); save();
-  card.querySelectorAll(".ry-o").forEach((b, j) => { b.disabled = true; b.classList.add(RY.opts[j][1] === q.a ? "ok" : (j === i ? "no" : "dim")); });
-  let { out, alive } = ryElims(), meOut = false, saved = false, revive = false;
-  RY.fastNow = ok && (RY.end - performance.now()) / 1000 > RY.time * 0.55;
-  if (RY.fastNow) RY.bonus += 3;
-  $("#ryArena").querySelectorAll(".lk").forEach(e => e.classList.remove("lk"));
-  const meEl = $("#ryArena").querySelector('[data-i="0"]');
-  if (ok) { RY.right++; RY.streak++; RY.best = Math.max(RY.best, RY.streak); sfx("ok"); vib(20); meEl.classList.add("glow"); setTimeout(() => meEl.classList.remove("glow"), 700); }
+function wordGame(practice) {
+  ensureG(); gStop();
+  const L = EN_() ? "en" : "he", list = WD_LIST[L], st = S.g.wd[L];
+  let entry;
+  if (practice) entry = list[Math.floor(Math.random() * list.length)];
   else {
-    arcShake($(".ry")); document.body.classList.add("arc-hurt"); setTimeout(() => document.body.classList.remove("arc-hurt"), 450);
-    RY.streak = 0; RY.wrong.push({ q, pick: i >= 0 ? RY.opts[i][0] : null }); sfx("no"); vib([40, 50, 40]);
-    if (RY.shield > 0) { RY.shield--; saved = true; }
-    else if (out.length >= alive) { revive = true; out = []; }
-    else meOut = true;
+    entry = sShuffle(list, 9137)[dayNo() % list.length];
+    if (st.d !== today()) { st.d = today(); st.guesses = []; st.done = false; st.win = false; save(); }
   }
-  const arena = $("#ryArena");
-  out.forEach((k, j) => setTimeout(() => {
-    if (!RY) return;
-    RY.P[k].alive = false;
-    const el = arena.querySelector(`[data-i="${k}"]`); el && el.classList.add("dying");
-    if (j < 10) sfx("elim");
-  }, 200 + j * 55));
-  if (meOut) setTimeout(() => { if (!RY) return; RY.P[0].alive = false; arena.querySelector(`[data-i="0"]`).classList.add("dying"); }, 250);
-  const feed = out.slice(0, 3).map(k => `${RY.P[k].em} ${esc(RY.P[k].n)}`).join(" · ");
-  $("#ryFeed").innerHTML = out.length ? `💥 ${feed}${out.length > 3 ? ` <b>+${out.length - 3}</b>` : ""} ${GT("הודחו", "out")}` : revive ? GT("😅 כולם טעו – אף אחד לא הודח", "😅 Everyone missed – nobody is out") : GT("😮 אף אחד לא הודח", "😮 Nobody got knocked out");
-  setTimeout(() => { if (RY) { ryStorm(); ryAfter(ok, saved, revive, meOut, out.length); } }, 300 + Math.min(out.length, 20) * 55);
+  WD = { L, practice: !!practice, ans: wdNorm(entry[0]), word: entry[0], e: entry[1], guesses: practice ? [] : st.guesses.map(g => [...g]), cur: [], done: practice ? false : st.done, busy: false };
+  gScreen(practice ? GT("מילה – תרגול", "Word – practice") : GT("המילה היומית", "Daily word"),
+    `<button class="g-icon" id="wdHelp" aria-label="help">${ic("help")}</button>`,
+    `<div class="wd-grid" id="wdGrid" dir="${L === "he" ? "rtl" : "ltr"}"></div>
+     <div class="g-msg" id="wdMsg"></div>
+     <div class="wd-kb" id="wdKb" dir="${L === "he" ? "rtl" : "ltr"}">${WD_KEYS[L].map((r, i) => `<div class="wd-row">${i === 2 ? `<button class="wd-k wide" data-k="enter">${GT("אישור", "Enter")}</button>` : ""}${r.map(k => `<button class="wd-k" data-k="${k}">${k}</button>`).join("")}${i === 2 ? `<button class="wd-k wide" data-k="del" aria-label="delete">${ic("bksp", 20)}</button>` : ""}</div>`).join("")}</div>
+     <div id="wdEnd"></div>`, "wd");
+  $("#wdHelp").onclick = wdHelp;
+  $("#wdKb").onclick = e => { const b = e.target.closest("[data-k]"); if (b) wdKey(b.dataset.k); };
+  wdDraw(); wdKbPaint();
+  if (WD.done) wdEnd(false);
+  if (!practice && !st.seenHelp) { st.seenHelp = 1; save(); setTimeout(wdHelp, 300); }
 }
-function ryAfter(ok, saved, revive, meOut, nOut) {
-  const q = RY.q, left = ryBots(), win = !meOut && left === 0;
-  const head = meOut ? `💥 ${GT("הודחת! מקום", "Eliminated! Place")} #${left + 1}`
-    : win ? "👑 Victory Royale!"
-    : revive ? GT("😅 כולם טעו – הסיבוב נשמר!", "😅 Everyone missed – you're safe!")
-    : saved ? GT("🛡️ המגן הציל אותך!", "🛡️ Your shield saved you!")
-    : `✓ ${GT("נכון!", "Correct!")}${RY.streak >= 3 ? ` 🔥×${RY.streak}` : ""}${RY.fastNow ? ` <span class="ry-fast">⚡ ${GT("מהיר", "Fast")} +3🪙</span>` : ""}`;
-  $("#ryArena").querySelector('[data-i="0"]').classList.toggle("fire", RY.streak >= 3 && !meOut);
-  const tot = left + (meOut ? 0 : 1);
-  RY.ms = RY.ms || {};
-  if (!meOut && !win) {
-    if (left === 1 && !RY.ms.duel) {
-      RY.ms.duel = 1; const foe = RY.P.find((p, i) => i > 0 && p.alive);
-      setTimeout(() => { arcPop(`<div class="vs"><span class="vs-me">${S.arc.skin}</span><b>VS</b><span>${foe.em}</span></div><div class="pop-t">⚔️ ${GT("דו־קרב סופי!", "Final duel!")}</div><div class="pop-s">${GT("נגד", "vs")} ${esc(foe.n)}</div>`, "duel"); sfx("wave"); vib([30, 30, 30]); }, 250);
-    } else for (const [n, t] of [[3, GT("🥉 טופ 3!", "🥉 Top 3!")], [10, GT("🔥 טופ 10!", "🔥 Top 10!")], [25, GT("💪 חצי מהזירה בחוץ!", "💪 Half the arena is out!")]]) {
-      if (tot <= n && !RY.ms[n]) { [3, 10, 25].forEach(x => { if (x >= n) RY.ms[x] = 1; }); setTimeout(() => { arcPop(`<div class="pop-t">${t}</div><div class="pop-s">${GT("נשארו", "Players left")}: ${tot}</div>`); sfx("coin"); }, 250); break; }
+function wdHelp() {
+  sheet(`<div class="g-sheet" data-notr><h2>${GT("איך משחקים", "How to play")}</h2>
+    <p>${GT("מנחשים מונח מעולם הכושר בן 5 אותיות, ב־6 ניסיונות. אחרי כל ניחוש הצבעים מראים כמה קרוב היית.", "Guess a 5-letter fitness word in 6 tries. After each guess, the colors show how close you were.")}</p>
+    <div class="wd-ex"><span class="wd-t g">${GT("ש", "S")}</span><span>${GT("האות במילה ובמקום הנכון", "In the word, in the right spot")}</span></div>
+    <div class="wd-ex"><span class="wd-t y">${GT("ר", "Q")}</span><span>${GT("האות במילה, אבל במקום אחר", "In the word, in a different spot")}</span></div>
+    <div class="wd-ex"><span class="wd-t x">${GT("ל", "U")}</span><span>${GT("האות לא נמצאת במילה", "Not in the word")}</span></div>
+    ${EN_() ? "" : `<p class="g-note">אותיות סופיות נחשבות כמו רגילות (ם = מ).</p>`}
+    <p class="g-note">${GT("מילה חדשה בכל יום. אפשר גם לתרגל בלי הגבלה.", "A new word every day. You can also practice without limits.")}</p>
+    <button class="g-btn primary" data-x>${GT("הבנתי", "Got it")}</button></div>`, (e, close) => { if (e.target.closest("[data-x]")) close(); });
+}
+function wdDraw(revealRow = -1) {
+  const g = $("#wdGrid"); if (!g) return;
+  let h = "";
+  for (let r = 0; r < 6; r++) {
+    const guess = WD.guesses[r], isCur = r === WD.guesses.length && !WD.done;
+    const sc = guess ? wdScore(guess, WD.ans) : null;
+    h += `<div class="wd-line" data-r="${r}">`;
+    for (let i = 0; i < 5; i++) {
+      const c = guess ? guess[i] : isCur ? WD.cur[i] : "";
+      const cls = sc ? sc[i] : c ? "fill" : "";
+      h += `<span class="wd-t ${cls} ${r === revealRow ? "rev" : ""}" style="${r === revealRow ? `animation-delay:${i * 0.22}s` : ""}">${c ? wdShow(c, i) : ""}</span>`;
     }
+    h += `</div>`;
   }
-  const drop = !meOut && !win && RY.round % 3 === 2;
-  const label = meOut ? GT("לתוצאות", "See results") : win ? GT("קח את הניצחון 👑", "Claim your win 👑") : drop ? GT("📦 אספקה!", "📦 Supply drop!") : GT("לסיבוב הבא ▶", "Next round ▶");
-  $("#ryPw").outerHTML = `<div class="ry-fb ${ok ? "ok" : "no"}"><div class="ry-fb-h">${head}</div>
-    <div class="ry-fb-s">${GT(`${nOut} הודחו · נשארו ${left + (meOut ? 0 : 1)}`, `${nOut} knocked out · ${left + (meOut ? 0 : 1)} left`)}</div>
-    ${ok ? `<button class="ry-why" id="ryWhy">💡 ${GT("למה?", "Why?")}</button><div class="ry-e" id="ryE" hidden>${esc(q.e)}</div>` : `<div class="ry-e">${GT("התשובה", "Answer")}: <b>${esc(gqRight(q))}</b><br>💡 ${esc(q.e)}</div>`}
-    <button class="arc-btn go" id="ryNext">${ok && !win ? `<span class="auto" style="--d:2.6s"></span>` : ""}<span class="lbl">${label}</span></button></div>`;
-  const next = () => {
-    clearTimeout(RY.auto);
-    if (meOut) return ryEnd(left + 1);
-    if (win) return ryEnd(1);
-    drop ? ryDrop() : ryRound();
-  };
-  $("#ryNext").onclick = next;
-  const why = $("#ryWhy"); if (why) why.onclick = () => { clearTimeout(RY.auto); $("#ryNext .auto")?.remove(); $("#ryE").hidden = false; why.remove(); };
-  if (ok && !win) RY.auto = setTimeout(() => { if (RY && !RY.over) next(); }, 2600);
-  if (win) { sfx("win"); confetti(); }
+  g.innerHTML = h;
 }
-function ryDrop() {
-  const w = [["shield", 30], ["fifty", 30], ["plus", 25], ["coins", 15]];
-  const roll = () => { let r = Math.random() * 100; for (const [k, p] of w) { if ((r -= p) < 0) return k; } return "coins"; };
-  const items = [roll(), roll(), roll()];
-  const card = $("#ryCard"); card.className = "ry-card"; void card.offsetWidth;
-  card.innerHTML = `<div class="ry-drop"><b>📦 ${GT("אספקה הוצנחה! בחר ארגז אחד", "Supply drop! Pick one crate")}</b>
-    <div class="ry-crates">${items.map((_, i) => `<button class="ry-crate" data-i="${i}">📦</button>`).join("")}</div><div id="ryDropFb"></div></div>`;
-  sfx("crate");
-  card.querySelectorAll(".ry-crate").forEach(b => b.onclick = () => {
-    if (card.dataset.done === "1") return; card.dataset.done = "1";
-    const pick = +b.dataset.i, k = items[pick];
-    card.querySelectorAll(".ry-crate").forEach((c, j) => { c.textContent = RY_ITEM[items[j]]; c.classList.add(j === pick ? "pick" : "rev"); c.disabled = true; });
-    if (k === "coins") RY.bonus += 15; else RY[k]++;
-    sfx("coin"); vib(25);
-    $("#ryDropFb").innerHTML = `<div class="ry-fb-h ok-c">${GT("קיבלת", "You got")}: ${RY_ITEM[k]} ${ryItemName(k)}</div><button class="arc-btn go" id="ryNext">${GT("לסיבוב הבא ▶", "Next round ▶")}</button>`;
-    $("#ryNext").onclick = () => { delete card.dataset.done; ryRound(); };
-  });
+function wdKbPaint() {
+  const best = {}, rank = { g: 3, y: 2, x: 1 };
+  WD.guesses.forEach(gs => wdScore(gs, WD.ans).forEach((s, i) => { const c = gs[i]; if (!best[c] || rank[s] > rank[best[c]]) best[c] = s; }));
+  app.querySelectorAll(".wd-k[data-k]").forEach(b => { b.classList.remove("g", "y", "x"); const s = best[b.dataset.k]; if (s) b.classList.add(s); });
 }
-function ryEnd(place) {
-  if (!RY || RY.over) return;
-  RY.over = true; clearInterval(RY.t); clearTimeout(RY.auto);
-  const R = RY, A = S.arc.roy;
-  A.p++; if (place === 1) A.w++; if (place <= 10) A.t10++; if (!A.best || place < A.best) A.best = place;
-  const coins = (place === 1 ? 60 : place <= 3 ? 40 : place <= 10 ? 25 : 10) + R.right * 2 + R.bonus;
-  const daily = R.daily && place <= 10 ? dailyWin() : 0;
-  addCoins(coins, true); addXP(15 + R.right * 5 + (place === 1 ? 25 : 0));
-  touchStreak(); logHistory({ mode: "royale", title: "👑 Fit Royale", score: pct(R.right, R.round), n: R.round }); save();
-  if (place <= 10) sfx("win"); else sfx("lose");
-  if (place === 1) confetti();
-  setTimeout(() => {
-    RY = null;
-    arcResult({
-      em: place === 1 ? "👑" : place <= 10 ? "🏅" : "💫", big: "#" + place, gold: place === 1,
-      title: place === 1 ? "Victory Royale!" : place <= 3 ? GT("כמעט! בפודיום", "So close – on the podium!") : place <= 10 ? GT("טופ 10!", "Top 10!") : GT("הודחת הפעם", "Knocked out this time"),
-      banner: daily ? `📅 ${GT("אתגר יומי הושלם", "Daily challenge complete")} · +100 🪙` : (R.daily && !daily && place > 10 ? `📅 ${GT("צריך טופ 10 לאתגר היומי – נסה שוב", "Daily challenge needs top 10 – try again")}` : ""),
-      stats: [[`${R.right}/${R.round}`, GT("נכונות", "Correct")], [`🔥${R.best}`, GT("רצף", "Streak")], [`+${coins}`, "🪙"]],
-      wrong: R.wrong, again: () => royaleStart(R.daily && !daily)
-    });
-  }, place === 1 ? 1200 : 700);
-}
-
-/* ═════════ 2. Myth Defense ═════════ */
-const MD_C = 9, MD_R = 12, MD_W = MD_C * 40, MD_H = MD_R * 40;
-const MD_MAPS = [
-  { em: "🏋️", he: "חדר הכושר", en: "The Gym", bg: ["#86efac", "#22c55e"], deco: ["🌿", "🌼", "🏀"], hp: 1, path: [[-1, 1], [7, 1], [7, 4], [1, 4], [1, 7], [7, 7], [7, 10], [4, 10], [4, 12]] },
-  { em: "🌳", he: "הפארק", en: "The Park", bg: ["#d9f99d", "#65a30d"], deco: ["🌳", "🌷", "🍄"], hp: 1.3, path: [[4, -1], [4, 2], [1, 2], [1, 5], [7, 5], [7, 8], [2, 8], [2, 10], [9, 10]] },
-  { em: "🏟️", he: "האצטדיון", en: "The Stadium", bg: ["#a7f3d0", "#059669"], deco: ["⚽", "🚩", "🌿"], hp: 1.6, path: [[-1, 10], [2, 10], [2, 2], [5, 2], [5, 9], [7, 9], [7, 4], [9, 4]] }
-];
-/* כל מפלצת היא מיתוס נפוץ – והעובדה שמפריכה אותו */
-const MD_MON = {
-  donut: { em: "🍩", hp: 60, sp: 1.0, g: 5, sz: 26, he: "אכילה בלילה משמינה", en: "Eating at night makes you fat", fhe: "מה שקובע הוא סך הקלוריות לאורך היום, לא השעה שבה אוכלים.", fen: "What matters most is total calories over the day, not the time you eat." },
-  drop: { em: "💦", hp: 38, sp: 1.7, g: 4, sz: 24, he: "יותר זיעה = יותר שריפת שומן", en: "More sweat = more fat burned", fhe: "זיעה היא הדרך של הגוף להתקרר. היא לא מודדת כמה שומן נשרף.", fen: "Sweat is how your body cools down. It doesn't measure how much fat you burn." },
-  ghost: { em: "👻", hp: 22, sp: 1.35, g: 2, sz: 21, he: "כפיפות בטן שורפות את שומן הבטן", en: "Crunches burn belly fat", fhe: "אי אפשר לבחור מאיפה יורד שומן. הירידה בשומן היא בכל הגוף.", fen: "You can't pick where fat comes off. Fat loss happens across the whole body." },
-  zombie: { em: "🧟", hp: 110, sp: 0.85, g: 8, sz: 28, he: "שריר הופך לשומן כשמפסיקים להתאמן", en: "Muscle turns into fat when you stop", fhe: "שריר ושומן הם רקמות שונות – אחת לא יכולה להפוך לשנייה.", fen: "Muscle and fat are different tissues – one can't turn into the other." },
-  bulk: { em: "🦍", hp: 160, sp: 0.9, g: 10, sz: 30, he: "משקולות יהפכו נשים למסיביות", en: "Lifting weights makes women bulky", fhe: "בניית מסת שריר גדולה דורשת שנים של אימון ותזונה מכוונים.", fen: "Building large muscle mass takes years of targeted training and eating." },
-  rock: { em: "🗿", hp: 230, sp: 0.6, g: 12, sz: 30, he: "בלי כאב אין תוצאות", en: "No pain, no gain", fhe: "התקדמות לא דורשת כאב. כאב חד הוא סימן אזהרה לעצור.", fen: "Progress doesn't require pain. Sharp pain is a warning sign to stop." },
-  boss: { em: "🐉", hp: 1100, sp: 0.42, g: 60, sz: 46, boss: 1, he: "מגה־מיתוס: חייבים להתאמן כל יום", en: "Mega myth: you must train every day", fhe: "השיפור קורה גם במנוחה – התאוששות היא חלק מהאימון.", fen: "Improvement happens during rest too – recovery is part of training." }
-};
-const MD_WAVES = [
-  [["donut", 8, 1.0]],
-  [["donut", 6, 0.9], ["drop", 6, 0.6]],
-  [["ghost", 14, 0.33], ["donut", 5, 0.8]],
-  [["zombie", 6, 1.0], ["drop", 8, 0.5]],
-  [["donut", 6, 0.8], ["boss", 1, 2.0], ["ghost", 10, 0.33]],
-  [["bulk", 5, 1.0], ["drop", 8, 0.5], ["donut", 6, 0.7]],
-  [["rock", 4, 1.4], ["ghost", 14, 0.3], ["zombie", 5, 0.9]],
-  [["bulk", 6, 0.9], ["rock", 3, 1.3], ["drop", 10, 0.45]],
-  [["zombie", 8, 0.8], ["rock", 5, 1.2], ["ghost", 18, 0.28], ["bulk", 4, 0.9]],
-  [["boss", 1, 2.5], ["rock", 4, 1.1], ["bulk", 6, 0.8], ["drop", 12, 0.4], ["boss", 1, 1.0]]
-];
-const MD_TW = {
-  bar: { em: "🏋️", c: "#ef4444", cost: 50, lock: 0, he: "תותח משקולות", en: "Barbell Cannon", dhe: "מכה חזקה במטרה אחת", den: "Strong single-target hits", dmg: [24, 40, 64], rate: [0.85, 0.75, 0.65], rg: [2.3, 2.5, 2.8], up: [45, 80] },
-  shake: { em: "🥤", c: "#ec4899", cost: 70, lock: 0, he: "שייק חלבון", en: "Protein Splash", dhe: "התזה שפוגעת בקבוצה", den: "Splash damage that hits groups", dmg: [14, 22, 34], rate: [1.3, 1.15, 1.0], rg: [2.0, 2.2, 2.4], splash: 0.95, up: [60, 95] },
-  zap: { em: "⚡", c: "#eab308", cost: 90, lock: 250, he: "זאפ קרדיו", en: "Cardio Zap", dhe: "ברק שקופץ בין 3 מטרות", den: "Lightning that chains 3 targets", dmg: [16, 26, 40], rate: [0.75, 0.65, 0.55], rg: [2.4, 2.6, 2.9], chain: 3, up: [80, 120] },
-  zen: { em: "🧘", c: "#06b6d4", cost: 60, lock: 400, he: "הקפאת זן", en: "Zen Freeze", dhe: "מאט את כל מי שבטווח", den: "Slows everything in range", dmg: [5, 8, 12], rate: [1, 0.9, 0.8], rg: [1.8, 2.1, 2.4], slow: [0.45, 0.55, 0.65], up: [55, 90] }
-};
-let MD = null;
-const mdStars = lives => lives >= 13 ? 3 : lives >= 7 ? 2 : 1;
-
-function mdMenu() {
-  ensureArcade(); arcStop();
-  const A = S.arc;
-  funScreen(`<div class="arc fade-in" data-notr>
-    <div class="arc-top"><button class="arc-x" id="fx">✕</button><b class="arc-title">🏰 Myth Defense</b><span class="arc-coins">🪙 <b>${S.coins}</b></span></div>
-    <div class="arc-h">${GT("בחר מפה", "Choose a map")}</div>
-    <div class="md-maps">${MD_MAPS.map((m, i) => { const lock = i > 0 && !A.md.stars[i - 1], st = A.md.stars[i];
-      return `<button class="md-map m${i} ${lock ? "lock" : ""}" data-m="${i}"><span class="md-map-em">${lock ? "🔒" : m.em}</span><b>${GT(m.he, m.en)}</b><small>${lock ? GT("נצח במפה הקודמת", "Win the previous map") : `10 ${GT("גלים", "waves")}`}</small><i>${"⭐".repeat(st)}${"☆".repeat(3 - st)}</i></button>`; }).join("")}</div>
-    <div class="arc-h">${GT("איך משחקים", "How to play")}</div>
-    <div class="md-how">
-      <div>🏗️ ${GT("בוחרים מגדל למטה ומקישים על הדשא כדי לבנות", "Pick a tower below and tap the grass to build")}</div>
-      <div>👾 ${GT("כל מפלצת היא מיתוס על כושר – אל תיתן לה להגיע לחדר הכושר", "Every monster is a fitness myth – don't let it reach the gym")}</div>
-      <div>🧠 ${GT("בין הגלים: 2 שאלות מאמן. תשובה נכונה = זהב + טעינת 💥", "Between waves: 2 coach questions. Right answer = gold + 💥 charge")}</div>
-      <div>❓ ${GT("בועת שאלה צצה באמצע גל? הקש עליה לבונוס", "A question bubble pops up mid-wave? Tap it for a bonus")}</div>
-      <div>💥 ${GT("מכת מיתוסים פוגעת בכל המפלצות על המסך", "Myth Buster hits every monster on screen")}</div>
-    </div>
-    <button class="arc-btn" id="mdShop">🛒 ${GT("מגדלים חדשים בחנות", "New towers in the shop")}</button>
-  </div>`);
-  arcFull(true);
-  $("#fx").onclick = arcadeHub; $("#mdShop").onclick = () => arcShop(mdMenu);
-  app.querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
-    if (b.classList.contains("lock")) { sfx("no"); return toast("🔒", GT("נצח במפה הקודמת כדי לפתוח", "Win the previous map to unlock")); }
-    mdStart(+b.dataset.m, false);
-  });
-}
-
-function mdGeom(map) {
-  const pts = map.path.map(([x, y]) => [x + 0.5, y + 0.5]), seg = [];
-  let tot = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const [ax, ay] = pts[i - 1], [bx, by] = pts[i], l = Math.hypot(bx - ax, by - ay);
-    seg.push({ ax, ay, bx, by, l, s: tot }); tot += l;
+function wdMsg(t) { const m = $("#wdMsg"); if (!m) return; m.textContent = t; m.classList.remove("on"); void m.offsetWidth; m.classList.add("on"); }
+function wdKey(k) {
+  if (!WD || WD.done || WD.busy) return;
+  if (k === "del") { WD.cur.pop(); sfx("tap"); return wdDraw(); }
+  if (k === "enter") {
+    if (WD.cur.length < 5) { wdMsg(GT("צריך 5 אותיות", "Not enough letters")); gShake(app.querySelector(`.wd-line[data-r="${WD.guesses.length}"]`)); sfx("no"); return; }
+    const guess = WD.cur.slice(); WD.guesses.push(guess); WD.cur = []; WD.busy = true;
+    const win = guess.join("") === WD.ans.join(""), lose = !win && WD.guesses.length >= 6;
+    if (!WD.practice) { const st = S.g.wd[WD.L]; st.guesses = WD.guesses.map(g => g.join("")); save(); }
+    wdDraw(WD.guesses.length - 1);
+    for (let i = 0; i < 5; i++) setTimeout(() => sfx("flip"), i * 220 + 150);
+    setTimeout(() => {
+      if (!WD) return;
+      WD.busy = false; wdKbPaint();
+      if (win || lose) { WD.done = true; wdFinish(win); }
+    }, 5 * 220 + 300);
+    return;
   }
-  const cells = new Set();
-  for (const s of seg) {
-    const n = Math.ceil(s.l * 4);
-    for (let j = 0; j <= n; j++) {
-      const x = Math.floor(s.ax + (s.bx - s.ax) * j / n), y = Math.floor(s.ay + (s.by - s.ay) * j / n);
-      if (x >= 0 && y >= 0 && x < MD_C && y < MD_R) cells.add(x + "," + y);
-    }
-  }
-  return { pts, seg, tot, cells };
+  if (WD.cur.length >= 5) return;
+  const c = FIN[k] || k;
+  WD.cur.push(c); sfx("tap"); wdDraw();
+  const t = app.querySelectorAll(`.wd-line[data-r="${WD.guesses.length}"] .wd-t`)[WD.cur.length - 1]; t && t.classList.add("pop");
 }
-function mdPos(d) {
-  for (const s of MD.G.seg) if (d <= s.s + s.l) { const t = (d - s.s) / s.l; return [s.ax + (s.bx - s.ax) * t, s.ay + (s.by - s.ay) * t]; }
-  const s = MD.G.seg[MD.G.seg.length - 1]; return [s.bx, s.by];
-}
-function mdWaveList(w) {
-  const L = [];
-  MD_WAVES[w - 1].forEach(([k, n, gap]) => { for (let i = 0; i < n; i++) L.push([k, gap]); });
-  return L;
-}
-
-function mdStart(mapI, daily) {
-  ensureArcade(); arcStop();
-  const map = MD_MAPS[mapI], own = S.arc.towers;
-  MD = {
-    mapI, map, daily: !!daily, G: null, w: 0, waves: daily ? 6 : 10, hpM: map.hp * (daily ? 1.6 : 1),
-    lives: 15, gold: daily ? 100 : 120, charge: 1, phase: "build", queue: [], spT: 0, bub: null, bubT: 15,
-    mon: [], tw: [], shots: [], parts: [], floats: [], rings: [], bolts: [], sel: "bar", insp: null,
-    fast: 1, puffs: [], coins: [], hurt: 0, comboN: 0, lastKill: -9, clouds: [[1, 3, 0.25], [6, 8, 0.18], [3, 11, 0.21]], paused: false, over: false, time: 0, shake: 0, flash: 0, right: 0, asked: 0, wrong: [], streak: 0, kills: 0, uid: 0
-  };
-  MD.G = mdGeom(map);
-  funScreen(`<div class="arc md" data-notr>
-    <div class="md-hud">
-      <button class="arc-x" id="fx">✕</button>
-      <span class="md-pill">❤️ <b id="mdL">15</b></span>
-      <span class="md-pill gold">🪙 <b id="mdG">0</b></span>
-      <span class="md-pill">🌊 <b id="mdWv">0/${MD.waves}</b></span>
-      <button class="md-fast" id="mdFast">⏩<b>1x</b></button>
-    </div>
-    <div class="md-stage" id="mdStage"><canvas id="mdC"></canvas><div class="md-ban" id="mdBan"></div><div class="md-panel" id="mdPanel"></div></div>
-    <div class="md-next" id="mdNext"></div>
-    <div class="md-bar">
-      <div class="md-towers">${Object.entries(MD_TW).map(([k, T]) => `<button class="md-tw ${own.includes(k) ? "" : "lock"}" data-k="${k}" style="--c:${T.c}"><span>${own.includes(k) ? T.em : "🔒"}</span><i>🪙${T.cost}</i></button>`).join("")}</div>
-      <button class="md-go" id="mdGo">▶<small>${GT("גל", "Wave")}</small></button>
-      <button class="md-buster" id="mdBust" hidden>💥<i id="mdCh">1</i></button>
-    </div>
-  </div>`);
-  arcFull(true);
-  const M = MD;
-  M.cv = $("#mdC"); M.ctx = M.cv.getContext("2d");
-  mdSize();
-  $("#fx").onclick = () => { if (!M.over && M.w > 0) { if (!confirm(GT("לצאת מהמשחק? ההתקדמות במפה תאבד.", "Leave the game? Your progress on this map will be lost."))) return; } arcStop(); mdMenu(); };
-  $("#mdFast").onclick = () => { M.fast = M.fast % 3 + 1; $("#mdFast b").textContent = M.fast + "x"; $("#mdFast").classList.toggle("on", M.fast > 1); sfx("tap"); };
-  $("#mdGo").onclick = mdStartWave;
-  $("#mdBust").onclick = mdBuster;
-  app.querySelectorAll(".md-tw").forEach(b => b.onclick = () => {
-    const k = b.dataset.k;
-    if (!S.arc.towers.includes(k)) { sfx("no"); return toast("🔒", GT(`נפתח בחנות ב־${MD_TW[k].lock} מטבעות`, `Unlock it in the shop for ${MD_TW[k].lock} coins`)); }
-    M.sel = k; sfx("tap"); mdHud();
-  });
-  M.cv.addEventListener("pointerdown", e => {
-    const r = M.cv.getBoundingClientRect();
-    mdTap((e.clientX - r.left) / r.width * MD_C, (e.clientY - r.top) / r.height * MD_R);
-  });
-  $("#mdPanel").innerHTML = `<div class="md-tip"><b>${map.em} ${GT(map.he, map.en)}${daily ? " · 📅 " + GT("אתגר יומי", "Daily challenge") : ""}</b>
-    <div>🏗️ ${GT("בחר מגדל למטה והקש על הדשא כדי לבנות.", "Pick a tower below and tap the grass to build.")}</div>
-    <div>▶ ${GT("כשאתה מוכן – התחל את הגל הראשון.", "When you're ready – start the first wave.")}</div></div>`;
-  mdHud();
-  M.last = performance.now();
-  M.raf = requestAnimationFrame(mdLoop);
-}
-
-function mdSize() {
-  const M = MD; if (!M || !M.cv) return;
-  const aw = Math.min(innerWidth - 20, 560), ah = innerHeight - 160;
-  const sc = Math.max(0.5, Math.min(aw / MD_W, ah / MD_H)), dpr = Math.min(3, window.devicePixelRatio || 1);
-  M.cv.style.width = Math.round(MD_W * sc) + "px"; M.cv.style.height = Math.round(MD_H * sc) + "px";
-  M.cv.width = Math.round(MD_W * sc * dpr); M.cv.height = Math.round(MD_H * sc * dpr);
-  M.k = sc * dpr; M.ctx.setTransform(M.k, 0, 0, M.k, 0, 0);
-  mdBg();
-}
-window.addEventListener("resize", () => { if (MD) mdSize(); });
-
-const EMO = {};
-function emo(e, px) {
-  const K = MD.k, key = e + "|" + px + "|" + K.toFixed(2);
-  if (EMO[key]) return EMO[key];
-  const s = Math.ceil(px * 1.35 * K), c = document.createElement("canvas"), x = c.getContext("2d");
-  c.width = c.height = s;
-  x.font = `${Math.round(px * K)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-  x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(e, s / 2, s / 2 + px * K * 0.07);
-  return EMO[key] = { c, s: s / K };
-}
-function drawEmo(ctx, e, px, x, y, a) {
-  const E = emo(e, px);
-  if (a != null) ctx.globalAlpha = a;
-  ctx.drawImage(E.c, x - E.s / 2, y - E.s / 2, E.s, E.s);
-  if (a != null) ctx.globalAlpha = 1;
-}
-
-/* רקע סטטי: דשא, שביל וקישוטים – נצייר פעם אחת */
-function mdBg() {
-  const M = MD, K = M.k, b = document.createElement("canvas");
-  b.width = Math.round(MD_W * K); b.height = Math.round(MD_H * K);
-  const c = b.getContext("2d"); c.scale(K, K);
-  const g = c.createLinearGradient(0, 0, 0, MD_H); g.addColorStop(0, M.map.bg[0]); g.addColorStop(1, M.map.bg[1]);
-  c.fillStyle = g; c.fillRect(0, 0, MD_W, MD_H);
-  for (let y = 0; y < MD_R; y++) for (let x = 0; x < MD_C; x++) if ((x + y) % 2) { c.fillStyle = "rgba(255,255,255,.10)"; c.fillRect(x * 40, y * 40, 40, 40); }
-  const line = (w, col, dash) => {
-    c.beginPath(); M.G.pts.forEach(([x, y], i) => i ? c.lineTo(x * 40, y * 40) : c.moveTo(x * 40, y * 40));
-    c.lineWidth = w; c.strokeStyle = col; c.lineJoin = "round"; c.lineCap = "round"; c.setLineDash(dash || []); c.stroke(); c.setLineDash([]);
-  };
-  line(38, "rgba(0,0,0,.18)"); line(34, "#b45309"); line(28, "#fde68a"); line(2, "rgba(180,83,9,.35)", [6, 10]);
-  let seed = 7 + M.mapI * 13; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-  for (let i = 0; i < 14; i++) {
-    const x = Math.floor(rnd() * MD_C), y = Math.floor(rnd() * MD_R);
-    if (M.G.cells.has(x + "," + y)) continue;
-    const E = emo(M.map.deco[i % 3], 13);
-    c.globalAlpha = 0.85; c.drawImage(E.c, x * 40 + 4 + rnd() * 18, y * 40 + 4 + rnd() * 18, E.s, E.s); c.globalAlpha = 1;
-  }
-  M.bg = b;
-}
-
-function mdHud() {
-  const M = MD; if (!M) return;
-  $("#mdL").textContent = M.lives; $("#mdG").textContent = M.gold; $("#mdWv").textContent = `${M.w}/${M.waves}`;
-  $("#mdCh").textContent = M.charge;
-  app.querySelectorAll(".md-tw").forEach(b => {
-    const T = MD_TW[b.dataset.k];
-    b.classList.toggle("sel", b.dataset.k === M.sel); b.classList.toggle("poor", M.gold < T.cost);
-  });
-  const wave = M.phase === "wave";
-  $("#mdGo").hidden = wave; $("#mdBust").hidden = !wave;
-  $("#mdBust").disabled = !M.charge;
-  $("#mdGo").classList.toggle("pulse", !wave && !$("#mdPanel .md-q"));
-  const nx = $("#mdNext");
-  if (nx) {
-    if (wave) nx.innerHTML = `👾 ${GT("נשארו בגל", "Left in wave")}: <b>${M.queue.length + M.mon.length}</b>${M.comboN >= 3 ? ` <span class="md-combo">🔥 x${M.comboN}</span>` : ""}`;
-    else if (M.w < M.waves) {
-      const cnt = {}; MD_WAVES[M.w].forEach(([k, n]) => cnt[k] = (cnt[k] || 0) + n);
-      nx.innerHTML = `${GT("הגל הבא", "Next wave")}: ${Object.entries(cnt).map(([k, n]) => `<span class="md-nx">${MD_MON[k].em}<i>×${n}</i></span>`).join("")}`;
-    } else nx.innerHTML = "";
-  }
-}
-function mdBanner(t) { const b = $("#mdBan"); if (!b) return; b.innerHTML = t; b.classList.remove("on"); void b.offsetWidth; b.classList.add("on"); }
-function mdFloat(x, y, t, c) { MD.floats.push({ x, y, t, c: c || "#fff", life: 1 }); }
-function mdBurst(x, y, c, n) {
-  for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = 1 + Math.random() * 2.5; MD.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.5 + Math.random() * 0.3, c, r: 2 + Math.random() * 2.5 }); }
-}
-
-function mdTap(x, y) {
-  const M = MD; if (!M || M.over || M.paused) return;
-  if (M.bub && Math.hypot(x - M.bub.x, y - M.bub.y) < 0.85) return mdBubbleQ();
-  const cx = Math.floor(x), cy = Math.floor(y);
-  if (cx < 0 || cy < 0 || cx >= MD_C || cy >= MD_R) return;
-  const t = M.tw.find(t => t.cx === cx && t.cy === cy);
-  if (t) return mdTowerPop(t);
-  if (M.G.cells.has(cx + "," + cy)) { mdFloat(cx + 0.5, cy + 0.5, "🚫", "#fff"); sfx("no"); return; }
-  const T = MD_TW[M.sel];
-  if (M.gold < T.cost) { mdFloat(cx + 0.5, cy + 0.5, GT("חסר זהב", "Need gold"), "#fecaca"); sfx("no"); return; }
-  M.gold -= T.cost;
-  M.tw.push({ k: M.sel, cx, cy, x: cx + 0.5, y: cy + 0.5, lv: 0, cd: 0, spent: T.cost, kick: 0, pop: 0.3 });
-  sfx("build"); vib(15); mdBurst(cx + 0.5, cy + 0.5, "#fff", 8);
-  if (M.phase === "build" && $("#mdPanel .md-tip")) $("#mdPanel").innerHTML = "";
-  mdHud();
-}
-function mdTowerPop(t) {
-  const M = MD, T = MD_TW[t.k], max = t.lv >= 2, up = max ? 0 : T.up[t.lv], sell = Math.floor(t.spent * 0.6);
-  M.paused = true; M.insp = t; sfx("tap");
-  const done = () => { if (MD === M) { M.paused = false; M.insp = null; M.last = performance.now(); mdHud(); } };
-  const h = sheet(`<div class="md-pop" data-notr><div class="md-pop-h"><span class="arc-tem" style="--c:${T.c}">${T.em}</span><div><b>${GT(T.he, T.en)}</b><small>${GT("רמה", "Level")} ${t.lv + 1}/3 · ${GT(T.dhe, T.den)}</small></div></div>
-    <div class="md-pop-st"><span>💪 ${T.dmg[t.lv]}${max ? "" : ` → <b>${T.dmg[t.lv + 1]}</b>`}</span><span>🎯 ${T.rg[t.lv]}${max ? "" : ` → <b>${T.rg[t.lv + 1]}</b>`}</span></div>
-    ${max ? `<div class="arc-perfect">⭐ ${GT("רמה מקסימלית", "Max level")}</div>` : `<button class="arc-btn go" data-a="up" ${M.gold < up ? "disabled" : ""}>⬆️ ${GT("שדרוג", "Upgrade")} · 🪙 ${up}</button>`}
-    <button class="arc-btn warn" data-a="sell">💰 ${GT("מכירה", "Sell")} · +${sell} 🪙</button>
-    <button class="arc-btn" data-a="x">${GT("סגירה", "Close")}</button></div>`, (e, close) => {
-    const a = e.target.closest("[data-a]")?.dataset.a; if (!a) return;
-    if (a === "up" && M.gold >= up && !max) { M.gold -= up; t.spent += up; t.lv++; t.pop = 0.35; sfx("build"); mdBurst(t.x, t.y, "#fde047", 14); }
-    if (a === "sell") { M.gold += sell; M.tw = M.tw.filter(x => x !== t); sfx("coin"); mdFloat(t.x, t.y, "+" + sell, "#fde047"); }
-    close(); done();
-  });
-  h.bg.addEventListener("click", e => { if (e.target === h.bg) done(); });
-}
-function mdBubbleQ() {
-  const M = MD; M.bub = null; M.paused = true; sfx("tap");
-  gqAsk(`❓ ${GT("שאלת בונוס · +40 🪙 +1 💥", "Bonus question · +40 🪙 +1 💥")}`, (ok, q, pick) => {
-    if (MD !== M) return;
-    M.asked++;
-    if (ok) { M.right++; M.gold += 40; M.charge = Math.min(3, M.charge + 1); sfx("coin"); }
-    else M.wrong.push({ q, pick });
-    M.paused = false; M.last = performance.now(); mdHud();
-  });
-}
-function mdBuster() {
-  const M = MD; if (!M || !M.charge || M.phase !== "wave" || M.paused) return;
-  M.charge--; M.flash = 0.35; M.shake = 0.5; sfx("boom"); vib([60, 40, 90]);
-  M.mon.forEach(m => { if (!m.dead) { mdHit(m, m.boss ? 300 : 150); m.stun = 1.2; mdBurst(m.x, m.y, "#f97316", 8); } });
-  mdBanner(`💥 ${GT("מכת מיתוסים!", "Myth Buster!")}`); mdHud();
-}
-
-function mdStartWave() {
-  const M = MD; if (!M || M.phase === "wave" || M.over || M.paused) return;
-  const w = M.w + 1, list = mdWaveList(w);
-  const nu = [...new Set(list.map(x => x[0]))].find(k => !S.arc.seen.includes(k));
-  if (nu) { S.arc.seen.push(nu); save(); return mdMyth(nu, mdStartWave); }
-  M.w = w; M.queue = list; M.spT = 0.4; M.phase = "wave"; M.bubT = 9 + Math.random() * 6; M.bub = null;
-  $("#mdPanel").innerHTML = "";
-  mdBanner(`🌊 ${GT("גל", "Wave")} ${w}${MD_WAVES[w - 1].some(x => x[0] === "boss") ? " · 🐉 " + GT("בוס!", "Boss!") : ""}`);
-  sfx("wave"); mdHud();
-}
-function mdMyth(k, then) {
-  const m = MD_MON[k], M = MD; M.paused = true; sfx("crate");
-  const h = sheet(`<div class="md-myth" data-notr><div class="md-myth-tag">🆕 ${GT("מיתוס חדש בדרך!", "A new myth is coming!")}</div>
-    <div class="md-myth-em">${m.em}</div><div class="md-myth-q">"${GT(m.he, m.en)}"</div>
-    <div class="md-myth-x">❌ ${GT("מיתוס", "Myth")}</div><div class="md-myth-f">✅ ${GT(m.fhe, m.fen)}</div>
-    <button class="arc-btn go" data-go>💥 ${GT("בוא נפריך אותו!", "Let's bust it!")}</button></div>`, (e, close) => {
-    if (e.target.closest("[data-go]")) { close(); if (MD === M) { M.paused = false; M.last = performance.now(); then(); } }
-  });
-  h.bg.addEventListener("click", e => { if (e.target === h.bg) e.stopImmediatePropagation(); }, true);
-}
-function mdSpawn(k) {
-  const T = MD_MON[k], M = MD, hp = Math.round(T.hp * (1 + 0.16 * (M.w - 1)) * M.hpM);
-  const [x, y] = mdPos(0);
-  M.mon.push({ k, em: T.em, sz: T.sz, hp, max: hp, sp: T.sp, g: T.g, boss: !!T.boss, d: 0, x, y, slowT: 0, slowF: 0, stun: 0, hitT: 0, id: M.uid++ });
-  mdHud();
-}
-function mdHit(m, d) {
-  if (m.dead) return;
-  const M = MD; m.hp -= d; m.hitT = 0.1;
-  if (m.hp <= 0) {
-    m.dead = true; M.gold += m.g; M.kills++;
-    M.comboN = M.time - M.lastKill < 1.1 ? M.comboN + 1 : 1; M.lastKill = M.time;
-    if (M.comboN === 5 || M.comboN === 10 || M.comboN === 20) { const b = M.comboN * 2; M.gold += b; mdFloat(m.x, m.y - 0.9, `🔥 COMBO x${M.comboN} +${b}`, "#fb923c"); sfx("coin"); }
-    M.puffs.push({ x: m.x, y: m.y, life: 0.45, s: m.sz });
-    for (let i = 0; i < (m.boss ? 8 : 1); i++) M.coins.push({ x: m.x + (Math.random() - 0.5) * (m.boss ? 1.5 : 0), y: m.y, t: 0, d: 0.7 + Math.random() * 0.3 });
-    mdFloat(m.x, m.y - 0.3, "+" + m.g, "#fde047"); mdBurst(m.x, m.y, m.boss ? "#a855f7" : "#fff", m.boss ? 34 : 9);
-    if (m.boss) { M.shake = 0.45; vib(80); sfx("boom"); mdBanner(`🐉 ${GT("הבוס הובס!", "Boss busted!")}`); } else sfx("pop");
-    mdHud();
-  }
-}
-function mdStep(dt) {
-  const M = MD; M.time += dt;
-  if (M.phase === "wave") {
-    M.spT -= dt;
-    if (M.queue.length && M.spT <= 0) { const [k, gap] = M.queue.shift(); mdSpawn(k); M.spT = gap; }
-    if (!M.bub) {
-      M.bubT -= dt;
-      if (M.bubT <= 0) {
-        const free = [];
-        for (let y = 1; y < MD_R - 1; y++) for (let x = 0; x < MD_C; x++) if (!M.G.cells.has(x + "," + y) && !M.tw.some(t => t.cx === x && t.cy === y)) free.push([x, y]);
-        if (free.length) { const [x, y] = free[Math.floor(Math.random() * free.length)]; M.bub = { x: x + 0.5, y: y + 0.5, life: 7 }; sfx("crate"); }
-        M.bubT = 16 + Math.random() * 8;
-      }
-    } else if ((M.bub.life -= dt) <= 0) M.bub = null;
-  }
-  for (const m of M.mon) {
-    if (m.dead) continue;
-    let sp = m.sp;
-    if (m.slowT > 0) { m.slowT -= dt; sp *= 1 - m.slowF; }
-    if (m.stun > 0) { m.stun -= dt; sp = 0; }
-    m.d += sp * dt; [m.x, m.y] = mdPos(m.d); m.hitT = Math.max(0, m.hitT - dt);
-    if (m.d >= M.G.tot) {
-      m.dead = true; M.lives = Math.max(0, M.lives - (m.boss ? 5 : 1)); M.shake = 0.3; M.hurt = 0.5; sfx("leak"); vib(70);
-      const [ex, ey] = mdExit(); mdFloat(ex, ey - 0.5, m.boss ? "-5 ❤️" : "-1 ❤️", "#fecaca");
-      mdHud();
-      if (M.lives <= 0) return mdEnd(false);
-    }
-  }
-  for (const t of M.tw) {
-    t.kick = Math.max(0, t.kick - dt); t.pop = Math.max(0, t.pop - dt);
-    t.cd -= dt; if (t.cd > 0) continue;
-    const T = MD_TW[t.k], L = t.lv, rg = T.rg[L];
-    const inR = M.mon.filter(m => !m.dead && Math.hypot(m.x - t.x, m.y - t.y) <= rg).sort((a, b) => b.d - a.d);
-    if (!inR.length) continue;
-    if (t.k === "zen") {
-      inR.forEach(m => { mdHit(m, T.dmg[L]); m.slowF = Math.max(m.slowT > 0 ? m.slowF : 0, m.boss ? T.slow[L] * 0.5 : T.slow[L]); m.slowT = 1.3; });
-      M.rings.push({ x: t.x, y: t.y, r: 0.3, R: rg, life: 0.5, c: "#67e8f9" });
-    } else if (t.k === "zap") {
-      const chain = [inR[0]];
-      for (let c = 1; c < T.chain; c++) {
-        const cur = chain[chain.length - 1];
-        const nx = M.mon.filter(m => !m.dead && !chain.includes(m) && Math.hypot(m.x - cur.x, m.y - cur.y) < 1.8).sort((a, b) => Math.hypot(a.x - cur.x, a.y - cur.y) - Math.hypot(b.x - cur.x, b.y - cur.y))[0];
-        if (!nx) break; chain.push(nx);
-      }
-      M.bolts.push({ pts: [[t.x, t.y], ...chain.map(m => [m.x, m.y])], life: 0.15 });
-      chain.forEach(m => mdHit(m, T.dmg[L])); sfx("zap");
-    } else { M.shots.push({ x: t.x, y: t.y, m: inR[0], k: t.k, dmg: T.dmg[L], c: T.c }); sfx("shoot"); }
-    t.cd = T.rate[L]; t.kick = 0.12;
-  }
-  for (const s of M.shots) {
-    const m = s.m; if (m.dead) { s.done = true; continue; }
-    const dx = m.x - s.x, dy = m.y - s.y, dist = Math.hypot(dx, dy), v = 9 * dt;
-    if (dist <= v) {
-      s.done = true;
-      if (s.k === "shake") {
-        M.mon.forEach(o => { if (!o.dead && Math.hypot(o.x - m.x, o.y - m.y) <= MD_TW.shake.splash) mdHit(o, s.dmg); });
-        M.rings.push({ x: m.x, y: m.y, r: 0.2, R: MD_TW.shake.splash, life: 0.35, c: "#f9a8d4" });
-      } else mdHit(m, s.dmg);
-      mdBurst(m.x, m.y, s.c, 4); sfx("hit");
-    } else { s.px = s.x; s.py = s.y; s.x += dx / dist * v; s.y += dy / dist * v; s.rot = (s.rot || 0) + dt * 14; }
-  }
-  M.shots = M.shots.filter(s => !s.done);
-  M.mon = M.mon.filter(m => !m.dead);
-  M.puffs.forEach(p => p.life -= dt); M.puffs = M.puffs.filter(p => p.life > 0);
-  M.coins.forEach(k => k.t += dt / k.d); M.coins = M.coins.filter(k => k.t < 1);
-  M.clouds.forEach(k => { k[0] += dt * k[2]; if (k[0] > MD_C + 2) k[0] = -3; });
-  if (M.time - M.lastKill > 1.1 && M.comboN) { M.comboN = 0; }
-  M.parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; p.vy *= 0.92; p.life -= dt; }); M.parts = M.parts.filter(p => p.life > 0);
-  M.floats.forEach(f => { f.y -= dt * 0.9; f.life -= dt; }); M.floats = M.floats.filter(f => f.life > 0);
-  M.rings.forEach(r => r.life -= dt); M.rings = M.rings.filter(r => r.life > 0);
-  M.bolts.forEach(b => b.life -= dt); M.bolts = M.bolts.filter(b => b.life > 0);
-  if (M.phase === "wave" && !M.queue.length && !M.mon.length) mdWaveClear();
-}
-function mdExit() { const [x, y] = mdPos(MD.G.tot - 0.9); return [Math.min(MD_C - 0.5, Math.max(0.5, x)), Math.min(MD_R - 0.5, Math.max(0.5, y))]; }
-
-function mdDraw() {
-  const M = MD, c = M.ctx;
-  c.save();
-  if (M.shake > 0) c.translate((Math.random() - 0.5) * 14 * M.shake, (Math.random() - 0.5) * 14 * M.shake);
-  c.drawImage(M.bg, 0, 0, MD_W, MD_H);
-  const P = v => v * 40, T_ = M.time;
-  // שער כניסה ובית
-  const [sx, sy] = mdPos(0.9); drawEmo(c, "🌀", 26, P(Math.min(MD_C - 0.4, Math.max(0.4, sx))), P(Math.min(MD_R - 0.4, Math.max(0.4, sy))));
-  const [ex, ey] = mdExit();
-  c.fillStyle = "rgba(0,0,0,.2)"; c.beginPath(); c.ellipse(P(ex), P(ey) + 14, 20, 7, 0, 0, 6.28); c.fill();
-  c.fillStyle = "#fff"; c.strokeStyle = "#f59e0b"; c.lineWidth = 4; c.beginPath(); c.arc(P(ex), P(ey), 18, 0, 6.28); c.fill(); c.stroke();
-  drawEmo(c, S.arc.skin, 24, P(ex), P(ey));
-  // טווח של מגדל נבחר
-  if (M.insp) { c.fillStyle = "rgba(255,255,255,.18)"; c.strokeStyle = "rgba(255,255,255,.8)"; c.lineWidth = 2; c.setLineDash([6, 6]); c.beginPath(); c.arc(P(M.insp.x), P(M.insp.y), P(MD_TW[M.insp.k].rg[M.insp.lv]), 0, 6.28); c.fill(); c.stroke(); c.setLineDash([]); }
-  // מגדלים
-  for (const t of M.tw) {
-    const T = MD_TW[t.k], s = 1 + t.kick * 0.9 + t.pop * 0.8 + Math.sin(T_ * 3 + t.cx + t.cy) * 0.02, x = P(t.x), y = P(t.y);
-    c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(x, y + 14, 16, 6, 0, 0, 6.28); c.fill();
-    if (t.lv) { c.globalAlpha = 0.25 + Math.sin(T_ * 4 + t.cx) * 0.1; c.fillStyle = T.c; c.beginPath(); c.arc(x, y, 21 + t.lv * 2, 0, 6.28); c.fill(); c.globalAlpha = 1; }
-    c.fillStyle = "#fff"; c.strokeStyle = T.c; c.lineWidth = 4 + t.lv; c.beginPath(); c.arc(x, y, 16 * s, 0, 6.28); c.fill(); c.stroke();
-    c.fillStyle = "rgba(0,0,0,.08)"; c.beginPath(); c.arc(x, y + 5, 13 * s, 0.2, 2.94); c.fill();
-    drawEmo(c, T.em, 21 * s, x, y);
-    if (t.lv === 2) drawEmo(c, "👑", 13, x + 11, y - 13);
-    for (let i = 0; i <= t.lv; i++) { c.fillStyle = "#fde047"; c.strokeStyle = "#92400e"; c.lineWidth = 1.5; c.beginPath(); c.arc(x - (t.lv * 5) + i * 10, y + 19, 3.5, 0, 6.28); c.fill(); c.stroke(); }
-  }
-  // טבעות והתזות
-  for (const r of M.rings) { const k = 1 - r.life / (r.c === "#67e8f9" ? 0.5 : 0.35); c.globalAlpha = Math.max(0, 1 - k); c.strokeStyle = r.c; c.lineWidth = 4; c.beginPath(); c.arc(P(r.x), P(r.y), P(r.r + (r.R - r.r) * k), 0, 6.28); c.stroke(); c.globalAlpha = 1; }
-  // מפלצות
-  for (const m of M.mon) {
-    const bob = Math.sin(T_ * 9 + m.id) * 2, x = P(m.x), y = P(m.y);
-    c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(x, y + m.sz * 0.45, m.sz * 0.42, m.sz * 0.15, 0, 0, 6.28); c.fill();
-    if (m.slowT > 0) { c.strokeStyle = "#67e8f9"; c.lineWidth = 3; c.beginPath(); c.arc(x, y + bob, m.sz * 0.55, 0, 6.28); c.stroke(); }
-    if (m.hitT > 0) { c.fillStyle = "rgba(255,255,255,.75)"; c.beginPath(); c.arc(x, y + bob, m.sz * 0.5, 0, 6.28); c.fill(); }
-    const sq = m.stun > 0 ? 0 : Math.sin(T_ * 12 + m.id) * 0.07, E = emo(m.em, m.sz), w = E.s * (1 - sq), h = E.s * (1 + sq);
-    c.drawImage(E.c, x - w / 2, y + bob - h / 2 - (h - E.s) / 2, w, h);
-    if (m.stun > 0) drawEmo(c, "💫", 14, x, y - m.sz * 0.62 + bob);
-    if (m.hp < m.max) {
-      const w = m.boss ? 46 : 26, yy = y - m.sz * 0.7;
-      c.fillStyle = "rgba(0,0,0,.45)"; c.fillRect(x - w / 2 - 1, yy - 1, w + 2, 6);
-      c.fillStyle = m.hp / m.max > 0.4 ? "#22c55e" : "#ef4444"; c.fillRect(x - w / 2, yy, w * Math.max(0, m.hp / m.max), 4);
-    }
-  }
-  // יריות
-  for (const s of M.shots) { if (s.px != null) { c.strokeStyle = s.c; c.globalAlpha = 0.45; c.lineWidth = 5; c.lineCap = "round"; c.beginPath(); c.moveTo(P(s.px * 2 - s.x), P(s.py * 2 - s.y)); c.lineTo(P(s.x), P(s.y)); c.stroke(); c.globalAlpha = 1; } c.fillStyle = s.c; c.strokeStyle = "#fff"; c.lineWidth = 2; c.beginPath(); c.arc(P(s.x), P(s.y), s.k === "shake" ? 6 : 5, 0, 6.28); c.fill(); c.stroke(); }
-  for (const b of M.bolts) {
-    [["#fde047", 5], ["#fff", 2]].forEach(([col, w]) => {
-      c.strokeStyle = col; c.lineWidth = w; c.beginPath();
-      b.pts.forEach(([x, y], i) => { const jx = i ? (Math.random() - 0.5) * 8 : 0, jy = i ? (Math.random() - 0.5) * 8 : 0; i ? c.lineTo(P(x) + jx, P(y) + jy) : c.moveTo(P(x), P(y)); });
-      c.stroke();
-    });
-  }
-  for (const p of M.parts) { c.globalAlpha = Math.min(1, p.life * 2); c.fillStyle = p.c; c.beginPath(); c.arc(P(p.x), P(p.y), p.r, 0, 6.28); c.fill(); }
-  c.globalAlpha = 1;
-  // בועת שאלה
-  if (M.bub) {
-    const b = M.bub, x = P(b.x), y = P(b.y), s = 1 + Math.sin(T_ * 6) * 0.08;
-    c.fillStyle = "#fde047"; c.strokeStyle = "#fff"; c.lineWidth = 3; c.beginPath(); c.arc(x, y, 17 * s, 0, 6.28); c.fill(); c.stroke();
-    c.strokeStyle = "#7c3aed"; c.lineWidth = 3; c.beginPath(); c.arc(x, y, 21, -1.57, -1.57 + 6.28 * (b.life / 7)); c.stroke();
-    drawEmo(c, "❓", 20 * s, x, y);
-  }
-  // טקסט צף
-  c.textAlign = "center"; c.font = "900 15px system-ui,sans-serif";
-  for (const f of M.floats) { c.globalAlpha = Math.min(1, f.life * 1.6); c.lineWidth = 4; c.strokeStyle = "rgba(0,0,0,.6)"; c.strokeText(f.t, P(f.x), P(f.y)); c.fillStyle = f.c; c.fillText(f.t, P(f.x), P(f.y)); }
-  c.globalAlpha = 1;
-  for (const p of M.puffs) { const k = 1 - p.life / 0.45; drawEmo(c, "💨", p.s * (0.7 + k * 0.8), P(p.x), P(p.y) - k * 10, 1 - k); }
-  for (const k of M.coins) { const e = k.t * k.t, x = P(k.x) + (MD_W * 0.62 - P(k.x)) * e, y = P(k.y) + (-10 - P(k.y)) * e - Math.sin(k.t * 3.14) * 40; drawEmo(c, "🪙", 14, x, y, 1 - k.t * 0.3); }
-  c.fillStyle = "rgba(255,255,255,.13)";
-  for (const k of M.clouds) { c.beginPath(); c.ellipse(P(k[0]), P(k[1]), 58, 22, 0, 0, 6.28); c.ellipse(P(k[0]) + 34, P(k[1]) - 12, 34, 20, 0, 0, 6.28); c.fill(); }
-  const boss = M.mon.find(m => m.boss);
-  if (boss) {
-    const bw = MD_W - 80, f = Math.max(0, boss.hp / boss.max);
-    c.fillStyle = "rgba(30,27,75,.85)"; c.beginPath(); c.roundRect(30, 8, bw + 20, 22, 11); c.fill();
-    c.fillStyle = "#4c1d95"; c.beginPath(); c.roundRect(52, 13, bw - 6, 12, 6); c.fill();
-    c.fillStyle = "#c084fc"; c.beginPath(); c.roundRect(52, 13, Math.max(6, (bw - 6) * f), 12, 6); c.fill();
-    drawEmo(c, "🐉", 22, 40, 19);
-  }
-  if (M.hurt > 0) { const g = c.createRadialGradient(MD_W / 2, MD_H / 2, MD_H * 0.35, MD_W / 2, MD_H / 2, MD_H * 0.75); g.addColorStop(0, "rgba(239,68,68,0)"); g.addColorStop(1, `rgba(239,68,68,${M.hurt})`); c.fillStyle = g; c.fillRect(0, 0, MD_W, MD_H); }
-  if (M.flash > 0) { c.fillStyle = `rgba(255,255,255,${M.flash * 2})`; c.fillRect(-20, -20, MD_W + 40, MD_H + 40); }
-  if (M.paused && !document.querySelector(".modal-bg")) { c.fillStyle = "rgba(0,0,0,.25)"; c.fillRect(0, 0, MD_W, MD_H); }
-  c.restore();
-}
-function mdLoop(ts) {
-  const M = MD; if (!M || M.over) return;
-  let dt = Math.min(0.05, (ts - M.last) / 1000); M.last = ts;
-  M.shake = Math.max(0, M.shake - dt); M.flash = Math.max(0, M.flash - dt); M.hurt = Math.max(0, M.hurt - dt);
-  if (!M.paused) { dt *= M.fast; mdStep(dt); }
-  if (MD === M && !M.over) { mdDraw(); M.raf = requestAnimationFrame(mdLoop); }
-}
-
-function mdWaveClear() {
-  const M = MD; M.phase = "build"; M.bub = null;
-  const bonus = 15 + M.w * 3; M.gold += bonus;
-  mdBanner(`✅ ${GT("גל", "Wave")} ${M.w} · <span dir="ltr">+${bonus} 🪙</span>`); sfx("coin"); mdHud();
-  if (M.w >= M.waves) { setTimeout(() => { if (MD === M) mdEnd(true); }, 900); return; }
-  M.qn = 0;
-  setTimeout(() => { if (MD === M && !M.over) mdQuiz(); }, 800);
-}
-/* הפסקת מאמן: 2 שאלות בין גלים. נכון = זהב ממשיך אוטומטית; טעות = הסבר */
-function mdQuiz() {
-  const M = MD; if (!M || M.over) return;
-  if (M.qn >= 2) { $("#mdPanel").innerHTML = ""; mdHud(); return; }
-  const q = gqPick(), opts = gqOptions(q), rew = 25 + 10 * Math.min(M.streak, 3);
-  const P = $("#mdPanel");
-  P.innerHTML = `<div class="md-q"><div class="md-q-h"><b>🧠 ${GT("הפסקת מאמן", "Coach break")} ${M.qn + 1}/2</b><span class="md-rew" dir="ltr">+${rew} 🪙 +1 💥</span><button class="md-skip" id="mdSkip">${GT("דלג", "Skip")} ⏭</button></div>
-    <div class="ry-q">${esc(q.q)}</div>${gqBtns(opts)}<div id="mdFb"></div></div>`;
-  mdHud();
-  $("#mdSkip").onclick = () => { M.qn = 2; sfx("tap"); mdQuiz(); };
-  P.querySelectorAll(".ry-o").forEach(b => b.onclick = () => {
-    if (P.dataset.lock === "1") return; P.dataset.lock = "1";
-    const i = +b.dataset.i, ok = opts[i][1] === q.a;
-    record(q, ok ? 1 : 0); M.asked++; save();
-    P.querySelectorAll(".ry-o").forEach((x, j) => { x.disabled = true; x.classList.add(opts[j][1] === q.a ? "ok" : j === i ? "no" : "dim"); });
-    $("#mdSkip").remove();
-    const fin = () => { P.dataset.lock = ""; M.qn++; mdQuiz(); };
-    if (ok) {
-      M.right++; M.streak++; M.gold += rew; M.charge = Math.min(3, M.charge + 1); sfx("coin"); vib(20); mdHud();
-      $("#mdFb").innerHTML = `<div class="ry-fb ok"><div class="ry-fb-h">✓ <span dir="ltr">+${rew} 🪙 +1 💥</span></div></div>`;
-      setTimeout(() => { if (MD === M) fin(); }, 1100);
-    } else {
-      M.streak = 0; M.wrong.push({ q, pick: opts[i][0] }); sfx("no"); vib([40, 50, 40]);
-      $("#mdFb").innerHTML = `<div class="ry-fb no"><div class="ry-e">${GT("התשובה", "Answer")}: <b>${esc(gqRight(q))}</b><br>💡 ${esc(q.e)}</div><button class="arc-btn go" id="mdCont">${GT("המשך", "Continue")}</button></div>`;
-      $("#mdCont").onclick = fin;
-    }
-  });
-}
-function mdEnd(win) {
-  const M = MD; if (!M || M.over) return;
-  M.over = true; cancelAnimationFrame(M.raf);
-  const A = S.arc.md, stars = win ? mdStars(M.lives) : 0;
-  if (win) { A.wins++; if (!M.daily) A.stars[M.mapI] = Math.max(A.stars[M.mapI], stars); }
-  const daily = M.daily && win ? dailyWin() : 0;
-  const coins = (win ? 40 + M.mapI * 20 + stars * 10 : 8 + M.w * 3) + M.right * 2;
-  addCoins(coins, true); addXP(15 + M.right * 5 + (win ? 25 : 0));
-  touchStreak(); logHistory({ mode: "myth", title: "🏰 Myth Defense", score: pct(M.right, M.asked), n: M.asked }); save();
-  sfx(win ? "win" : "lose"); if (win) confetti();
-  const unlocked = win && !M.daily && M.mapI < 2 && stars && MD_MAPS[M.mapI + 1];
-  setTimeout(() => {
-    MD = null;
-    arcResult({
-      em: win ? "🏆" : "💔", big: win ? "⭐".repeat(stars) + "☆".repeat(3 - stars) : `🌊 ${M.w}/${M.waves}`, gold: win && stars === 3,
-      title: win ? GT("חדר הכושר ניצל!", "The gym is safe!") : GT("המיתוסים פרצו פנימה", "The myths broke in"),
-      banner: daily ? `📅 ${GT("אתגר יומי הושלם", "Daily challenge complete")} · +100 🪙` : unlocked ? `🔓 ${GT("מפה חדשה נפתחה", "New map unlocked")}: ${unlocked.em} ${GT(unlocked.he, unlocked.en)}` : "",
-      stats: [[`${M.right}/${M.asked}`, GT("נכונות", "Correct")], [`👾 ${M.kills}`, GT("מיתוסים הופרכו", "Myths busted")], [`+${coins}`, "🪙"]],
-      wrong: M.wrong, again: () => mdStart(M.mapI, M.daily && !daily)
-    });
-  }, 900);
-}
-
-/* ───── חיבור לאפליקציה ───── */
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { if (RY && !RY.lock) RY.hid = performance.now(); }
-  else {
-    if (RY && RY.hid) { RY.end += performance.now() - RY.hid; RY.hid = 0; }
-    if (MD) MD.last = performance.now();
-  }
+document.addEventListener("keydown", e => {
+  if (!WD || !$("#wdGrid") || document.querySelector(".modal-bg") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "Enter") { e.preventDefault(); wdKey("enter"); }
+  else if (e.key === "Backspace") { e.preventDefault(); wdKey("del"); }
+  else if (WD.L === "he" && /^[א-ת]$/.test(e.key)) wdKey(e.key);
+  else if (WD.L === "en" && /^[a-zA-Z]$/.test(e.key)) wdKey(e.key.toUpperCase());
 });
-const arcCards = (home) => `<div class="arc-row ${home ? "arc-home" : ""}" data-notr>
-  <button class="arc-card arc-roy" data-arc="roy"><span class="arc-em">👑</span><b>Fit Royale</b><small>${home ? `🏆 ${S.arc.roy.w}` : GT("50 שחקנים · האחרון מנצח", "50 players · last one wins")}</small></button>
-  <button class="arc-card arc-md" data-arc="md"><span class="arc-em">🏰</span><b>Myth Defense</b><small>${home ? `⭐ ${S.arc.md.stars.reduce((a, b) => a + b, 0)}/9` : GT("מגדלים נגד מיתוסים", "Towers vs myths")}</small></button></div>`;
-const arcBind = root => root.querySelectorAll("[data-arc]").forEach(x => x.onclick = () => ({ roy: () => royaleStart(false), md: mdMenu, daily: dailyStart, shop: () => arcShop(gamesPage), hub: arcadeHub })[x.dataset.arc]());
+function wdFinish(win) {
+  const tries = WD.guesses.length;
+  if (!WD.practice) {
+    const st = S.g.wd[WD.L];
+    st.done = true; st.win = win; st.played++;
+    const y = today(new Date(Date.now() - 864e5));
+    if (win) { st.wins++; st.streak = st.last === y ? st.streak + 1 : 1; st.max = Math.max(st.max, st.streak); st.dist[tries - 1]++; } else st.streak = 0;
+    st.last = today();
+    addCoins(win ? 15 + (6 - tries) * 5 : 3, true); addXP(win ? 30 + (6 - tries) * 5 : 10);
+    touchStreak(); logHistory({ mode: "word", title: GT("מילה יומית", "Daily word"), score: win ? 100 : 0, n: tries }); save();
+  } else if (win) { addCoins(5, true); save(); }
+  if (win) {
+    sfx("win"); vib(30);
+    app.querySelectorAll(`.wd-line[data-r="${tries - 1}"] .wd-t`).forEach((t, i) => { t.style.animationDelay = i * 0.08 + "s"; t.classList.add("bounce"); });
+  } else sfx("lose");
+  setTimeout(() => wdEnd(true), win ? 900 : 400);
+}
+function wdEnd(anim) {
+  const st = S.g.wd[WD.L], win = WD.practice ? WD.guesses.at(-1)?.join("") === WD.ans.join("") : st.win;
+  const kb = $("#wdKb"); if (kb) kb.hidden = true;
+  const maxD = Math.max(1, ...st.dist);
+  $("#wdEnd").innerHTML = `<div class="g-card wd-res ${anim ? "in" : ""}">
+    <div class="g-kicker">${win ? GT("פתרת", "Solved") + ` · ${WD.guesses.length}/6` : GT("המילה הייתה", "The word was")}</div>
+    <div class="wd-word">${WD.word}</div>
+    <p class="g-p">${esc(WD.e)}</p>
+    ${WD.practice ? "" : `<div class="g-stats"><div><b>${st.played}</b><span>${GT("שיחקת", "Played")}</span></div><div><b>${pct(st.wins, st.played)}%</b><span>${GT("ניצחונות", "Win %")}</span></div><div><b>${st.streak}</b><span>${GT("רצף", "Streak")}</span></div><div><b>${st.max}</b><span>${GT("שיא", "Max")}</span></div></div>
+    <div class="wd-dist">${st.dist.map((n, i) => `<div class="wd-bar"><span>${i + 1}</span><i style="width:${Math.max(6, n / maxD * 100)}%" class="${win && i === WD.guesses.length - 1 ? "on" : ""}">${n}</i></div>`).join("")}</div>
+    <div class="g-note">${GT("מילה חדשה בעוד", "Next word in")} <b dir="ltr">${untilTomorrow()}</b></div>`}
+    <div class="g-row">${WD.practice ? "" : `<button class="g-btn" id="wdShare">${ic("share", 18)} ${GT("שיתוף", "Share")}</button>`}<button class="g-btn primary" id="wdPrac">${GT("עוד מילה לתרגול", "Practice another")}</button></div></div>`;
+  $("#wdPrac").onclick = () => wordGame(true);
+  const sh = $("#wdShare"); if (sh) sh.onclick = () => {
+    const grid = WD.guesses.map(g => wdScore(g, WD.ans).map(s => ({ g: "🟩", y: "🟨", x: "⬛" })[s]).join("")).join("\n");
+    const txt = `${GT("מאמן ידע – המילה היומית", "Coach Knowledge – Daily word")} ${win ? WD.guesses.length : "X"}/6\n${grid}`;
+    if (navigator.share) navigator.share({ text: txt }).catch(() => { }); else { navigator.clipboard?.writeText(txt); toast("📋", GT("הועתק", "Copied")); }
+  };
+}
 
-const _gamesPageA = gamesPage;
-gamesPage = function () {
-  arcStop(); arcFull(false); ensureArcade(); document.body.classList.remove("gm");
-  _gamesPageA();
-  app.firstElementChild && app.firstElementChild.classList.add("gp");
-  const h = app.querySelector("h2"); if (!h) return;
-  h.insertAdjacentHTML("afterend", `<div class="section-title"><h2>🎮 ${GT("ארקייד", "Arcade")}</h2><span class="pill">${GT("חדש", "New")}</span></div>
-    ${arcCards(false)}
-    <div class="arc-row2" data-notr>
-      <button class="arc-mini ${dailyDone() ? "done" : ""}" data-arc="daily">📅 ${GT("אתגר יומי", "Daily")} <i>${dailyDone() ? "✅" : "+100🪙"}</i></button>
-      <button class="arc-mini" data-arc="shop">🛒 ${GT("דמויות ומגדלים", "Skins & towers")}</button></div>`);
-  arcBind(app);
-};
-const _goA = go;
-go = function (...a) { arcStop(); arcFull(false); document.body.classList.remove("gm"); return _goA(...a); };
-/* ═════════ עיצוב משחקי חידון בסגנון ארקייד ═════════ */
-const GM_MODES = ["quick", "speed", "survival", "sudden", "challenge", "terms", "img"];
-function gmBurst(el, ems) {
-  if (!el) return;
-  const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-  for (let i = 0; i < 12; i++) {
-    const d = document.createElement("span"), a = Math.random() * 6.28, v = 60 + Math.random() * 90;
-    d.className = "gm-pt"; d.textContent = ems[i % ems.length];
-    d.style.cssText = `left:${cx}px;top:${cy}px;--dx:${Math.cos(a) * v}px;--dy:${Math.sin(a) * v - 30}px;--r:${(Math.random() - 0.5) * 300}deg`;
-    document.body.appendChild(d); setTimeout(() => d.remove(), 850);
+/* ═════════ 2. קבוצות ═════════ */
+/* כל פריט שייך לקטגוריה אחת בלבד – כך שלכל לוח יש פתרון יחיד */
+const CN_CATS = [
+  { id: "cardio", lv: 1, he: "מכשירי קרדיו", en: "Cardio machines", i: [["הליכון", "Treadmill"], ["אליפטיקל", "Elliptical"], ["מכונת חתירה", "Rowing machine"], ["אופני כושר", "Exercise bike"]] },
+  { id: "legbone", lv: 1, he: "עצמות הרגל", en: "Leg bones", i: [["עצם הירך", "Femur"], ["שוקה", "Tibia"], ["שוקית", "Fibula"], ["פיקה", "Patella"]] },
+  { id: "mineral", lv: 1, he: "מינרלים", en: "Minerals", i: [["סידן", "Calcium"], ["ברזל", "Iron"], ["מגנזיום", "Magnesium"], ["אבץ", "Zinc"]] },
+  { id: "sugar", lv: 1, he: "סוכרים", en: "Sugars", i: [["גלוקוז", "Glucose"], ["פרוקטוז", "Fructose"], ["סוכרוז", "Sucrose"], ["לקטוז", "Lactose"]] },
+  { id: "heart", lv: 1, he: "חללי הלב", en: "Heart chambers", i: [["עלייה ימנית", "Right atrium"], ["עלייה שמאלית", "Left atrium"], ["חדר ימני", "Right ventricle"], ["חדר שמאלי", "Left ventricle"]] },
+  { id: "push", lv: 2, he: "תרגילי דחיפה", en: "Pushing exercises", i: [["לחיצת חזה", "Bench press"], ["שכיבות סמיכה", "Push-ups"], ["לחיצת כתפיים", "Overhead press"], ["מקבילים", "Dips"]] },
+  { id: "pull", lv: 2, he: "תרגילי משיכה", en: "Pulling exercises", i: [["מתח", "Pull-ups"], ["חתירה בישיבה", "Seated row"], ["פולי עליון", "Lat pulldown"], ["פייס פול", "Face pull"]] },
+  { id: "legs", lv: 2, he: "תרגילי רגליים", en: "Leg exercises", i: [["סקוואט", "Squat"], ["מכרע", "Lunge"], ["לחיצת רגליים", "Leg press"], ["עלייה על ספסל", "Step-up"]] },
+  { id: "spine", lv: 2, he: "אזורי עמוד השדרה", en: "Regions of the spine", i: [["צווארי", "Cervical"], ["חזי", "Thoracic"], ["מותני", "Lumbar"], ["עצה", "Sacral"]] },
+  { id: "fatvit", lv: 2, he: "ויטמינים מסיסים בשומן", en: "Fat-soluble vitamins", i: [["ויטמין A", "Vitamin A"], ["ויטמין D", "Vitamin D"], ["ויטמין E", "Vitamin E"], ["ויטמין K", "Vitamin K"]] },
+  { id: "watvit", lv: 2, he: "ויטמינים מסיסים במים", en: "Water-soluble vitamins", i: [["ויטמין C", "Vitamin C"], ["ויטמין B12", "Vitamin B12"], ["ויטמין B6", "Vitamin B6"], ["חומצה פולית", "Folate"]] },
+  { id: "contr", lv: 3, he: "סוגי התכווצות שריר", en: "Types of muscle contraction", i: [["קונצנטרית", "Concentric"], ["אקסצנטרית", "Eccentric"], ["איזומטרית", "Isometric"], ["איזוקינטית", "Isokinetic"]] },
+  { id: "princ", lv: 3, he: "עקרונות אימון", en: "Training principles", i: [["עומס יתר", "Overload"], ["ספציפיות", "Specificity"], ["הדרגתיות", "Progression"], ["הפיכות", "Reversibility"]] },
+  { id: "comp", lv: 3, he: "מרכיבי כושר הקשורים לבריאות", en: "Health-related fitness components", i: [["סיבולת לב־ריאה", "Cardio endurance"], ["כוח שריר", "Muscular strength"], ["סיבולת שריר", "Muscular endurance"], ["גמישות", "Flexibility"]] },
+  { id: "arm", lv: 3, he: "עצמות הגפה העליונה", en: "Upper-limb bones", i: [["עצם הזרוע", "Humerus"], ["חישור", "Radius"], ["גומד", "Ulna"], ["עצם השכמה", "Scapula"]] },
+  { id: "horm", lv: 3, he: "הורמונים", en: "Hormones", i: [["אינסולין", "Insulin"], ["גלוקגון", "Glucagon"], ["קורטיזול", "Cortisol"], ["אדרנלין", "Adrenaline"]] },
+  { id: "elbow", lv: 3, he: "שרירים שפועלים על המרפק", en: "Muscles that move the elbow", i: [["דו־ראשי", "Biceps"], ["תלת־ראשי", "Triceps"], ["ברכיאליס", "Brachialis"], ["ברכיורדיאליס", "Brachioradialis"]] },
+  { id: "rot", lv: 4, he: "השרוול המסובב", en: "Rotator cuff", i: [["סופרספינטוס", "Supraspinatus"], ["אינפרספינטוס", "Infraspinatus"], ["טרס מינור", "Teres minor"], ["סאבסקפולריס", "Subscapularis"]] },
+  { id: "abs", lv: 4, he: "שרירי הבטן", en: "Abdominal muscles", i: [["ישר הבטן", "Rectus abdominis"], ["אלכסוני חיצוני", "External oblique"], ["אלכסוני פנימי", "Internal oblique"], ["רוחבי הבטן", "Transverse abdominis"]] },
+  { id: "joint", lv: 4, he: "סוגי מפרקים סינוביאליים", en: "Synovial joint types", i: [["ציר", "Hinge"], ["כדור ומכתש", "Ball and socket"], ["סיבובי", "Pivot"], ["אוכף", "Saddle"]] },
+];
+let CN = null;
+const cnCat = id => CN_CATS.find(c => c.id === id);
+const cnLabel = key => { const [id, n] = key.split(":"); return cnCat(id).i[+n][EN_() ? 1 : 0]; };
+function cnNew(seed) {
+  const r = rng(seed), pool = CN_CATS.slice(), cats = [], lvN = {};
+  while (cats.length < 4) {
+    const c = pool.splice(Math.floor(r() * pool.length), 1)[0];
+    if ((lvN[c.lv] || 0) >= 2) continue;
+    lvN[c.lv] = (lvN[c.lv] || 0) + 1; cats.push(c.id);
+  }
+  cats.sort((a, b) => cnCat(a).lv - cnCat(b).lv);
+  const items = sShuffle(cats.flatMap(id => [0, 1, 2, 3].map(n => id + ":" + n)), seed + 7);
+  return { cats, items, solved: [], mistakes: 4, tried: [], done: false, win: false };
+}
+function connGame(practice) {
+  ensureG(); gStop();
+  const G = S.g.cn;
+  let st;
+  if (practice) st = cnNew(Math.floor(Math.random() * 1e9));
+  else { if (G.d !== today() || !G.st) { G.d = today(); G.st = cnNew(dayNo() * 31 + 5); save(); } st = G.st; }
+  CN = { practice: !!practice, st, sel: [] };
+  gScreen(practice ? GT("קבוצות – תרגול", "Connections – practice") : GT("קבוצות", "Connections"),
+    `<button class="g-icon" id="cnHelp" aria-label="help">${ic("help")}</button>`,
+    `<p class="g-sub">${GT("מצא 4 קבוצות של 4 מונחים שיש להם משהו משותף.", "Find four groups of four terms that share something.")}</p>
+     <div id="cnSolved"></div><div class="cn-grid" id="cnGrid"></div>
+     <div class="cn-mist" id="cnMist"></div><div class="g-msg" id="cnMsg"></div>
+     <div class="g-row" id="cnCtl"><button class="g-btn" id="cnShuf">${ic("shuffle", 17)} ${GT("ערבוב", "Shuffle")}</button><button class="g-btn" id="cnClr">${GT("ניקוי", "Deselect")}</button><button class="g-btn primary" id="cnGo">${GT("בדיקה", "Submit")}</button></div>
+     <div id="cnEnd"></div>`, "cn");
+  $("#cnHelp").onclick = () => sheet(`<div class="g-sheet" data-notr><h2>${GT("איך משחקים", "How to play")}</h2>
+    <p>${GT("על הלוח 16 מונחים. בוחרים 4 שלדעתך שייכים לאותה קבוצה ולוחצים \"בדיקה\".", "There are 16 terms. Pick four you think belong together and tap Submit.")}</p>
+    <p>${GT("מותר לטעות 4 פעמים. שים לב למלכודות – חלק מהמונחים נראים כאילו הם שייכים ליותר מקבוצה אחת.", "You can make four mistakes. Watch for traps – some terms look like they fit more than one group.")}</p>
+    <p class="g-note">${GT("לוח חדש בכל יום, ואפשר לתרגל בלי הגבלה.", "A new board every day, and unlimited practice.")}</p>
+    <button class="g-btn primary" data-x>${GT("הבנתי", "Got it")}</button></div>`, (e, close) => { if (e.target.closest("[data-x]")) close(); });
+  $("#cnShuf").onclick = () => { const left = st.items.filter(k => !st.solved.includes(k.split(":")[0])); const sh = shuffle(left); st.items = [...st.items.filter(k => st.solved.includes(k.split(":")[0])), ...sh]; sfx("tap"); cnDraw(); };
+  $("#cnClr").onclick = () => { CN.sel = []; cnDraw(); };
+  $("#cnGo").onclick = cnSubmit;
+  cnDraw();
+  if (st.done) cnEnd(false);
+}
+function cnDraw() {
+  const st = CN.st;
+  $("#cnSolved").innerHTML = st.solved.map(id => { const c = cnCat(id); return `<div class="cn-row c${st.cats.indexOf(id)}"><b>${GT(c.he, c.en)}</b><span>${c.i.map(x => x[EN_() ? 1 : 0]).join(" · ")}</span></div>`; }).join("");
+  const left = st.items.filter(k => !st.solved.includes(k.split(":")[0]));
+  $("#cnGrid").innerHTML = left.map(k => `<button class="cn-t ${CN.sel.includes(k) ? "on" : ""} ${cnLabel(k).length > 9 ? "long" : ""}" data-k="${k}">${esc(cnLabel(k))}</button>`).join("");
+  $("#cnGrid").querySelectorAll(".cn-t").forEach(b => b.onclick = () => {
+    if (st.done) return;
+    const k = b.dataset.k;
+    if (CN.sel.includes(k)) CN.sel = CN.sel.filter(x => x !== k); else if (CN.sel.length < 4) CN.sel.push(k); else return;
+    sfx("tap"); b.classList.toggle("on", CN.sel.includes(k)); cnCtl();
+  });
+  $("#cnMist").innerHTML = `${GT("טעויות שנשארו", "Mistakes left")}: ${[0, 1, 2, 3].map(i => `<i class="${i < st.mistakes ? "on" : ""}"></i>`).join("")}`;
+  cnCtl();
+}
+function cnCtl() { const go = $("#cnGo"); if (go) go.disabled = CN.sel.length !== 4; const c = $("#cnClr"); if (c) c.disabled = !CN.sel.length; }
+function cnMsg(t) { const m = $("#cnMsg"); if (!m) return; m.textContent = t; m.classList.remove("on"); void m.offsetWidth; m.classList.add("on"); }
+function cnSubmit() {
+  const st = CN.st; if (CN.sel.length !== 4 || st.done) return;
+  const key = CN.sel.slice().sort().join("|");
+  if (st.tried.includes(key)) { cnMsg(GT("כבר ניסית את הצירוף הזה", "Already guessed")); return; }
+  st.tried.push(key);
+  const cats = CN.sel.map(k => k.split(":")[0]), cnt = {};
+  cats.forEach(c => cnt[c] = (cnt[c] || 0) + 1);
+  const top = Math.max(...Object.values(cnt));
+  if (top === 4) {
+    st.solved.push(cats[0]); CN.sel = []; sfx("ok"); vib(20);
+    if (st.solved.length === 4) { st.done = true; st.win = true; }
+    cnSave(); cnDraw();
+    const rows = app.querySelectorAll(".cn-row"); rows[rows.length - 1]?.classList.add("in");
+    if (st.done) cnFinish();
+  } else {
+    st.mistakes--; sfx("no"); vib([30, 40, 30]);
+    app.querySelectorAll(".cn-t.on").forEach(b => gShake(b));
+    cnMsg(top === 3 ? GT("כמעט! חסר רק אחד", "One away…") : GT("לא הפעם", "Not quite"));
+    if (st.mistakes <= 0) { st.done = true; st.win = false; st.solved = st.cats.slice(); CN.sel = []; cnSave(); setTimeout(() => { cnDraw(); cnFinish(); }, 600); return; }
+    cnSave(); setTimeout(cnDraw, 450);
   }
 }
-function gmFx(ok, combo) {
+function cnSave() { if (!CN.practice) save(); }
+function cnFinish() {
+  const st = CN.st;
+  if (!CN.practice) {
+    const G = S.g.cn, y = today(new Date(Date.now() - 864e5));
+    G.played++; if (st.win) { G.wins++; G.streak = G.last === y ? G.streak + 1 : 1; } else G.streak = 0; G.last = today();
+    addCoins(st.win ? 15 + st.mistakes * 5 : 3, true); addXP(st.win ? 30 + st.mistakes * 5 : 10);
+    touchStreak(); logHistory({ mode: "conn", title: GT("קבוצות", "Connections"), score: st.win ? 100 : 0, n: 4 - st.mistakes }); save();
+  } else if (st.win) { addCoins(5, true); save(); }
+  sfx(st.win ? "win" : "lose");
+  cnEnd(true);
+}
+function cnEnd(anim) {
+  const st = CN.st, G = S.g.cn;
+  $("#cnCtl").hidden = true; $("#cnMist").hidden = true;
+  $("#cnEnd").innerHTML = `<div class="g-card ${anim ? "in" : ""}">
+    <div class="g-kicker">${st.win ? GT("כל הכבוד", "Well done") : GT("נגמרו הניסיונות", "Out of tries")}</div>
+    <h2 class="g-h">${st.win ? GT(4 - st.mistakes === 0 ? "פתרת בלי אף טעות" : 4 - st.mistakes === 1 ? "פתרת עם טעות אחת" : `פתרת עם ${4 - st.mistakes} טעויות`, `Solved with ${4 - st.mistakes} mistake${4 - st.mistakes === 1 ? "" : "s"}`) : GT("הנה הפתרון", "Here's the solution")}</h2>
+    ${CN.practice ? "" : `<div class="g-stats"><div><b>${G.played}</b><span>${GT("שיחקת", "Played")}</span></div><div><b>${pct(G.wins, G.played)}%</b><span>${GT("ניצחונות", "Win %")}</span></div><div><b>${G.streak}</b><span>${GT("רצף", "Streak")}</span></div></div>
+    <div class="g-note">${GT("לוח חדש בעוד", "Next board in")} <b dir="ltr">${untilTomorrow()}</b></div>`}
+    <button class="g-btn primary" id="cnPrac">${GT("לוח נוסף לתרגול", "Practice another board")}</button></div>`;
+  $("#cnPrac").onclick = () => connGame(true);
+}
+
+/* ═════════ 3. קרב מדורג 1 על 1 ═════════ */
+const RK_DIV = [
+  { he: "ברונזה", en: "Bronze", min: 0, c: "#c08a5a" }, { he: "כסף", en: "Silver", min: 1100, c: "#b8c2cf" },
+  { he: "זהב", en: "Gold", min: 1250, c: "#e3b341" }, { he: "פלטינה", en: "Platinum", min: 1400, c: "#6ee7d0" },
+  { he: "יהלום", en: "Diamond", min: 1550, c: "#8ab4f8" }, { he: "עילית", en: "Elite", min: 1700, c: "#c4a1ff" }
+];
+const rkDiv = r => RK_DIV.filter(d => r >= d.min).pop();
+const rkBadge = (r, s = 18) => { const d = rkDiv(r); return `<svg class="rk-badge" width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M12 2l8.7 5v10L12 22l-8.7-5V7z" fill="${d.c}" fill-opacity=".18" stroke="${d.c}" stroke-width="1.8"/><path d="M12 7l4.3 2.5v5L12 17l-4.3-2.5v-5z" fill="${d.c}"/></svg>`; };
+const RK_NAMES = {
+  he: ["נועה", "איתי", "מאיה", "יונתן", "תמר", "עומר", "שירה", "דניאל", "יעל", "אורי", "רוני", "נועם", "הילה", "גיא", "עידו", "טל", "מיכל", "רועי", "עדי", "אלון", "דנה", "יובל", "אסף", "ליאור", "שחר", "עמית", "הדר", "איתן"],
+  en: ["Ava", "Leo", "Mia", "Noah", "Zoe", "Max", "Lily", "Sam", "Ella", "Jake", "Ruby", "Finn", "Ivy", "Owen", "Nina", "Kai", "Luna", "Eli", "Maya", "Theo", "Aria", "Ben", "Cleo", "Hugo", "Iris", "Liam", "Omar", "Sara"]
+};
+const RK_N = 7, RK_T = 12;
+let RK = null;
+function rankedGame() {
+  ensureG(); gStop();
+  const R = S.g.rk, d = rkDiv(R.r), nx = RK_DIV[RK_DIV.indexOf(d) + 1];
+  gScreen(GT("קרב מדורג", "Ranked"), "", `
+    <div class="g-card rk-me">
+      <div class="rk-div">${rkBadge(R.r, 44)}<div><div class="g-kicker">${GT("הדרגה שלך", "Your division")}</div><b style="color:${d.c}">${GT(d.he, d.en)}</b></div><div class="rk-rating"><b dir="ltr">${R.r}</b><span>${GT("דירוג", "Rating")}</span></div></div>
+      ${nx ? `<div class="g-prog"><i style="width:${Math.min(100, (R.r - d.min) / (nx.min - d.min) * 100)}%;background:${d.c}"></i></div><div class="g-note">${GT(`עוד ${nx.min - R.r} נקודות ל${nx.he}`, `${nx.min - R.r} points to ${nx.en}`)}</div>` : `<div class="g-note">${GT("הגעת לדרגה הגבוהה ביותר", "You reached the top division")}</div>`}
+      <div class="g-stats"><div><b>${R.w}</b><span>${GT("ניצחונות", "Wins")}</span></div><div><b>${R.l}</b><span>${GT("הפסדים", "Losses")}</span></div><div><b>${R.streak}</b><span>${GT("רצף", "Streak")}</span></div><div><b dir="ltr">${R.best}</b><span>${GT("שיא", "Best")}</span></div></div>
+    </div>
+    <div class="g-card rk-how"><div>${ic("zap", 18)}<span>${GT(`${RK_N} שאלות, ${RK_T} שניות לכל אחת`, `${RK_N} questions, ${RK_T} seconds each`)}</span></div><div>${ic("target", 18)}<span>${GT("תשובה נכונה = 100 נק׳ + בונוס מהירות עד 100", "Correct = 100 pts + up to 100 speed bonus")}</span></div><div>${ic("trophy", 18)}<span>${GT("השאלה האחרונה שווה כפול", "The last question is worth double")}</span></div></div>
+    <button class="g-btn primary big" id="rkGo">${GT("מצא יריב", "Find opponent")}</button>`, "rk");
+  $("#rkGo").onclick = rkMatch;
+}
+function rkMatch() {
+  const R = S.g.rk, names = RK_NAMES[EN_() ? "en" : "he"];
+  const or = Math.max(800, Math.round(R.r + (Math.random() * 140 - 70)));
+  const opp = { n: names[Math.floor(Math.random() * names.length)], r: or, acc: Math.min(0.92, Math.max(0.42, 0.5 + (or - 1000) / 1400)) };
+  gScreen(GT("קרב מדורג", "Ranked"), "", `<div class="rk-find"><div class="rk-ring"><span></span><span></span>${ic("swords", 34)}</div><div class="g-kicker" id="rkF">${GT("מחפש יריב ברמה שלך…", "Finding an opponent at your level…")}</div></div>`, "rk");
+  setTimeout(() => {
+    if (!$(".rk-find")) return;
+    $(".rk-find").innerHTML = `<div class="rk-vs in">
+      <div class="rk-pl"><span class="rk-av me">${esc((S.name || GT("את", "Y")).slice(0, 1))}</span><b>${GT("את/ה", "You")}</b><small>${rkBadge(R.r)} <span dir="ltr">${R.r}</span></small></div>
+      <div class="rk-vs-t">VS</div>
+      <div class="rk-pl"><span class="rk-av">${esc(opp.n.slice(0, 1))}</span><b>${esc(opp.n)}</b><small>${rkBadge(opp.r)} <span dir="ltr">${opp.r}</span></small></div></div>`;
+    sfx("ok");
+    setTimeout(() => { if ($(".rk-vs")) rkStart(opp); }, 1500);
+  }, 1300);
+}
+function rkStart(opp) {
+  RK = { opp, i: -1, me: 0, op: 0, wrong: [], right: 0, times: [], over: false };
+  gScreen(GT("קרב מדורג", "Ranked"), "", `
+    <div class="rk-board">
+      <div class="rk-side"><span class="rk-av me sm">${esc((S.name || GT("את", "Y")).slice(0, 1))}</span><div><small>${GT("את/ה", "You")}</small><b id="rkMe" dir="ltr">0</b></div><em id="rkMeSt"></em></div>
+      <div class="rk-dots" id="rkDots">${Array(RK_N).fill(0).map(() => "<i></i>").join("")}</div>
+      <div class="rk-side op"><span class="rk-av sm">${esc(opp.n.slice(0, 1))}</span><div><small>${esc(opp.n)}</small><b id="rkOp" dir="ltr">0</b></div><em id="rkOpSt"></em></div>
+    </div>
+    <div class="rk-timer"><i id="rkBar"></i></div>
+    <div id="rkQ"></div>`, "rk");
+  $("#gBack").onclick = () => { if (RK && !RK.over && !confirm(GT("לצאת מהקרב? זה ייחשב הפסד.", "Leave the match? It will count as a loss."))) return; if (RK && !RK.over) rkEnd(true); else { gStop(); gamesPage(); } };
+  rkRound();
+}
+function rkRound() {
+  if (!RK || RK.over) return;
+  RK.i++;
+  if (RK.i >= RK_N) return rkEnd(false);
+  const q = gqPick(), opts = gqOptions(q), dbl = RK.i === RK_N - 1;
+  Object.assign(RK, { q, opts, mine: null, mineT: null, botT: 1.6 + Math.random() * 5.5 * (1.25 - RK.opp.acc), botOk: Math.random() < RK.opp.acc, botDone: false, t0: performance.now(), lock: false, dbl });
+  const dots = app.querySelectorAll("#rkDots i"); dots.forEach((d, j) => d.classList.toggle("cur", j === RK.i));
+  $("#rkMeSt").innerHTML = ""; $("#rkOpSt").innerHTML = `<span class="rk-think"><i></i><i></i><i></i></span>`;
+  $("#rkQ").innerHTML = `<div class="rk-qn">${GT("שאלה", "Question")} ${RK.i + 1}/${RK_N}${dbl ? ` · <b class="rk-dbl">${GT("ניקוד כפול", "Double points")}</b>` : ""}</div>
+    <div class="g-q">${esc(q.q)}</div>
+    <div class="g-opts ${opts.length === 2 ? "two" : ""}">${opts.map(([t], j) => `<button class="g-opt" data-i="${j}"><span class="g-key">${EN_() ? "ABCD"[j] : "אבגד"[j]}</span><span class="g-ot">${esc(t)}</span><span class="g-tags"></span></button>`).join("")}</div>
+    <div id="rkFb"></div>`;
+  $("#rkQ").querySelectorAll(".g-opt").forEach(b => b.onclick = () => rkPick(+b.dataset.i));
+  clearInterval(RK.t); RK.t = setInterval(rkTick, 80);
+}
+function rkTick() {
+  if (!RK || RK.over) return;
+  const el = (performance.now() - RK.t0) / 1000, left = Math.max(0, RK_T - el), bar = $("#rkBar");
+  if (bar) { bar.style.transform = `scaleX(${left / RK_T})`; bar.classList.toggle("low", left < 3.5); }
+  if (!RK.botDone && el >= RK.botT) { RK.botDone = true; $("#rkOpSt").innerHTML = `<span class="rk-lock">${ic("check", 13)}</span>`; sfx("tick"); }
+  if (left <= 0) { if (RK.mine === null) RK.mine = -1, RK.mineT = RK_T; if (!RK.botDone) { RK.botDone = true; RK.botOk = false; } }
+  if (RK.mine !== null && RK.botDone && !RK.lock) rkReveal();
+}
+function rkPick(j) {
+  if (!RK || RK.mine !== null || RK.lock) return;
+  RK.mine = j; RK.mineT = (performance.now() - RK.t0) / 1000; sfx("tap");
+  const b = $("#rkQ").querySelector(`.g-opt[data-i="${j}"]`); b.classList.add("sel");
+  $("#rkQ").querySelectorAll(".g-opt").forEach(x => x.disabled = true);
+  $("#rkMeSt").innerHTML = `<span class="rk-lock">${ic("check", 13)}</span>`;
+  if (!RK.botDone) { RK.botT = Math.min(RK.botT, RK.mineT + 0.4 + Math.random() * 1.6); }
+}
+function rkReveal() {
+  RK.lock = true; clearInterval(RK.t);
+  const q = RK.q, opts = RK.opts, ri = opts.findIndex(o => gqIs(o, q)), ok = RK.mine === ri;
+  const mult = RK.dbl ? 2 : 1;
+  const myPts = ok ? (100 + Math.round(100 * Math.max(0, 1 - RK.mineT / RK_T))) * mult : 0;
+  const opPts = RK.botOk ? (100 + Math.round(100 * Math.max(0, 1 - RK.botT / RK_T))) * mult : 0;
+  const botPick = RK.botOk ? ri : (() => { const w = opts.map((o, j) => j).filter(j => j !== ri); return w[Math.floor(Math.random() * w.length)]; })();
+  record(q, ok ? 1 : 0); save();
+  if (ok) { RK.right++; sfx("ok"); vib(15); } else { RK.wrong.push({ q, pick: RK.mine >= 0 ? opts[RK.mine][0] : null }); sfx("no"); vib([25, 40, 25]); }
+  RK.me += myPts; RK.op += opPts; if (RK.mine >= 0) RK.times.push(RK.mineT);
+  const btns = $("#rkQ").querySelectorAll(".g-opt");
+  btns.forEach((b, j) => { b.disabled = true; b.classList.remove("sel"); if (j === ri) b.classList.add("ok"); else if (j === RK.mine) b.classList.add("no"); else b.classList.add("dim"); });
+  if (RK.mine >= 0) btns[RK.mine].querySelector(".g-tags").innerHTML += `<em class="me">${GT("את/ה", "You")}</em>`;
+  btns[botPick].querySelector(".g-tags").innerHTML += `<em>${esc(RK.opp.n)}</em>`;
+  rkCount($("#rkMe"), RK.me - myPts, RK.me); rkCount($("#rkOp"), RK.op - opPts, RK.op);
+  $("#rkMeSt").innerHTML = myPts ? `<span class="rk-pts">+${myPts}</span>` : `<span class="rk-pts no">+0</span>`;
+  $("#rkOpSt").innerHTML = opPts ? `<span class="rk-pts">+${opPts}</span>` : `<span class="rk-pts no">+0</span>`;
+  const dot = app.querySelectorAll("#rkDots i")[RK.i]; dot.classList.remove("cur"); dot.classList.add(myPts > opPts ? "w" : myPts < opPts ? "l" : "d");
+  const last = RK.i === RK_N - 1;
+  $("#rkFb").innerHTML = ok
+    ? `<button class="g-btn primary" id="rkNext"><span class="g-auto"></span><span>${last ? GT("לתוצאות", "Results") : GT("השאלה הבאה", "Next question")}</span></button>`
+    : `<div class="g-exp"><b>${RK.mine >= 0 ? GT("לא נכון", "Incorrect") : GT("נגמר הזמן", "Time's up")}</b> ${GT("התשובה", "Answer")}: ${esc(gqRight(q))}<p>${esc(q.e)}</p></div><button class="g-btn primary" id="rkNext">${last ? GT("לתוצאות", "Results") : GT("השאלה הבאה", "Next question")}</button>`;
+  const next = () => { clearTimeout(RK.auto); rkRound(); };
+  $("#rkNext").onclick = next;
+  if (ok) RK.auto = setTimeout(() => { if (RK && !RK.over) next(); }, 1800);
+}
+function rkCount(el, a, b) {
+  if (!el) return; const t0 = performance.now();
+  const f = () => { const k = Math.min(1, (performance.now() - t0) / 500); el.textContent = Math.round(a + (b - a) * k); if (k < 1) requestAnimationFrame(f); };
+  f(); if (b > a) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+}
+function rkEnd(forfeit) {
+  if (!RK || RK.over) return;
+  RK.over = true; clearInterval(RK.t); clearTimeout(RK.auto);
+  const K = RK, R = S.g.rk, res = forfeit ? 0 : K.me > K.op ? 1 : K.me < K.op ? 0 : 0.5;
+  const E = 1 / (1 + Math.pow(10, (K.opp.r - R.r) / 400));
+  let delta = Math.round(32 * (res - E));
+  if (res === 1) delta = Math.max(6, delta); if (res === 0) delta = Math.min(-6, delta);
+  const old = R.r; R.r = Math.max(0, R.r + delta); R.best = Math.max(R.best, R.r);
+  if (res === 1) { R.w++; R.streak++; } else if (res === 0) { R.l++; R.streak = 0; } else R.dr = (R.dr || 0) + 1;
+  const coins = (res === 1 ? 25 : res === 0.5 ? 10 : 5) + K.right * 2;
+  addCoins(coins, true); addXP(20 + K.right * 8 + (res === 1 ? 25 : 0));
+  touchStreak(); logHistory({ mode: "ranked", title: GT("קרב מדורג", "Ranked"), score: pct(K.right, RK_N), n: RK_N }); save();
+  sfx(res === 1 ? "win" : "lose");
+  const dOld = rkDiv(old), dNew = rkDiv(R.r), avg = K.times.length ? (K.times.reduce((a, b) => a + b, 0) / K.times.length).toFixed(1) : "–";
+  RK = null;
+  gScreen(GT("קרב מדורג", "Ranked"), "", `<div class="g-card rk-res in">
+    <div class="g-kicker">${forfeit ? GT("פרשת מהקרב", "You left the match") : `${esc(K.opp.n)} · <span dir="ltr">${K.opp.r}</span>`}</div>
+    <h1 class="rk-out ${res === 1 ? "w" : res === 0 ? "l" : ""}">${res === 1 ? GT("ניצחון", "Victory") : res === 0 ? GT("הפסד", "Defeat") : GT("תיקו", "Draw")}</h1>
+    <div class="rk-final" dir="ltr"><b>${K.me}</b><span>–</span><b>${K.op}</b></div>
+    <div class="rk-delta"><span dir="ltr" id="rkR">${old}</span><em class="${delta >= 0 ? "up" : "down"}" dir="ltr">${delta >= 0 ? "+" : ""}${delta}</em></div>
+    ${dNew !== dOld ? `<div class="rk-promo" style="--c:${dNew.c}">${rkBadge(R.r, 22)} ${R.r > old ? GT("עלית ל", "Promoted to ") : GT("ירדת ל", "Dropped to ")}${GT(dNew.he, dNew.en)}</div>` : ""}
+    <div class="g-stats"><div><b>${K.right}/${RK_N}</b><span>${GT("נכונות", "Correct")}</span></div><div><b dir="ltr">${avg}s</b><span>${GT("זמן ממוצע", "Avg time")}</span></div><div><b dir="ltr">+${coins}</b><span>${GT("מטבעות", "Coins")}</span></div></div>
+    <button class="g-btn primary big" id="rkAgain">${GT("קרב נוסף", "Play again")}</button>
+    ${K.wrong.length ? `<button class="g-btn" id="rkRev">${GT("חזרה על הטעויות", "Review mistakes")} (${K.wrong.length})</button>` : ""}
+    <button class="g-btn ghost" id="rkHome">${GT("לדף הדירוג", "Ranked home")}</button></div>`, "rk");
+  setTimeout(() => rkCount($("#rkR"), old, R.r), 400);
+  $("#rkAgain").onclick = rkMatch; $("#rkHome").onclick = rankedGame;
+  const rv = $("#rkRev"); if (rv) rv.onclick = () => gReview(K.wrong, rankedGame);
+}
+
+/* ═════════ 4. יותר או פחות ═════════ */
+let HL = null;
+function hlPool() {
+  if (typeof FOODS_RAW === "undefined") return [];
+  const en = EN_(), seen = new Set();
+  return FOODS_RAW.map(f => ({ n: en ? (typeof LANG_EN !== "undefined" && LANG_EN[f[0]]) : f[0], cal: f[2], pro: f[3] }))
+    .filter(f => f.n && !seen.has(f.n) && seen.add(f.n));
+}
+function hlGame() {
+  ensureG(); gStop();
+  const B = S.g.hl;
+  gScreen(GT("יותר או פחות", "Higher or lower"), "", `
+    <p class="g-sub">${GT("שני מזונות, ערכים ל־100 גרם. בשני יש יותר או פחות? כל תשובה נכונה מאריכה את הרצף – טעות אחת ונגמר.", "Two foods, values per 100 g. Does the second have more or less? Every right answer extends your streak – one miss and it's over.")}</p>
+    <button class="g-card hl-pick" data-m="cal"><span class="hl-pi">${ic("zap", 22)}</span><div><b>${GT("קלוריות", "Calories")}</b><small>${GT("שיא", "Best")}: ${B.cal}</small></div></button>
+    <button class="g-card hl-pick" data-m="pro"><span class="hl-pi">${ic("target", 22)}</span><div><b>${GT("חלבון", "Protein")}</b><small>${GT("שיא", "Best")}: ${B.pro}</small></div></button>
+    <p class="g-note">${GT("הנתונים ממאגר המזונות של האפליקציה (USDA ותוויות יצרן).", "Data comes from the app's food database (USDA and product labels).")}</p>`, "hl");
+  app.querySelectorAll(".hl-pick").forEach(b => b.onclick = () => hlStart(b.dataset.m));
+}
+function hlNext(prev) {
+  const P = HL.pool, m = HL.m;
+  for (let t = 0; t < 200; t++) {
+    const f = P[Math.floor(Math.random() * P.length)];
+    if (f === prev || HL.used.has(f.n)) continue;
+    const a = prev[m], b = f[m];
+    if (Math.abs(a - b) / Math.max(a, b, 1) < 0.15 || Math.abs(a - b) < (m === "pro" ? 1 : 15)) continue;
+    HL.used.add(f.n); return f;
+  }
+  return P.find(f => f !== prev && f[m] !== prev[m]);
+}
+const hlFmt = (m, v) => m === "cal" ? `${Math.round(v)}` : `${Math.round(v * 10) / 10}`;
+const hlUnit = m => m === "cal" ? GT("קלוריות", "calories") : GT("גרם חלבון", "g protein");
+function hlStart(m) {
+  const pool = hlPool(); if (pool.length < 10) { toast("⚠️", GT("מאגר המזונות לא זמין", "Food database unavailable")); return; }
+  HL = { m, pool, streak: 0, used: new Set(), busy: false };
+  HL.a = pool[Math.floor(Math.random() * pool.length)]; HL.used.add(HL.a.n); HL.b = hlNext(HL.a);
+  gScreen(GT("יותר או פחות", "Higher or lower"), `<span class="g-pill" id="hlS">${GT("רצף", "Streak")} <b>0</b></span>`, `<div class="hl-wrap" id="hlW"></div><div id="hlEnd"></div>`, "hl");
+  $("#gBack").onclick = hlGame;
+  hlDraw();
+}
+function hlDraw() {
+  const m = HL.m;
+  $("#hlW").innerHTML = `
+    <div class="hl-card known"><div class="g-kicker">${GT("ל־100 גרם", "Per 100 g")}</div><b class="hl-name">${esc(HL.a.n)}</b><div class="hl-val"><span dir="ltr">${hlFmt(m, HL.a[m])}</span><small>${hlUnit(m)}</small></div></div>
+    <div class="hl-vs">${GT("מול", "vs")}</div>
+    <div class="hl-card" id="hlB"><div class="g-kicker">${GT("ל־100 גרם", "Per 100 g")}</div><b class="hl-name">${esc(HL.b.n)}</b>
+      <div class="hl-val" id="hlBV"><span>?</span><small>${hlUnit(m)}</small></div>
+      <div class="g-row hl-btns"><button class="g-btn" data-g="1">${ic("up", 18)} ${GT("יותר", "Higher")}</button><button class="g-btn" data-g="-1">${ic("down", 18)} ${GT("פחות", "Lower")}</button></div></div>`;
+  app.querySelectorAll("[data-g]").forEach(b => b.onclick = () => hlGuess(+b.dataset.g));
+}
+function hlGuess(dir) {
+  if (HL.busy) return; HL.busy = true;
+  const m = HL.m, a = HL.a[m], b = HL.b[m], ok = dir > 0 ? b > a : b < a;
+  app.querySelectorAll("[data-g]").forEach(x => x.disabled = true);
+  const v = $("#hlBV span"); v.setAttribute("dir", "ltr");
+  const t0 = performance.now();
+  const f = () => { const k = Math.min(1, (performance.now() - t0) / 650), e = 1 - Math.pow(1 - k, 3); v.textContent = hlFmt(m, b * e); if (k < 1) requestAnimationFrame(f); else done(); };
+  const done = () => {
+    v.textContent = hlFmt(m, b);
+    $("#hlB").classList.add(ok ? "ok" : "no");
+    if (ok) {
+      HL.streak++; sfx("ok"); vib(15);
+      $("#hlS b").textContent = HL.streak;
+      setTimeout(() => { HL.a = HL.b; HL.b = hlNext(HL.a); HL.busy = false; hlDraw(); $("#hlB").classList.add("in"); }, 700);
+    } else { sfx("no"); vib([30, 40, 30]); setTimeout(hlOver, 600); }
+  };
+  f();
+}
+function hlOver() {
+  const B = S.g.hl, rec = HL.streak > B[HL.m];
+  if (rec) B[HL.m] = HL.streak;
+  const coins = Math.floor(HL.streak / 2);
+  if (coins) addCoins(coins, true); addXP(5 + HL.streak * 4);
+  if (HL.streak >= 3) touchStreak();
+  logHistory({ mode: "hl", title: GT("יותר או פחות", "Higher or lower"), score: 100, n: HL.streak }); save();
+  if (rec && HL.streak > 0) sfx("win");
+  $("#hlW").querySelector(".hl-btns")?.remove();
+  $("#hlEnd").innerHTML = `<div class="g-card in hl-end"><div class="g-kicker">${rec && HL.streak ? GT("שיא חדש", "New best") : GT("הרצף נגמר", "Streak over")}</div>
+    <h1 class="rk-out">${HL.streak}</h1><div class="g-note">${GT("שיא", "Best")}: ${B[HL.m]}${coins ? ` · +${coins} ${GT("מטבעות", "coins")}` : ""}</div>
+    <button class="g-btn primary big" id="hlAgain">${GT("שוב", "Play again")}</button><button class="g-btn ghost" id="hlMenu">${GT("החלפת מדד", "Change metric")}</button></div>`;
+  $("#hlAgain").onclick = () => hlStart(HL.m); $("#hlMenu").onclick = hlGame;
+}
+
+/* ═════════ עיצוב משחקי החידון הקיימים ═════════ */
+const GM_MODES = ["quick", "speed", "survival", "sudden", "challenge", "terms", "img"];
+function gmFx(ok) {
   if (!document.body.classList.contains("gm")) return;
   setTimeout(() => {
-    if (ok) {
-      gmBurst(app.querySelector(".opt.ok"), ["⭐", "✨", "💪", "🎉"]);
-      if (combo >= 3 && combo % 1 === 0 && [3, 5, 7, 10, 15, 20].includes(combo)) arcPop(`<div class="pop-t">🔥 ×${combo}</div><div class="pop-s">${GT("ברצף!", "in a row!")}</div>`, "small");
-    } else {
-      arcShake(app.firstElementChild); document.body.classList.add("arc-hurt"); setTimeout(() => document.body.classList.remove("arc-hurt"), 450);
-    }
-  }, 40);
+    if (ok) { const o = app.querySelector(".opt.ok"); o && o.classList.add("glow"); }
+    else gShake(app.querySelector(".opt.no") || app.querySelector("#opts"));
+  }, 30);
 }
 const _renderQuestionG = renderQuestion;
-renderQuestion = function () {
-  _renderQuestionG();
-  document.body.classList.toggle("gm", !!(session && GM_MODES.includes(session.mode)));
-};
+renderQuestion = function () { _renderQuestionG(); document.body.classList.toggle("gm", !!(session && GM_MODES.includes(session.mode))); };
 const _onAnswerG = onAnswer;
-onAnswer = function (s, it) { const r = _onAnswerG(s, it); if (GM_MODES.includes(s.mode)) gmFx(it.grade === 1, s.combo); return r; };
+onAnswer = function (s, it) { const r = _onAnswerG(s, it); if (GM_MODES.includes(s.mode)) gmFx(it.grade === 1); return r; };
 const _answerSpeedG = answerSpeed;
-answerSpeed = function () { const r = _answerSpeedG(); const it = session && session.items[session.idx]; if (it) gmFx(it.grade === 1, 0); return r; };
+answerSpeed = function () { const r = _answerSpeedG(); const it = session && session.items[session.idx]; if (it) gmFx(it.grade === 1); return r; };
 ["swipeTF", "whoAmI", "guessGame", "storiesPage", "playStory", "millionaire", "spotMistake"].forEach(n => {
   if (typeof window[n] !== "function") return;
   const f = window[n];
   window[n] = function (...a) { const r = f.apply(this, a); document.body.classList.add("gm"); return r; };
 });
 
+/* ═════════ עמוד המשחקים ובית ═════════ */
+const TILE_IC = { quick: "dice", speed: "zap", survival: "heart", sudden: "alert", challenge: "users", duel: "swords", who: "search", swipe: "swipe", story: "film", img: "image", guess: "target", terms: "book", mil: "coins", spot: "camera", body: "body", prep: "cap", fa: "plus", drills: "mic", demos: "video" };
+function gStatus() {
+  const L = EN_() ? "en" : "he", w = S.g.wd[L], c = S.g.cn, R = S.g.rk, d = rkDiv(R.r);
+  return {
+    wd: w.d === today() && w.done ? (w.win ? GT("✓ נפתר היום", "✓ Solved today") : GT("נסה שוב מחר", "Try again tomorrow")) : GT("מילה חדשה היום", "New word today"),
+    cn: c.d === today() && c.st && c.st.done ? (c.st.win ? GT("✓ נפתר היום", "✓ Solved today") : GT("נסה שוב מחר", "Try again tomorrow")) : GT("לוח חדש היום", "New board today"),
+    rk: `${GT(d.he, d.en)} · ${R.r}`,
+    hl: `${GT("שיא", "Best")} ${Math.max(S.g.hl.cal, S.g.hl.pro)}`,
+    wdNew: !(w.d === today() && w.done), cnNew: !(c.d === today() && c.st && c.st.done)
+  };
+}
+const G_GAMES = () => [
+  ["wd", "word", GT("המילה היומית", "Daily word"), GT("נחש מונח כושר ב־6 ניסיונות", "Guess a fitness word in 6 tries"), wordGame],
+  ["cn", "grid", GT("קבוצות", "Connections"), GT("מצא 4 קבוצות של 4", "Find four groups of four"), connGame],
+  ["rk", "trophy", GT("קרב מדורג", "Ranked"), GT("1 על 1 · דירוג ודרגות", "1v1 · rating and divisions"), rankedGame],
+  ["hl", "updown", GT("יותר או פחות", "Higher or lower"), GT("קלוריות וחלבון במזון", "Calories and protein in food"), hlGame],
+];
+const _gamesPageA = gamesPage;
+gamesPage = function () {
+  gStop(); ensureG(); WD = null; document.body.classList.remove("gm");
+  _gamesPageA();
+  const root = app.firstElementChild; if (!root) return;
+  root.classList.add("gp");
+  root.querySelectorAll(".mode").forEach(b => {
+    const k = b.dataset.fun || b.dataset.mm || b.dataset.xx, em = b.querySelector(".em");
+    if (em && TILE_IC[k] && !b.classList.contains("locked")) em.innerHTML = ic(TILE_IC[k], 20);
+    else if (em && b.classList.contains("locked")) em.innerHTML = ic("alert", 20);
+  });
+  const h = root.querySelector("h2"); if (!h) return;
+  const st = gStatus();
+  h.insertAdjacentHTML("afterend", `<div class="section-title"><h2>${GT("משחקים חדשים", "New games")}</h2></div>
+    <div class="g-feat" data-notr>${G_GAMES().map(([k, i, t, s]) => `<button class="g-fc" data-g="${k}"><span class="g-fi">${ic(i, 22)}</span><b>${t}</b><small>${s}</small><em class="${(k === "wd" && st.wdNew) || (k === "cn" && st.cnNew) ? "new" : ""}">${st[k]}</em></button>`).join("")}</div>`);
+  root.querySelectorAll(".g-fc").forEach(b => b.onclick = () => G_GAMES().find(g => g[0] === b.dataset.g)[4]());
+};
+const _goA = go;
+go = function (...a) { gStop(); WD = null; document.body.classList.remove("gm"); return _goA(...a); };
 const _renderHomeA = renderHome;
 renderHome = function () {
   _renderHomeA();
-  if (!app.querySelector(".arc-home")) {
-    const a = $("#lhMore"), b = app.querySelector(".tiles3");
-    if (a) a.insertAdjacentHTML("beforebegin", arcCards(true)); else if (b) b.insertAdjacentHTML("afterend", arcCards(true));
-  }
-  arcBind(app);
+  if (app.querySelector(".g-home")) return;
+  const st = gStatus();
+  const html = `<div class="g-home" data-notr>
+    <button class="g-hc" data-g="wd"><span class="g-fi">${ic("word", 20)}</span><div><b>${GT("המילה היומית", "Daily word")}</b><small>${st.wd}</small></div>${st.wdNew ? "<i></i>" : ""}</button>
+    <button class="g-hc" data-g="rk"><span class="g-fi">${rkBadge(S.g.rk.r, 22)}</span><div><b>${GT("קרב מדורג", "Ranked")}</b><small>${st.rk}</small></div></button></div>`;
+  const a = $("#lhMore"), b = app.querySelector(".tiles3");
+  if (a) a.insertAdjacentHTML("beforebegin", html); else if (b) b.insertAdjacentHTML("afterend", html); else return;
+  app.querySelectorAll(".g-hc").forEach(x => x.onclick = () => (x.dataset.g === "wd" ? wordGame : rankedGame)());
 };
 if (typeof tab !== "undefined" && tab === "home" && !session && !document.querySelector(".modal-bg")) { try { renderHome(); } catch (e) { } }
